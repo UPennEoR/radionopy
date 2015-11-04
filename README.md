@@ -6,8 +6,8 @@ This is an attempt to make ionFR
 (http://sourceforge.net/projects/ionfr/) considerably more powerful
 and flexible.
 
-The general flow goes like this, and I have tried indicate where in
-the code the various bits are currently implemented.
+The general flow goes like this, based on ionFRM.py, and I have tried
+indicate where in the code the various bits are currently implemented.
 
 - determine which IONEX file you need for a given day of interest.
   Currently implemented in getIONEXfile.py
@@ -20,8 +20,10 @@ the code the various bits are currently implemented.
   a HealPix map.
   (This is based on the original function calcTEC in ionFR, a hacked version
   of which is present in readTEC.py)
+  I would like to keep the whole maps around, unlike ionFR, which was
+  only interested in particular positions.
 
-- calculate the "pierce points" for every direction of interest
+- calculate the "pierce points" for every direction of interest.  Defined in the function PuncIonOffset in ippcoor.py
 
 - calculate the B-field at the pierce points
 
@@ -30,6 +32,8 @@ the code the various bits are currently implemented.
   reading an output file.  For now, I think we find a sensible way to
   wrap this, but should look if it is the limiting step for
   calculating a large number of points.
+
+  f = open(''+str(path)+'ionFR/IGRF/geomag70_linux/input.txt', 'w')
 
 - calculate vertical TEC at the pierce points.  This uses 
 
