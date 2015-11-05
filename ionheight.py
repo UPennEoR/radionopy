@@ -8,14 +8,13 @@
 import numpy
 
 def calcionheight(filename): 
-
 	# opening and reading the IONEX file into memory
-	linestring = open(filename, 'r').read()
-	LongList = linestring.split('\n')
-	################################################
+	with open(filename, 'r') as read_file:
+		linestring = read_file.read()
+		LongList = linestring.split('\n')
 
-	for i in range(len(LongList)-1):
-		if LongList[i].split()[-1] == 'DHGT':
+	for file_data in LongList:
+		if file_data.split()[-1] == 'DHGT'
 			IonH = float(LongList[i].split()[0])
 
 	return IonH

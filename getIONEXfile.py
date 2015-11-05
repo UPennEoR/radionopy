@@ -1,37 +1,40 @@
 # Generate the necessary IONEX filename for a given day, and fetch it via ftp
-
-import ftplib
-import datetime
+from __future__ import print_function
 import os
+import datetime
+import ftplib
 
 # From the little script from ionFR of the same name
-def IONEXFileNeeded(year,month,day):
-    dayofyear = datetime.datetime.strptime(''+str(year)+' '+str(month)+' '+str(day)+'', '%Y %m %d').timetuple().tm_yday
+def IONEXFileNeeded(year, month, day):
+	time_str = '{year} {month} {day}'.format(year=year, month=month, day=day)
+	dayofyear = datetime.datetime.strptime(time_str, '%Y %m %d').timetuple().tm_yday
 
-    if dayofyear < 10:
-        dayofyear = '00'+str(dayofyear)
-    if dayofyear < 100 and dayofyear >= 10:
-        dayofyear = '0'+str(dayofyear)
+	if dayofyear < 10:
+		dayofyear = '00{dayofyear}'.format(dayofyear=dayofyear)
+	elif dayofyear < 100 and dayofyear >= 10:
+		dayofyear = '0{dayofyear}'.format(dayofyear=dayofyear)
 
-    # Outputing the name of the IONEX file you require
-    file =  'CODG'+str(dayofyear)+'0.'+str(list(str(year))[2])+''+str(list(str(year))[3])+'I'
-    return file
+	# Outputing the name of the IONEX file you require
+	ionex_file = 'CODG{dayofyear}0.{yearend}I'.format(dayofyear=dayofyear, yearend=str(year)[2:4])
 
-server = 'ftp.unibe.ch'
+	return ionex_file
 
-def getIONEXfile(year,month,day):
+def getIONEXfile(year, month, day):
+	server = 'ftp.unibe.ch'
 
-    ftp_dir = 'aiub/CODE/'+year
-    ionexfile = IONEXFileNeeded(year,month,day)
-    ionexfileZ = ionexfile+'.Z'
+	ftp_dir = os.path.join('aiub/CODE/', year)
+	ionexfile = IONEXFileNeeded(year, month, day)
+	ionexfileZ = ''.join((ionexfile, '.Z'))
 
-    print 'Retrieving '+ionexfileZ+' for '+day+' '+month+' '+year
-    ftp = ftplib.FTP(server, 'anonymous', 'jaguirre@sas.upenn.edu')
-    ftp.cwd(ftp_dir)
-    ftp.retrbinary('RETR '+ionexfileZ, open(ionexfileZ, 'wb').write)
-    ftp.quit()
+	getting_file_str = 'Retrieving {ionexfileZ} for {day} {month} {year}'.format(ionexfileZ=ionexfileZ, day=day, month=month, year=year)
+	print(getting_file_str)
 
-    return True
+	ftp = ftplib.FTP(server, 'anonymous', 'jaguirre@sas.upenn.edu')
+	ftp.cwd(ftp_dir)
+	ftp.retrbinary(' '.join(('RETR', ionexfileZ)), open(ionexfileZ, 'wb').write)
+	ftp.quit()
 
-#    os.system('gunzip '+ionexfileZ)
+	return True
 
+if __name__ == '__main__':
+	#os.system('gunzip '+ionexfileZ)
