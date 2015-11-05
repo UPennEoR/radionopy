@@ -28,59 +28,56 @@
 # 	TECvalues[LAT,LON] = [00,01,02,...,22,23,24]hrs
 #------------------------------------------------------
 
-import numpy
+from __future__ import print_function
+import numpy as np
 
 def readIonexTEC(filename):
-
-        #==========================================================================
+	#==========================================================================
 	# Reading and storing only the TEC values of 1 day
 	# (13 maps) into a 3D array
 
 	# Opening and reading the IONEX file into memory
-	linestring = open(filename, 'r').read()
-	LongList = linestring.split('\n')
+	with open(filename, 'r') as read_file:
+		linestring = read_file.read()
+		LongList = linestring.split('\n')
 
 	# creating a new array without the header and only
 	# with the TEC maps
 	add = 0 
 	NewLongList = []
-	for i in range(len(LongList)-1):
-		if LongList[i].split()[-1] == 'MAP':
-			if LongList[i].split()[-2] == 'RMS':
-				add = 0
-		if add == 1:	
-			NewLongList.append(LongList[i])
-		if LongList[i].split()[-1] == 'FILE':
-			if LongList[i].split()[-2] == 'IN':
-				NumberOfMaps = float(LongList[i].split()[0])
-		if LongList[i].split()[-1] == 'DHGT':
-			IonH = float(LongList[i].split()[0])
-		if LongList[i].split()[-1] == 'DLAT':
-			startLat = float(LongList[i].split()[0])
-			endLat = float(LongList[i].split()[1])
-			stepLat = float(LongList[i].split()[2])
-		if LongList[i].split()[-1] == 'DLON':
-			startLon = float(LongList[i].split()[0])
-			endLon = float(LongList[i].split()[1])
-			stepLon = float(LongList[i].split()[2])
-		if LongList[i].split()[0] == 'END':
-			if LongList[i].split()[2] == 'HEADER':
-				add = 1	
+	for file_data in LongList:
+		if file_data.split()[-2:] == ['RMS', 'MAP']:
+			add = 0
+		elif file_data.split()[-2:] == ['IN', 'FILE']:
+			NumberOfMaps = float(file_data.split()[0])
+
+		if add == 1:
+			NewLongList.append(file_data)
+
+		if file_data.split()[0] == 'END' and file_data.split()[2] == 'HEADER':
+			add = 1
+
+		if file_data.split()[-1] == 'DHGT':
+			IonH = float(file_data.split()[0])
+		elif file_data.split()[-1] == 'DLAT':
+			startLat, endLat, stepLat = [float(data_item) for data_item in file_data[:2]]
+		elif file_data.split()[-1] == 'DLON':
+			startLon, endLon, stepLon = [float(data_item) for data_item in file_data[:2]]
 
 	# Variables that indicate the number of points in Lat. and Lon.
-	pointsLon = ((endLon - startLon)/stepLon) + 1
-	pointsLat = ((endLat - startLat)/stepLat) + 1
+	pointsLon = ((endLon - startLon) / stepLon) + 1
+	pointsLat = ((endLat - startLat) / stepLat) + 1
 
-        print startLon,endLon,stepLon
-        print startLat,endLat,stepLat
-        print pointsLon,pointsLat
-        
-        # What are the Lat/Lon coords?
-        Longitude = numpy.linspace(startLon,endLon,num=pointsLon)
-        Latitude = numpy.linspace(startLat,endLat,num=pointsLat)
-        
+	print(startLon, endLon, stepLon)
+	print(startLat, endLat, stepLat)
+	print(pointsLon, pointsLat)
+
+	# What are the Lat/Lon coords?
+	Longitude = np.linspace(startLon, endLon, num=pointsLon)
+	Latitude = np.linspace(startLat, endLat, num=pointsLat)
+
 	# 3D array that will contain TEC values only
-	a = numpy.zeros((NumberOfMaps,pointsLat,pointsLon))
+	a = np.zeros((NumberOfMaps, pointsLat, pointsLon))
 
 	# Selecting only the TEC values to store in the 3-D array
 	counterMaps = 1
@@ -88,64 +85,34 @@ def readIonexTEC(filename):
 		# Pointing to first map (out of 13 maps)
 		# then by changing 'counterMaps' the other
 		# maps are selected
-		if NewLongList[i].split()[0] == ''+str(counterMaps)+'':
-			if NewLongList[i].split()[-4] == 'START':
-				# pointing the starting Latitude
-				# then by changing 'counterLat' we select
-				# TEC data at other latitudes within
-				# the selected map
-				counterLat = 0
-				newstartLat = float(str(startLat))
-				for itemLat in range(int(pointsLat)):
-					if NewLongList[i+2+counterLat].split()[0].split('-')[0] == ''+str(newstartLat)+'':
-						# adding to array 'a' a line of Latitude TEC data
-						counterLon = 0
-						for item in range(len(NewLongList[i+3+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+3+counterLat].split()[item]
+		if NewLongList[i].split()[0] == str(counterMaps) and NewLongList[i].split()[-4] == 'START':
+			# pointing the starting Latitude
+			# then by changing 'counterLat' we select
+			# TEC data at other latitudes within
+			# the selected map
+			counterLat = 0
+			newstartLat = float(str(startLat))
+			for itemLat in range(int(pointsLat)):
+				if NewLongList[i + 2 + counterLat].split()[0].split('-')[0] == str(newstartLat)\
+				or '-' + NewLongList[i + 2 + counterLat].split()[0].split('-')[1] == str(newstartLat):
+					# Adding to array 'a' a line of Latitude TEC data
+					# we account for the TEC values at negative latitudes
+					counterLon = 0
+					for count_num in range(3, 8):
+						list_index = i + count_num + counterLat
+						for item in range(len(NewLongList[list_index].split())):
+							a[counterMaps - 1, itemLat, counterLon] = NewLongList[list_index].split()[item]
 							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+4+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+4+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+5+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+5+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+6+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+6+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+7+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+7+counterLat].split()[item]
-							counterLon = counterLon + 1				
-					if '-'+NewLongList[i+2+counterLat].split()[0].split('-')[1] == ''+str(newstartLat)+'':
-						# Adding to array 'a' a line of Latitude TEC data
-						# Same chunk as above but in this case we account for
-						# the TEC values at negative latitudes
-						counterLon = 0
-						for item in range(len(NewLongList[i+3+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+3+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+4+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+4+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+5+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+5+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+6+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+6+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+7+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+7+counterLat].split()[item]
-							counterLon = counterLon + 1
-					counterLat = counterLat + 6
-					newstartLat = newstartLat + stepLat
-				counterMaps = counterMaps + 1
+				counterLat = counterLat + 6
+				newstartLat = newstartLat + stepLat
+			counterMaps = counterMaps + 1
 
-        return {'TEC':numpy.array(a),'lat':Latitude,'lon':Longitude}
+	return {'TEC': np.array(a), 'lat': Latitude, 'lon': Longitude}
 	#==========================================================================
 
 # This was the original version as supplied in ionFR
 
-def calcTEC(coordLat,coordLon,filename): 
-
+def calcTEC(coordLat, coordLon, filename): 
 	timeInt = 1.0 # hours
 	totalmaps = 25
 
@@ -154,42 +121,39 @@ def calcTEC(coordLat,coordLon,filename):
 	# (13 maps) into a 3D array
 
 	# Opening and reading the IONEX file into memory
-	linestring = open(filename, 'r').read()
-	LongList = linestring.split('\n')
+	with open(filename, 'r') as read_file:
+		linestring = read_file.read()
+		LongList = linestring.split('\n')
 
 	# creating a new array without the header and only
 	# with the TEC maps
 	add = 0 
 	NewLongList = []
-	for i in range(len(LongList)-1):
-		if LongList[i].split()[-1] == 'MAP':
-			if LongList[i].split()[-2] == 'RMS':
-				add = 0
-		if add == 1:	
-			NewLongList.append(LongList[i])
-		if LongList[i].split()[-1] == 'FILE':
-			if LongList[i].split()[-2] == 'IN':
-				NumberOfMaps = float(LongList[i].split()[0])
-		if LongList[i].split()[-1] == 'DHGT':
-			IonH = float(LongList[i].split()[0])
-		if LongList[i].split()[-1] == 'DLAT':
-			startLat = float(LongList[i].split()[0])
-			endLat = float(LongList[i].split()[1])
-			stepLat = float(LongList[i].split()[2])
-		if LongList[i].split()[-1] == 'DLON':
-			startLon = float(LongList[i].split()[0])
-			endLon = float(LongList[i].split()[1])
-			stepLon = float(LongList[i].split()[2])
-		if LongList[i].split()[0] == 'END':
-			if LongList[i].split()[2] == 'HEADER':
-				add = 1	
+	for file_data in LongList:
+		if file_data.split()[-2:] == ['RMS', 'MAP']:
+			add = 0
+		elif file_data.split()[-2:] == ['IN', 'FILE']:
+			NumberOfMaps = float(file_data.split()[0])
+
+		if add == 1:
+			NewLongList.append(file_data)
+
+		if file_data.split()[0] == 'END' and file_data.split()[2] == 'HEADER':
+			add = 1
+
+		if file_data.split()[-1] == 'DHGT':
+			IonH = float(file_data.split()[0])
+		elif file_data.split()[-1] == 'DLAT':
+			startLat, endLat, stepLat = [float(data_item) for data_item in file_data[:2]]
+		elif file_data.split()[-1] == 'DLON':
+			startLon, endLon, stepLon = [float(data_item) for data_item in file_data[:2]]
 
 	# Variables that indicate the number of points in Lat. and Lon.
-	pointsLon = ((endLon - startLon)/stepLon) + 1
-	pointsLat = ((endLat - startLat)/stepLat) + 1
+	pointsLon = ((endLon - startLon) / stepLon) + 1
+	pointsLat = ((endLat - startLat) / stepLat) + 1
 
 	# 3D array that will contain TEC values only
-	a = numpy.zeros((NumberOfMaps,pointsLat,pointsLon))
+	a = np.zeros((NumberOfMaps, pointsLat, pointsLon))
 
 	# Selecting only the TEC values to store in the 3-D array
 	counterMaps = 1
@@ -197,56 +161,27 @@ def calcTEC(coordLat,coordLon,filename):
 		# Pointing to first map (out of 13 maps)
 		# then by changing 'counterMaps' the other
 		# maps are selected
-		if NewLongList[i].split()[0] == ''+str(counterMaps)+'':
-			if NewLongList[i].split()[-4] == 'START':
-				# pointing the starting Latitude
-				# then by changing 'counterLat' we select
-				# TEC data at other latitudes within
-				# the selected map
-				counterLat = 0
-				newstartLat = float(str(startLat))
-				for itemLat in range(int(pointsLat)):
-					if NewLongList[i+2+counterLat].split()[0].split('-')[0] == ''+str(newstartLat)+'':
-						# adding to array 'a' a line of Latitude TEC data
-						counterLon = 0
-						for item in range(len(NewLongList[i+3+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+3+counterLat].split()[item]
+		if NewLongList[i].split()[0] == str(counterMaps) and NewLongList[i].split()[-4] == 'START':
+			# pointing the starting Latitude
+			# then by changing 'counterLat' we select
+			# TEC data at other latitudes within
+			# the selected map
+			counterLat = 0
+			newstartLat = float(str(startLat))
+			for itemLat in range(int(pointsLat)):
+				if NewLongList[i + 2 + counterLat].split()[0].split('-')[0] == str(newstartLat)\
+				or '-' + NewLongList[i + 2 + counterLat].split()[0].split('-')[1] == str(newstartLat):
+					# Adding to array 'a' a line of Latitude TEC data
+					# we account for the TEC values at negative latitudes
+					counterLon = 0
+					for count_num in range(3, 8):
+						list_index = i + count_num + counterLat
+						for item in range(len(NewLongList[list_index].split())):
+							a[counterMaps - 1, itemLat, counterLon] = NewLongList[list_index].split()[item]
 							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+4+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+4+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+5+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+5+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+6+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+6+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+7+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+7+counterLat].split()[item]
-							counterLon = counterLon + 1				
-					if '-'+NewLongList[i+2+counterLat].split()[0].split('-')[1] == ''+str(newstartLat)+'':
-						# Adding to array 'a' a line of Latitude TEC data
-						# Same chunk as above but in this case we account for
-						# the TEC values at negative latitudes
-						counterLon = 0
-						for item in range(len(NewLongList[i+3+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+3+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+4+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+4+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+5+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+5+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+6+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+6+counterLat].split()[item]
-							counterLon = counterLon + 1
-						for item in range(len(NewLongList[i+7+counterLat].split())):
-							a[counterMaps-1,itemLat,counterLon] = NewLongList[i+7+counterLat].split()[item]
-							counterLon = counterLon + 1
-					counterLat = counterLat + 6
-					newstartLat = newstartLat + stepLat
-				counterMaps = counterMaps + 1
+				counterLat = counterLat + 6
+				newstartLat = newstartLat + stepLat
+			counterMaps = counterMaps + 1
 	#==========================================================================
 
 
@@ -256,23 +191,23 @@ def calcTEC(coordLat,coordLon,filename):
 	# one indicated in the IONEX manual
 
 	# creating a new array that will contain 25 maps in total 
-	newa = numpy.zeros((totalmaps,pointsLat,pointsLon))
+	newa = np.zeros((totalmaps, pointsLat, pointsLon))
 	inc = 0
 	for item in range(int(NumberOfMaps)):
-		newa[inc,:,:] = a[item,:,:]
+		newa[inc, :, :] = a[item, :, :]
 		inc = inc + 2
 
 	# performing the interpolation to create 12 addional maps 
 	# from the 13 TEC maps available
-	while int(timeInt) <= (totalmaps-2):
+	while int(timeInt) <= (totalmaps - 2):
 		for lat in range(int(pointsLat)):
 			for lon in range(int(pointsLon)):
 				# interpolation type 2:
 				# newa[int(timeInt),lat,lon] = 0.5*newa[int(timeInt)-1,lat,lon] + 0.5*newa[int(timeInt)+1,lat,lon]
 				# interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
-				# Correct for this):				
-				if (lon >= 4) and (lon <= (pointsLon-4)):
-					newa[int(timeInt),lat,lon] = 0.5*newa[int(timeInt)-1,lat,lon+3] + 0.5*newa[int(timeInt)+1,lat,lon-3] 
+				# Correct for this):
+				if (lon >= 4) and (lon <= (pointsLon - 4)):
+					newa[int(timeInt), lat, lon] = 0.5 * newa[int(timeInt) - 1, lat, lon + 3] + 0.5 * newa[int(timeInt) + 1, lat, lon -3 ] 
 		timeInt = timeInt + 2.0
 	#==========================================================================================
 
@@ -288,35 +223,29 @@ def calcTEC(coordLat,coordLon,filename):
 	n = 0
 	m = 0
 	for lon in range(int(pointsLon)):
-		if (coordLon > (startLon + (n+1)*stepLon)  and coordLon < (startLon + (n+2)*stepLon)) :
+		if (coordLon > (startLon + (n + 1) * stepLon)  and coordLon < (startLon + (n + 2) * stepLon)):
 			lowerIndexLon =  n + 1
-			higherIndexLon = n + 2	
+			higherIndexLon = n + 2
 		n = n + 1
 	for lat in range(int(pointsLat)):
-		if (coordLat < (startLat + (m+1)*stepLat)  and coordLat > (startLat + (m+2)*stepLat)) :
+		if (coordLat < (startLat + (m + 1) * stepLat)  and coordLat > (startLat + (m + 2) * stepLat)):
 			lowerIndexLat =  m + 1
-			higherIndexLat = m + 2	
+			higherIndexLat = m + 2
 		m = m + 1
 
 	# Using the 4-point formula indicated in the IONEX manual
 	# The TEC value at the coordinates you desire for every 
 	# hour are estimated 
-	diffLon = coordLon - (startLon + lowerIndexLon*stepLon)
-	p = diffLon/stepLon
-	diffLat = coordLat - (startLat + lowerIndexLat*stepLat)
-	q = diffLat/stepLat
+	diffLon = coordLon - (startLon + lowerIndexLon * stepLon)
+	p = diffLon / stepLon
+	diffLat = coordLat - (startLat + lowerIndexLat * stepLat)
+	q = diffLat / stepLat
 	TECvalues = []
-	for m in range(totalmaps):			
-		TECvalues.append((1.0-p)*(1.0-q)*newa[m,lowerIndexLat,lowerIndexLon] + p*(1.0-q)*newa[m,lowerIndexLat,higherIndexLon] + q*(1.0-p)*newa[m,higherIndexLat,lowerIndexLon] + p*q*newa[m,higherIndexLat,higherIndexLon])
+	for m in range(totalmaps):
+		TECvalues.append((1.0 - p) * (1.0 - q) * newa[m, lowerIndexLat, lowerIndexLon]\
+							+ p * (1.0 - q) * newa[m, lowerIndexLat, higherIndexLon]\
+							+ q * (1.0 - p) * newa[m, higherIndexLat, lowerIndexLon]\
+							+ p * q * newa[m, higherIndexLat, higherIndexLon])
 	#=========================================================================
 
-        return {'TECvalues':numpy.array(TECvalues),'a':numpy.array(a),'newa':numpy.array(newa)}
-
-
-
-		
-		
-
-
-
-
+	return {'TECvalues': np.array(TECvalues), 'a': np.array(a), 'newa':n p.array(newa)}
