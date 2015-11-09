@@ -26,8 +26,8 @@ def plot_attenuation(rmArray, f, label):
 
 def plot_attenuation_sim(rmArray, f, daysInSeason=82, Niter=1000, label=''):
 	N = daysInSeason
-	l2 = (0.3/f) ** 2
-	hist, bins= np.histogram(rm, bins=np.arange(min(rmArray), max(rmArray) + binwidth, binwidth))
+	l2 = (0.3 / f) ** 2
+	hist, bins = np.histogram(rm, bins=np.arange(min(rmArray), max(rmArray) + binwidth, binwidth))
 	bin_midpoints = bins[:-1] + np.diff(bins) / 2
 	cdf = np.cumsum(hist)
 	cdf = cdf / cdf[-1]
@@ -39,7 +39,7 @@ def plot_attenuation_sim(rmArray, f, daysInSeason=82, Niter=1000, label=''):
 
 	for i, RM in enumerate(random_from_cdf):
 		atten = 0
-		for j in range(i+1, N, 1):
+		for j in range(i + 1, N, 1):
 			atten += np.cos(2 * (random_from_cdf[j] - RM) * l2)
 		factor = (float(N) + (2. * atten)) / pow(float(N), 2.)
 		factors.append(factor)
