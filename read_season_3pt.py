@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
 			for i, u in enumerate(UT):
 				gmst = 6.656306 + 0.0657098242 * (JD - 2445700.5) + 1.0027379093 * u
-				lst = (gmst + 21.428 *(24. / 360.)) % 24
+				lst = (gmst + 21.428 * (24. / 360.)) % 24
 
 				if int(lst) == pointing:
 					 a = [JD, RM[i], eRM[i]]

@@ -248,4 +248,4 @@ def calcTEC(coordLat, coordLon, filename):
 							+ p * q * newa[m, higherIndexLat, higherIndexLon])
 	#=========================================================================
 
-	return {'TECvalues': np.array(TECvalues), 'a': np.array(a), 'newa':n p.array(newa)}
+	return {'TECvalues': np.array(TECvalues), 'a': np.array(a), 'newa': np.array(newa)}
