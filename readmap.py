@@ -96,7 +96,7 @@ if __name__ == '__main__':
 			filename = ''.join(('2012-02-13', ra_str, dec_str, 'IonRM.txt'))
 			#print('Reading {filename}'.format(filename=filename))
 			try: 
-				UT, _, _, RM, eRM = np.loadtxt(filename,unpack=True)
+				UT, _, _, RM, eRM = np.loadtxt(filename, unpack=True)
 				#print(p, UT.shape)
 				try:
 					for i, ut in enumerate(UT):
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 				except TypeError:
 					continue
 			except IOError:
-				print('issue with {filename}'.format(filename))
+				print('issue with {filename}'.format(filename=filename))
 				UT22[p] = np.nan
 				c += 1
 				continue
