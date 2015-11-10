@@ -5,8 +5,6 @@
 # the height of the Ionosphere
 #------------------------------------------
 
-import numpy
-
 def calcionheight(filename): 
 	# opening and reading the IONEX file into memory
 	with open(filename, 'r') as read_file:
@@ -18,12 +16,3 @@ def calcionheight(filename):
 			IonH = float(LongList[i].split()[0])
 
 	return IonH
-
-
-
-		
-		
-
-
-
-
