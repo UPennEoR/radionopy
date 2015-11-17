@@ -11,7 +11,7 @@ def IONEXFileNeeded(year, month, day):
 
 	if dayofyear < 10:
 		dayofyear = '00{dayofyear}'.format(dayofyear=dayofyear)
-	elif dayofyear < 100 and dayofyear >= 10:
+	elif 10 <= dayofyear < 100:
 		dayofyear = '0{dayofyear}'.format(dayofyear=dayofyear)
 
 	# Outputing the name of the IONEX file you require
