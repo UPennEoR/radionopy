@@ -24,14 +24,14 @@ def plot_attenuation(rmArray, f, label):
 
 	return [np.mean(factors), np.std(factors)]
 
-def plot_attenuation_sim(rmArray, f, daysInSeason=82, Niter=1000, label=''):
-	N = daysInSeason
+def plot_attenuation_sim(rmArray, f, days_in_season=82, n_iter=1000, label=''):
+	N = days_in_season
 	l2 = (0.3 / f) ** 2
-	hist, bins = np.histogram(rm, bins=np.arange(min(rmArray), max(rmArray) + binwidth, binwidth))
+	hist, bins = np.histogram(rm, bins=np.arange(min(rmArray), max(rmArray) + bin_width, bin_width))
 	bin_midpoints = bins[:-1] + np.diff(bins) / 2
 	cdf = np.cumsum(hist)
 	cdf = cdf / cdf[-1]
-	values = np.random.rand(Niter)
+	values = np.random.rand(n_iter)
 	value_bins = np.searchsorted(cdf, values)
 	random_from_cdf = bin_midpoints[value_bins]
 
@@ -111,35 +111,35 @@ if __name__ == '__main__':
 	LST=1 (6pm->8pm SAST): 
 	mean RM = 1.5 +/- 0.2
 	Epsilon = 0.013 +/- 0.002
-	Epsilon (sim, Niter=1000) = 0.012 +/- 0.001
+	Epsilon (sim, n_iter=1000) = 0.012 +/- 0.001
 
 	LST = 4 (7pm->11pm SAST): 
 	mean RM = 1.0 +/- 0.2
 	Epsilon = 0.014 +/- 0.004
-	Epsilon (sim, Niter=1000) = 0.012 +/- 0.001
+	Epsilon (sim, n_iter=1000) = 0.012 +/- 0.001
 
 	LST = 8 (12am->3am SAST): 
 	mean RM = 0.7 +/- 0.1
 	Epsilon = 0.018 +/- 0.004
-	Epsilon (sim, Niter=1000) = 0.013 +/- 0.002
+	Epsilon (sim, n_iter=1000) = 0.013 +/- 0.002
 	'''
 
-	binwidth = 0.1
+	bin_width = 0.1
 
 	f, axarr = pylab.subplots(3,sharex=True)
 
-	axarr[0].hist(rm1, bins=np.arange(min(rm1), max(rm1) + binwidth, binwidth))
+	axarr[0].hist(rm1, bins=np.arange(min(rm1), max(rm1) + bin_width, bin_width))
 	axarr[0].text(0.1, 20, 'LST=1h')
 	axarr[0].set_xlim(0, 2)
 	axarr[0].set_ylim(0, 25)
 
-	axarr[1].hist(rm4, bins=np.arange(min(rm4), max(rm4) + binwidth, binwidth))
+	axarr[1].hist(rm4, bins=np.arange(min(rm4), max(rm4) + bin_width, bin_width))
 	axarr[1].text(0.1, 20, 'LST=4h')
 	axarr[1].set_xlim(0, 2)
 	axarr[1].set_ylim(0, 25)
 	axarr[1].set_ylabel(r'Frequency')
 
-	axarr[2].hist(rm8, bins=np.arange(min(rm8), max(rm8) + binwidth, binwidth))
+	axarr[2].hist(rm8, bins=np.arange(min(rm8), max(rm8) + bin_width, bin_width))
 	axarr[2].text(0.1, 20, 'LST=8h')
 	axarr[2].set_xlim(0, 2)
 	axarr[2].set_ylim(0 ,25)
