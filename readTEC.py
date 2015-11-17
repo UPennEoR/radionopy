@@ -31,7 +31,7 @@
 from __future__ import print_function
 import numpy as np
 
-def readIonexTEC(filename):
+def read_IONEX_TEC(filename):
 	#==========================================================================
 	# Reading and storing only the TEC values of 1 day
 	# (13 maps) into a 3D array
@@ -112,7 +112,7 @@ def readIonexTEC(filename):
 
 # This was the original version as supplied in ionFR
 
-def calcTEC(coordLat, coordLon, filename): 
+def calc_TEC(coordLat, coordLon, filename): 
 	timeInt = 1.0 # hours
 	totalmaps = 25
 
