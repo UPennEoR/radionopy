@@ -79,14 +79,14 @@ def punc_ion_offset(lat_obs, az_sou, zen_sou, alt_ion):
 	# The cosine rule for spherical triangles gives us the latitude
 	# at the IPP
 	lat_ion = math.asin(math.sin(lat_obs) * math.cos(theta) + math.cos(lat_obs) * math.sin(theta) * math.cos(az_sou)) 
-	dLat = lat_ion - lat_obs # latitude difference
+	d_lat = lat_ion - lat_obs # latitude difference
 
 	# Longitude difference using the 3-D sine rule (or for spherical triangles)
-	dLon = math.asin(math.sin(az_sou) * math.sin(theta) / math.cos(lat_ion))
+	d_lon = math.asin(math.sin(az_sou) * math.sin(theta) / math.cos(lat_ion))
 
 	# Azimuth at the IPP using the 3-D sine rule
-	saz_ion = math.sin(az_sou) * math.cos(lat_obs) / math.cos(lat_ion)
-	az_punc = math.asin(saz_ion)
+	s_az_ion = math.sin(az_sou) * math.cos(lat_obs) / math.cos(lat_ion)
+	az_punc = math.asin(s_az_ion)
 
 	return d_lat, d_lon, az_punc, zen_punc
 
