@@ -13,6 +13,6 @@ def calcionheight(filename):
 
 	for file_data in LongList:
 		if file_data.split()[-1] == 'DHGT'
-			IonH = float(LongList[i].split()[0])
+			IonH = float(file_data.split()[0])
 
 	return IonH
