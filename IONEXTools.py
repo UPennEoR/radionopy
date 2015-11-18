@@ -6,7 +6,7 @@ import pylab as plt
 import numpy as np
 import healpy as hp
 
-# It looks like calcTEC is actually self-contained.  It does, however,
+# It looks like calc_TEC is actually self-contained.  It does, however,
 # implicitly assume you want each hour over a day, and just one
 # coordinate point.  Moreover, every call reloads all the GIM maps for
 # a day, so it's super inefficient.
@@ -16,12 +16,12 @@ reload(readTEC)
 if __name__ == '__main__':
 	filename = 'IONEX_Data/CODG3400.11I'
 
-	test = readTEC.calcTEC(-30.6988641207, 22.0338381509, filename)
+	test = readTEC.calc_TEC(-30.6988641207, 22.0338381509, filename)
 
 	# In the current version, this gives just the 71 x 73 lat/lon array at
-	# 13 values of UT.  calcTEC performs an additional interpolation in
+	# 13 values of UT.  calc_TEC performs an additional interpolation in
 	# time to give values every hour.  There is also code to interpolates more finely spatially
-	a = readTEC.readIonexTEC(filename)
+	a = readTEC.read_IONEX_TEC(filename)
 
 	# Now I have a standard problem solved before: grid a rectilinear
 	# function of theta,phi onto a healpix map.  Ugh, why would IONEX pick

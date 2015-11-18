@@ -5,14 +5,14 @@
 # the height of the Ionosphere
 #------------------------------------------
 
-def calcionheight(filename): 
+def calc_ion_height(filename): 
 	# opening and reading the IONEX file into memory
 	with open(filename, 'r') as read_file:
 		linestring = read_file.read()
-		LongList = linestring.split('\n')
+		IONEX_list = linestring.split('\n')
 
-	for file_data in LongList:
+	for file_data in IONEX_list:
 		if file_data.split()[-1] == 'DHGT'
-			IonH = float(LongList[i].split()[0])
+			ion_h = float(file_data.split()[0])
 
-	return IonH
+	return ion_h

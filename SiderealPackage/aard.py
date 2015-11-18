@@ -1,209 +1,208 @@
 #!/usr/bin/env python
-#================================================================
-# aard: Convert azimuth/altitude to right ascension/declination
-#   For documentation, see:
-#     http://www.nmt.edu/tcc/help/lang/python/examples/sidereal/ims/
-#----------------------------------------------------------------
-#================================================================
-# Imports
-#----------------------------------------------------------------
-import sys, re
+from __future__ import print_function
+import sys
+import re
 import sidereal
 #================================================================
 # Manifest consants
 #----------------------------------------------------------------
 
-SIGN_PAT  =  re.compile ( r'[\-+]' )
-# - - - - -   m a i n
+SIGN_PAT = re.compile(r'[\-+]')
+#-----main
 
 def main():
-    """Main program for aard.
-    """
+	'''
+	Main program for aard.
+	'''
 
-    #-- 1 --
-    # [ if sys.argv contains a valid set of command line
-    #   arguments ->
-    #     altAz  :=  the azimuth and altitude as
-    #                a sidereal.AltAz instance
-    #     latLon  :=  the observer's location as a
-    #                 sidereal.LatLon instance
-    #     dt  :=  the observer's date and time as a
-    #             datetime.datetime instance
-    #   else ->
-    #     sys.stderr  +:=  error message
-    #     stop execution ]
-    altAz, latLon, dt  =  checkArgs()
+	#-- 1 --
+	# [ if sys.argv contains a valid set of command line
+	#  arguments ->
+	#	 alt_az := the azimuth and altitude as
+	#				a sidereal.alt_az instance
+	#	 lat_lon := the observer's location as a
+	#				 sidereal.lat_lon instance
+	#	 dt := the observer's date and time as a
+	#			 datetime.datetime instance
+	#  else ->
+	#	 sys.stderr +:= error message
+	#	 stop execution ]
+	alt_az, lat_lon, dt = check_args()
 
-    #-- 2 --
-    # [ if dt has no time zone information ->
-    #     utc  :=  dt
-    #   else ->
-    #     utc  :=  the UTC equivalent to dt ]
-    if  ( (dt.tzinfo is None) or
-          (dt.utcoffset() is None) ):
-        utc  =  dt
-    else:
-        utc  =  dt - dt.utcoffset()
-    #-- 3 --
-    # [ sys.stdout  +:=  local sidereal time for dt and latLon ]
-    gst  =  sidereal.SiderealTime.fromDatetime ( utc )
-    lst  =  gst.lst ( latLon.lon )
-    print "Horizon coordinates:", altAz
-    print "Observer's location:", latLon
-    print "Observer's time:", dt
-    print "Local sidereal time is", lst
-    #-- 4 --
-    # [ raDec  :=  equatorial coordinates of self for local
-    #       sidereal time (lst) and location (latLon) ]
-    raDec  =  altAz.raDec ( lst, latLon )
+	#-- 2 --
+	# [ if dt has no time zone information ->
+	#	 utc := dt
+	#  else ->
+	#	 utc := the UTC equivalent to dt ]
+	if dt.tzinfo is None or dt.utcoffset() is None:
+		utc = dt
+	else:
+		utc = dt - dt.utcoffset()
 
-    #-- 5 --
-    print "Equatorial coordinates:", raDec
-# - - -   c h e c k A r g s
+	#-- 3 --
+	# [ sys.stdout +:= local sidereal time for dt and lat_lon ]
+	gst = sidereal.SiderealTime.from_datetime(utc)
+	lst = gst.lst(lat_lon.lon)
+	print('Horizon coordinates:', alt_az)
+	print('Observer\'s location:', lat_lon)
+	print('Observer\'s time:', dt)
+	print('Local sidereal time is', lst)
 
-def checkArgs():
-    """Process all command line arguments.
+	#-- 4 --
+	# [ ra_dec := equatorial coordinates of self for local
+	#	  sidereal time (lst) and location (lat_lon) ]
+	ra_dec = alt_az.ra_dec(lst, lat_lon)
 
-      [ if sys.argv[1:] is a valid set of command line arguments ->
-          return (altAz, latLon, dt) where altAz is a set of
-          horizon coordinates as a sidereal.AltAz instance,
-          latLon is position as a sidereal.LatLon instance, and
-          dt is a datetime.datetime instance
-        else ->
-          sys.stderr  +:=  error message
-          stop execution ]
-    """
+	#-- 5 --
+	print('Equatorial coordinates:', ra_dec)
+#--- check_args
 
-    #-- 1 --
-    # [ if sys.argv[1:] has exactly four elements ->
-    #     rawAltAz, rawLat, rawLon, rawDT  :=  those elements
-    #   else ->
-    #     sys.stderr  +:=  error message
-    #     stop execution ]
-    argList  =  sys.argv[1:]
-    if  len(argList) != 4:
-        usage ("Incorrect command line argument count." )
-    else:
-        rawAltAz, rawLat, rawLon, rawDT  =  argList
-    #-- 2 --
-    # [ if rawAltAz is a valid set of horizon coordinates ->
-    #     altAz  :=  those coordinates as a sidereal.AltAz instance
-    altAz  =  checkAltAz ( rawAltAz )
+def check_args():
+	'''
+	Process all command line arguments.
 
-    #-- 3 --
-    # [ if rawLat is a valid latitude ->
-    #     lat  :=  that latitude in radians
-    #   else ->
-    #     sys.stderr  +:=  error message
-    #     stop execution ]
-    try:
-        lat  =  sidereal.parseLat ( rawLat )
-    except SyntaxError, detail:
-        usage ( "Invalid latitude: %s" % detail )
+	 [ if sys.argv[1:] is a valid set of command line arguments ->
+		 return (alt_az, lat_lon, dt) where alt_az is a set of
+		 horizon coordinates as a sidereal.alt_az instance,
+		 lat_lon is position as a sidereal.lat_lon instance, and
+		 dt is a datetime.datetime instance
+		else ->
+		 sys.stderr +:= error message
+		 stop execution ]
+	'''
 
-    #-- 4 --
-    # [ if rawLon is a valid longitude ->
-    #     lon  :=  that longitude in radians
-    #   else ->
-    #     sys.stderr  +:=  error message
-    #     stop execution ]
-    try:
-        lon  =  sidereal.parseLon ( rawLon )
-    except SyntaxError, detail:
-        usage ( "Invalid longitude: %s" % detail )
+	#-- 1 --
+	# [ if sys.argv[1:] has exactly four elements ->
+	#	 raw_alt_az, raw_lat, raw_lon, raw_dt := those elements
+	#  else ->
+	#	 sys.stderr +:= error message
+	#	 stop execution ]
+	arg_list = sys.argv[1:]
+	if len(arg_list) != 4:
+		usage ('Incorrect command line argument count.')
+	else:
+		raw_alt_az, raw_lat, raw_lon, raw_dt = arg_list
 
-    #-- 5 --
-    # [ if rawDT is a valid date-time string ->
-    #     dt  :=  that date-time as a datetime.datetime instance
-    #   else ->
-    #     sys.stderr  +:=  error message
-    #     stop execution ]
-    try:
-        dt  =  sidereal.parseDatetime ( rawDT )
-    except SyntaxError, detail:
-        usage ( "Invalid timestamp: %s" % detail )
+	#-- 2 --
+	# [ if raw_alt_az is a valid set of horizon coordinates ->
+	#	 alt_az := those coordinates as a sidereal.alt_az instance
+	alt_az = check_alt_az(raw_alt_az)
 
-    #-- 6 --
-    latLon  =  sidereal.LatLon ( lat, lon )
-    return  (altAz, latLon, dt)
-# - - -   u s a g e
+	#-- 3 --
+	# [ if raw_lat is a valid latitude ->
+	#	 lat := that latitude in radians
+	#  else ->
+	#	 sys.stderr +:= error message
+	#	 stop execution ]
+	try:
+		lat = sidereal.parse_lat(raw_lat)
+	except SyntaxError, detail:
+		usage('Invalid latitude: %s' % detail)
 
-def usage ( *L ):
-    """Print a usage message and stop.
+	#-- 4 --
+	# [ if raw_lon is a valid longitude ->
+	#	 lon := that longitude in radians
+	#  else ->
+	#	 sys.stderr +:= error message
+	#	 stop execution ]
+	try:
+		lon = sidereal.parse_lon(raw_lon)
+	except SyntaxError, detail:
+		usage('Invalid longitude: %s' % detail)
 
-      [ L is a list of strings ->
-          sys.stderr  +:=  (usage message) + (elements of L,
-                           concatenated)
-          stop execution ]
-    """
-    print >>sys.stderr, "*** Usage:"
-    print >>sys.stderr, "***   aard az+alt lat lon datetime"
-    print >>sys.stderr, "*** Error: %s" % "".join(L)
-    raise SystemExit
-# - - -   c h e c k A l t A z
+	#-- 5 --
+	# [ if raw_dt is a valid date-time string ->
+	#	 dt := that date-time as a datetime.datetime instance
+	#  else ->
+	#	 sys.stderr +:= error message
+	#	 stop execution ]
+	try:
+		dt = sidereal.parse_datetime(raw_dt)
+	except SyntaxError, detail:
+		usage('Invalid timestamp: %s' % detail)
 
-def checkAltAz ( rawAltAz ):
-    """Check and convert a pair of horizon coordinates.
+	#-- 6 --
+	lat_lon = sidereal.lat_lon(lat, lon)
+	return (alt_az, lat_lon, dt)
+# - - -  u s a g e
 
-      [ rawAltAz is a string ->
-          if rawAltAz is a valid set of horizon coordinates ->
-            return those coordinates as a sidereal.AltAz instance
-          else ->
-            sys.stderr  +:=  error message
-            stop execution ]
-    """
-    #-- 1 --
-    # [ if rawAltAz contains either a '+' or a '-' ->
-    #     m  :=  a re.match instance describing the first matching
-    #            character
-    #   else ->
-    #     sys.stderr  +:=  error message
-    #     stop execution ]
-    m  =  SIGN_PAT.search ( rawAltAz )
-    if  m is None:
-        usage ( "Equatorial coordinates must be separated by "
-                "'+' or '-'." )
-    #-- 2 --
-    # [ rawAz  :=  rawAltAz up to the match described by m
-    #   sign  :=  characters matched by m
-    #   rawAlt  :=  rawAltAz past the match described by m ]
-    rawAz  =  rawAltAz[:m.start()]
-    sign  =  m.group()
-    rawAlt  =  rawAltAz[m.end():]
+def usage(*L):
+	'''Print a usage message and stop.
 
-    #-- 3 --
-    # [ if rawAz is a valid angle ->
-    #     az  :=  that angle as radians
-    #   else ->
-    #     sys.stderr  +:=  error message
-    #     stop execution ]
-    try:
-        az  =  sidereal.parseAngle ( rawAz )
-    except SyntaxError, detail:
-        usage ( "Azimuth '%s' should have the form "
-                "'NNNd[NNm[NN.NNNs]]'." % rawAz )
+	 [ L is a list of strings ->
+		 sys.stderr +:= (usage message) + (elements of L,
+						  concatenated)
+		 stop execution ]
+	'''
+	print(>>sys.stderr, '*** Usage:')
+	print(>>sys.stderr, '***  aard az+alt lat lon datetime')
+	print(>>sys.stderr, '*** Error: %s' % ''.join(L))
+	raise SystemExit
+#--- check_alt_az
 
-    #-- 4 --
-    # [ if rawAlt is a valid angle ->
-    #     alt  :=  that angle as radians
-    #   else ->
-    #     sys.stderr  +:=  error message
-    #     stop execution ]
-    try:
-        absAlt  =  sidereal.parseAngle ( rawAlt )
-    except SyntaxError, detail:
-        usage ( "Altitude '%s' should have the form "
-                "'NNd[NNm[NN.NNNs]]'." % rawAlt )
+def check_alt_az(raw_alt_az):
+	'''
+	Check and convert a pair of horizon coordinates.
 
-    #-- 5 --
-    if  sign == '-':   alt  =  - absAlt
-    else:              alt  =  absAlt
+	 [ raw_alt_az is a string ->
+		 if raw_alt_az is a valid set of horizon coordinates ->
+			return those coordinates as a sidereal.alt_az instance
+		 else ->
+			sys.stderr +:= error message
+			stop execution ]
+	'''
+	#-- 1 --
+	# [ if raw_alt_az contains either a '+' or a '-' ->
+	#	 m := a re.match instance describing the first matching
+	#			character
+	#  else ->
+	#	 sys.stderr +:= error message
+	#	 stop execution ]
+	m = SIGN_PAT.search(raw_alt_az)
+	if m is None:
+		usage("Equatorial coordinates must be separated by '+' or '-'.")
 
-    #-- 6 --
-    return  sidereal.AltAz ( alt, az )
+	#-- 2 --
+	# [ raw_az := raw_alt_az up to the match described by m
+	#  sign := characters matched by m
+	#  raw_alt := raw_alt_az past the match described by m ]
+	raw_az = raw_alt_az[:m.start()]
+	sign = m.group()
+	raw_alt = raw_alt_az[m.end():]
+
+	#-- 3 --
+	# [ if raw_az is a valid angle ->
+	#	 az := that angle as radians
+	#  else ->
+	#	 sys.stderr +:= error message
+	#	 stop execution ]
+	try:
+		az = sidereal.parse_angle(raw_az)
+	except SyntaxError, detail:
+		usage("Azimuth '{az}' should have the form 'NNNd[NNm[NN.NNNs]]'.".format(az=raw_az))
+
+	#-- 4 --
+	# [ if raw_alt is a valid angle ->
+	#	 alt := that angle as radians
+	#  else ->
+	#	 sys.stderr +:= error message
+	#	 stop execution ]
+	try:
+		abs_alt = sidereal.parse_angle(raw_alt)
+	except SyntaxError, detail:
+		usage("Altitude '{alt}' should have the form 'NNd[NNm[NN.NNNs]]'.".format(alt=raw_alt)
+
+	#-- 5 --
+	if sign == '-':
+		alt = -abs_alt
+	else:
+		alt = abs_alt
+
+	#-- 6 --
+	return sidereal.alt_az(alt, az)
 #================================================================
 # Epilogue
 #----------------------------------------------------------------
 
-if  __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+	main()

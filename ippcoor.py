@@ -16,44 +16,44 @@
 # uniform altitude.
 #
 # Input: 
-#	LatObs		latitude of the antenna (radians)
-#	AzSou		Azimtuh of the source (radians)
-#			from antenna location
-#	ZeSou		Zenith of the source (radians)
-#			from antenna location
-#	AltIon		height of the Ionospheric thin shell
-#			(meters)
+#	lat_obs		latitude of the antenna (radians)
+#	az_sou		Azimtuh of the source (radians)
+#				from antenna location
+#	ze_sou		Zenith of the source (radians)
+#				from antenna location
+#	alt_ion		height of the Ionospheric thin shell
+#				(meters)
 # Output: 
-#	dLat		offset latitude (radians)
-#	dLon		offset longitude (radians)
-#	AzPunc		Azimuth of the source (radians)
-#			from IPP
-#	ZenPunc		Zenith of the source (radians)
-#			from IPP
+#	d_lat		offset latitude (radians)
+#	d_lon		offset longitude (radians)
+#	az_punc		Azimuth of the source (radians)
+#				from IPP
+#	zen_punc	Zenith of the source (radians)
+#				from IPP
 #-------------------------------------------------------------------
 
 from scipy import *
 
-def PuncIonOffset(LatObs, AzSou, ZeSou, AltIon):
-	RadiusEarth = 6371000.0 # in meters
+def punc_ion_offset(lat_obs, az_sou, ze_sou, alt_ion):
+	radius_earth = 6371000.0 # in meters
 
 	# The 2-D sine rule gives the zenith angle at the
 	# Ionospheric piercing point
-	ZenPunc = math.asin((RadiusEarth * math.sin(ZeSou)) / (RadiusEarth + AltIon)) 
+	zen_punc = math.asin((radius_earth * math.sin(ze_sou)) / (radius_earth + alt_ion)) 
 
 	# Use the sum of the internal angles of a triange to determine theta
-	theta = ZeSou - ZenPunc
+	theta = ze_sou - zen_punc
 
 	# The cosine rule for spherical triangles gives us the latitude
 	# at the IPP
-	lation = math.asin(math.sin(LatObs) * math.cos(theta) + math.cos(LatObs) * math.sin(theta) * math.cos(AzSou)) 
-	dLat = lation - LatObs # latitude difference
+	lat_ion = math.asin(math.sin(lat_obs) * math.cos(theta) + math.cos(lat_obs) * math.sin(theta) * math.cos(az_sou)) 
+	d_lat = lat_ion - lat_obs # latitude difference
 
 	# Longitude difference using the 3-D sine rule (or for spherical triangles)
-	dLon = math.asin(math.sin(AzSou) * math.sin(theta) / math.cos(lation))
+	d_lon = math.asin(math.sin(az_sou) * math.sin(theta) / math.cos(lat_ion))
 
 	# Azimuth at the IPP using the 3-D sine rule
-	sazion = math.sin(AzSou) * math.cos(LatObs) / math.cos(lation)
-	AzPunc = math.asin(sazion)
+	s_az_ion = math.sin(az_sou) * math.cos(lat_obs) / math.cos(lat_ion)
+	az_punc = math.asin(s_az_ion)
 
-	return dLat, dLon, AzPunc, ZenPunc
+	return d_lat, d_lon, az_punc, zen_punc
