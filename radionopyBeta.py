@@ -4,7 +4,7 @@ import os
 import numpy as np
 from astropy import units as u
 from astropy import constants as c
-
+import sys
 
 # From ionFRM.py
 # Defining some variables for further use
@@ -15,6 +15,9 @@ EarthRadius = 6371000.0 # in meters
 RadiusEarth = c.R_earth.value 
 Tesla2Gauss = np.power(10,4)
 
+# The IONEX FTP server
+server = 'ftp.unibe.ch'
+
 # ------------------------------------------------------------------------------
 # Generate the necessary IONEX filename for a given day, and fetch it via ftp
 # ------------------------------------------------------------------------------
@@ -22,16 +25,15 @@ Tesla2Gauss = np.power(10,4)
 def IONEXFileNeeded(year,month,day):
     dayofyear = datetime.datetime.strptime(''+str(year)+' '+str(month)+' '+str(day)+'', '%Y %m %d').timetuple().tm_yday
 
-    if dayofyear < 10:
-        dayofyear = '00'+str(dayofyear)
-    if dayofyear < 100 and dayofyear >= 10:
-        dayofyear = '0'+str(dayofyear)
+#    if dayofyear < 10:
+#        dayofyear = '00'+str(dayofyear)
+#    if dayofyear < 100 and dayofyear >= 10:
+#        dayofyear = '0'+str(dayofyear)
+    dayofyear=str(dayofyear).zfill(4)
 
     # Outputing the name of the IONEX file you require
     file =  'CODG'+str(dayofyear)+'0.'+str(list(str(year))[2])+''+str(list(str(year))[3])+'I'
     return file
-
-server = 'ftp.unibe.ch'
 
 def getIONEXfile(year,month,day):
 
@@ -75,6 +77,80 @@ def getIONEXfile(year,month,day):
 # 	TECvalues[LAT,LON] = [00,01,02,...,22,23,24]hrs
 #------------------------------------------------------
 
+# I can't believe how complicated this guy made this
+def readIONEX(filename):
+    # Read in the file
+    FullFile = open(filename, 'r').read()
+    header, data = FullFile.split('END OF HEADER')
+    header = header.split('\n')
+    data = data.split('\n')
+    # Flip through the header and pull out useful information
+    for h in header:
+        if ('# OF MAPS IN FILE' in h):
+            Nmaps = int(h.split()[0])
+        if ('HGT1 / HGT2 / DHGT' in h):
+            ionosphere_height = float(h.split()[0])
+        # Get the size and coordinates of the map in latitude
+        if ('LAT1 / LAT2 / DLAT' in h):
+            lat1,lat2,dlat = [float(i) for i in h.split()[0:3]]
+            lat = np.arange(lat1,lat2+dlat,dlat)
+            Nlat = len(lat)
+        # Get the size and coordinates of the map in longitude
+        if ('LON1 / LON2 / DLON' in h):
+            lon1,lon2,dlon = [float(i) for i in h.split()[0:3]]
+            lon = np.arange(lon1,lon2+dlon,dlon)
+            Nlon = len(lon)
+
+    # Allocate the map arrays
+    TEC = np.zeros([Nmaps,Nlat,Nlon])
+    TEC_RMS = np.zeros([Nmaps,Nlat,Nlon])
+
+    tec_start_indx = []
+    tec_end_indx = []
+    rms_start_indx = []
+    rms_end_indx = []
+    
+    # Find the boundaries
+    for i,d in enumerate(data):
+        if ('START OF TEC MAP' in d):
+            tec_start_indx.append(i)
+        if ('END OF TEC MAP' in d):
+            tec_end_indx.append(i)
+        if ('START OF RMS MAP' in d):
+            rms_start_indx.append(i)
+        if ('END OF RMS MAP' in d):
+            rms_end_indx.append(i)
+
+    if (len(tec_start_indx) != Nmaps or len(tec_end_indx) != Nmaps):
+        print 'Error: not the right number of starts and ends'
+
+    for map in np.arange(Nmaps):
+        # Build the TEC maps
+        lines = data[tec_start_indx[map]:tec_end_indx[map]]
+        vals = []
+        for l in lines:
+            if (('START OF TEC MAP' in l) or ('LAT/LON1/LON2/DLON/H' in l) or ('EPOCH OF CURRENT MAP' in l)):
+                continue
+            else:
+                for v in l.split():
+                    vals.append(float(v))
+        TEC[map,:,:] = np.array(vals).reshape([Nlat,Nlon])
+
+        # Build the RMS maps
+        lines = data[rms_start_indx[map]:rms_end_indx[map]]
+        vals = []
+        for l in lines:
+            if (('START OF RMS MAP' in l) or ('LAT/LON1/LON2/DLON/H' in l) or ('EPOCH OF CURRENT MAP' in l)):
+                continue
+            else:
+                for v in l.split():
+                    vals.append(float(v))
+        TEC_RMS[map,:,:] = np.array(vals).reshape([Nlat,Nlon])
+       
+    return {'header':header,'data_in_file':data,'Nmaps':Nmaps,'IonHeight':ionosphere_height,'lat1':lat1,'lat2':lat2,'dlat':dlat,'lat':lat,'Nlat':Nlat,'lon1':lon1,'lon2':lon2,'dlon':dlon,'lon':lon,'Nlon':Nlon,'tec_i':tec_start_indx,'tec_f':tec_end_indx,'rms_i':rms_start_indx,'rms_f':rms_end_indx,'TEC':TEC,'TEC_RMS':TEC_RMS}
+    
+
+    
 def readIonexTEC(filename):
 
 #==========================================================================
@@ -269,9 +345,53 @@ def calcionheight(filename):
 
 	return IonH
 
+#-----------------------------------------------------------    
+path='/Users/jaguirre/PyModules/'
+# Maybe not necessary ...
+#sys.path.append(""+str(path)+"ionFR/SiderealPackage")
+#sys.path.append(""+str(path)+"ionFR/PunctureIonosphereCoord")
+#sys.path.append(""+str(path)+"ionFR/IONEX")
+#-----------------------------------------------------------
 
+# wrap up the IGRF call
+def B_IGRF(year,month,day,AltIon,LonO,offLon,LatO,offLat,AzPunct,ZenPunct):
+    # Calculation of the total magnetic field along the line of sight at the IPP
 
-		
+    # Open the input file to geomag70.exe
+    IGRFpath = ''+str(path)+'radionopy/IGRF/geomag70_linux/'
+    f = open(IGRFpath+'input.txt', 'w')
+
+    datestr = ''+str(year)+','+str(month)+','+str(day)
+    IonRadiusstr = str((EarthRadius+AltIon)/1000.0)
+    # Why does he bother with the original E/W N/S Lat/Lon entry?  It just gets parsed out everywhere ...
+    # Ugh.  The minus sign is applied to (Lon + offLon), which means the sense of the offset is different, depending on the hemisphere
+    # Are you FUCKING with me?
+    Latstr = str(np.degrees(LatO + offLat))
+    Lonstr = str(np.degrees(LonO + offLat))
+    # And why does he add a null string to the end?
+
+    f.write(datestr+' C K'+IonRadiusstr+' '+Latstr+' '+Lonstr+'')
+    f.close()
+    origdir = os.getcwd()
+    os.chdir(IGRFpath)
+    #os.system(IGRFpath+'geomag70.exe '+IGRFpath+'IGRF11.COF f '+IGRFpath+'input.txt '+str(path)+'ionFR/IGRF/geomag70_linux/output.txt')
+    os.system('./geomag70.exe IGRF11.COF f input.txt output.txt')
+    #g = open(''+str(path)+'ionFR/IGRF/geomag70_linux/output.txt', 'r')
+    g = open('output.txt', 'r')
+    data = g.readlines()
+    print data
+    g.close()
+    #os.system('rm '+str(path)+'ionFR/IGRF/geomag70_linux/input.txt; rm '+str(path)+'ionFR/IGRF/geomag70_linux/output.txt')
+    os.chdir(origdir)
+    Xfield = abs(float(data[1].split()[10]))
+    Yfield = abs(float(data[1].split()[11]))
+    Zfield = abs(float(data[1].split()[12]))
+    Xfield = Xfield*pow(10,-9)*Tesla2Gauss
+    Yfield = Yfield*pow(10,-9)*Tesla2Gauss
+    Zfield = Zfield*pow(10,-9)*Tesla2Gauss
+    Totfield = Zfield*np.cos(ZenPunct) + Yfield*np.sin(ZenPunct)*np.sin(AzPunct) + Xfield*np.sin(ZenPunct)*np.cos(AzPunct)
+
+    return Totfield
 		
 
 
