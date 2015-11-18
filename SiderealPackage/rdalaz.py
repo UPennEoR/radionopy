@@ -12,8 +12,8 @@
 from __future__ import print_function
 import sys
 import re
-import sidereal
-from math import *
+import sidereal as sdr
+import math
 #================================================================
 # Manifest consants
 #----------------------------------------------------------------
@@ -21,7 +21,7 @@ from math import *
 SIGN_PAT = re.compile(r'[\-+]')
 #----- main
 
-def alaz(tim):
+def alt_az(tim):
 	'''
 	Main program for rdaa.
 	'''
@@ -31,9 +31,9 @@ def alaz(tim):
 	# [ if sys.argv contains a valid set of command line
 	# arguments ->
 	#	 ra_dec := the right ascension and declination as
-	#				a sidereal.ra_dec instance
+	#				a sdr.ra_dec instance
 	#	 lat_lon := the observer's location as a
-	#				 sidereal.lat_lon instance
+	#				 sdr.lat_lon instance
 	#	 dt := the observer's date and time as a
 	#			 datetime.datetime instance
 	# else ->
@@ -47,28 +47,28 @@ def alaz(tim):
 	#	 utc := dt
 	# else ->
 	#	 utc := the UTC equivalent to dt ]
-	if (dt.tzinfo is None) or (dt.utcoffset() is None):
+	if (dt.tzinfo is None) or (dt.utc_offset() is None):
 		utc = dt
 	else:
-		utc = dt - dt.utcoffset()
+		utc = dt - dt.utc_offset()
 	#-- 3 --
 	# [ sys.stdout +:= local sidereal time for dt and lat_lon ]
-	gst = sidereal.SiderealTime.from_datetime(utc)
+	gst = sdr.SiderealTime.from_datetime(utc)
 	lst = gst.lst(lat_lon.lon)
-	#############print 'Equatorial coordinates:', ra_dec
-	#############print 'Observer's location:', lat_lon
-	#############print 'Observer's time:', dt
-	#############print 'Local sidereal time is', lst
+	#############print('Equatorial coordinates:', ra_dec)
+	#############print('Observer's location:', lat_lon)
+	#############print('Observer's time:', dt)
+	#############print('Local sidereal time is', lst)
 	#-- 4 --
 	# [ h := hour angle for ra_dec at time (utc) and longitude
 	#		 (lat_lon.lon) ]
 	h = ra_dec.hour_angle(utc, lat_lon.lon)
 
-	#############print 'Hour Angle:', h*180.0/pi,'d'
+	#############print('Hour Angle:', h * 180.0 / math.pi,'d')
 
 	#-- 5 --
 	# [ aa := horizon coordinates of ra_dec at hour angle h
-	#		 as a sidereal.AltAz instance ]
+	#		 as a sdr.AltAz instance ]
 	aa = ra_dec.alt_az(h, lat_lon.lat)
 
 	#-- 6 --
@@ -78,31 +78,31 @@ def alaz(tim):
 	
 	# changing latitude of the observer in degrees to radians
 	lat_deg = lat_lon.__str__().split()[0].split('d')[0].split('[')[1]
-	lat_min = lat_lon.__str__().split()[1].split(''')[0]
-	lat_sec = lat_lon.__str__().split()[2].split(''')[0]
+	lat_min = lat_lon.__str__().split()[1].split("'")[0]
+	lat_sec = lat_lon.__str__().split()[2].split('"')[0]
 	lat_degs = float(lat_deg) + float(lat_min) / 60.0 + float(lat_sec) / 3600.0
-	lat_rads = lat_degs * pi / 180.0
+	lat_rads = lat_degs * math.pi / 180.0
 	# changing longitude of the observer in degrees to radians
 	lon_deg = lat_lon.__str__().split()[5].split('d')[0]
-	lon_min = lat_lon.__str__().split()[6].split(''')[0]
-	lon_sec = lat_lon.__str__().split()[7].split(''')[0]
+	lon_min = lat_lon.__str__().split()[6].split("'")[0]
+	lon_sec = lat_lon.__str__().split()[7].split('"')[0]
 	lon_degs = float(lon_deg) + float(lon_min) / 60.0 + float(lon_sec) / 3600.0
-	lon_rads = lon_degs * pi / 180.0
+	lon_rads = lon_degs * math.pi / 180.0
 	# changing azimuth of the source in degrees to radians
 	az_deg = aa.__str__().split()[1].split('d')[0]
-	az_min = aa.__str__().split()[2].split(''')[0]
-	azsec = aa.__str__().split()[3].split(''')[0]
-	az_degs = float(az_deg) + float(az_min) / 60.0 + float(azsec) / 3600.0
-	az_rads = az_degs * pi / 180.0	
+	az_min = aa.__str__().split()[2].split("'")[0]
+	az_sec = aa.__str__().split()[3].split('"')[0]
+	az_degs = float(az_deg) + float(az_min) / 60.0 + float(az_sec) / 3600.0
+	az_rads = az_degs * math.pi / 180.0	
 	# changing elevation or altitude of the source in degrees to radians
-	al_deg = aa.__str__().split()[5].split('d')[0]
-	al_min = aa.__str__().split()[6].split(''')[0]
-	al_sec = aa.__str__().split()[7].split(''')[0]
-	al_degs = float(al_deg) + float(al_min) / 60.0 + float(al_sec) / 3600.0
-	al_rads = al_degs * pi / 180.0
+	alt_deg = aa.__str__().split()[5].split('d')[0]
+	alt_min = aa.__str__().split()[6].split("'")[0]
+	alt_sec = aa.__str__().split()[7].split('"')[0]
+	alt_degs = float(alt_deg) + float(alt_min) / 60.0 + float(alt_sec) / 3600.0
+	alt_rads = alt_degs * math.pi / 180.0
 
 	# all the values are returned in radians!
-	return az_rads, al_rads, h, lat_rads, lon_rads
+	return az_rads, alt_rads, h, lat_rads, lon_rads
 
 
 def check_args(ti):
@@ -113,8 +113,8 @@ def check_args(ti):
 
 	 [ if sys.argv[1:] is a valid set of command line arguments ->
 		 return (ra_dec, lat_lon, dt) where ra_dec is a set of
-		 celestial coordinates as a sidereal.ra_dec instance,
-		 lat_lon is position as a sidereal.lat_lon instance, and
+		 celestial coordinates as a sdr.ra_dec instance,
+		 lat_lon is position as a sdr.lat_lon instance, and
 		 dt is a datetime.datetime instance
 		else ->
 		 sys.stderr +:= error message
@@ -136,7 +136,7 @@ def check_args(ti):
 
 	#-- 2 --
 	# [ if raw_ra_dec is a valid set of equatorial coordinates ->
-	#	 ra_dec := those coordinates as a sidereal.ra_dec instance
+	#	 ra_dec := those coordinates as a sdr.ra_dec instance
 	# else ->
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
@@ -149,7 +149,7 @@ def check_args(ti):
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		lat = sidereal.parse_lat(raw_lat)
+		lat = sdr.parse_lat(raw_lat)
 	except SyntaxError, detail:
 		usage('Invalid latitude: {detail}'.format(detail=detail))
 
@@ -160,7 +160,7 @@ def check_args(ti):
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		lon = sidereal.parse_lon(raw_lon)
+		lon = sdr.parse_lon(raw_lon)
 	except SyntaxError, detail:
 		usage('Invalid longitude: {detail}'.format(detail=detail))
 
@@ -171,12 +171,12 @@ def check_args(ti):
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		dt = sidereal.parse_datetime(raw_dt)
+		dt = sdr.parse_datetime(raw_dt)
 	except SyntaxError, detail:
 		usage('Invalid timestamp: {detail}'.format(detail=detail))
 
 	#-- 6 --
-	lat_lon = sidereal.lat_lon(lat, lon)
+	lat_lon = sdr.lat_lon(lat, lon)
 	return (ra_dec, lat_lon, dt)
 #--- usage
 
@@ -201,7 +201,7 @@ def check_ra_dec(raw_ra_dec):
 
 	 [ raw_ra_dec is a string ->
 		 if raw_ra_dec is a valid set of equatorial coordinates ->
-			return those coordinates as a sidereal.ra_dec instance
+			return those coordinates as a sdr.ra_dec instance
 		 else ->
 			sys.stderr +:= error message
 			stop execution ]
@@ -232,8 +232,8 @@ def check_ra_dec(raw_ra_dec):
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		ra_hours = sidereal.parse_hours(raw_ra)
-		ra = sidereal.hours_to_radians(ra_hours)
+		ra_hours = sdr.parse_hours(raw_ra)
+		ra = sdr.hours_to_radians(ra_hours)
 	except SyntaxError, detail:
 		usage("Right ascension '{raw_ra}' should have the form 'NNh[NNm[NN.NNNs]]'.".format(raw_ra=raw_ra))
 
@@ -243,7 +243,7 @@ def check_ra_dec(raw_ra_dec):
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		abs_dec = sidereal.parse_angle(raw_dec)
+		abs_dec = sdr.parse_angle(raw_dec)
 	except SyntaxError, detail:
 		usage("Right ascension '{raw_ra}' should have the form 'NNd[NNm[NN.NNNs]]'.".format(raw_ra=raw_ra))
 	#-- 5 --
@@ -253,7 +253,7 @@ def check_ra_dec(raw_ra_dec):
 		dec = abs_dec
 
 	#-- 6 --
-	return sidereal.ra_dec(ra, dec)
+	return sdr.ra_dec(ra, dec)
 #================================================================
 # Epilogue
 #----------------------------------------------------------------

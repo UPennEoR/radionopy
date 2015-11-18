@@ -9,8 +9,7 @@
 #----------------------------------------------------------------
 from __future__ import print_function
 import sys
-import sidereal
-import datetime
+import sidereal as sdr
 # - - -  m a i n
 
 def main():
@@ -26,7 +25,7 @@ def main():
 
 	#-- 2 --
 	# [ jd := a JulianDate instance representing dt ]
-	jd = sidereal.JulianDate.from_datetime(dt)
+	jd = sdr.JulianDate.from_datetime(dt)
 
 	#-- 3 --
 	print(float(jd))
@@ -52,16 +51,16 @@ def arg_check():
 	#	 stop execution ]
 	if len(arg_list) == 1:
 		try:
-			dt = sidereal.parse_datetime(arg_list[0])
+			dt = sdr.parse_datetime(arg_list[0])
 		except SyntaxError, detail:
 			usage('Invalid date-time: {detail}'.format(detail=detail))
 	elif len(arg_list) == 2:
 		try:
-			date = sidereal.parse_date(arg_list[0])
+			date = sdr.parse_date(arg_list[0])
 		except SyntaxError, detail:
 			usage('Invalid date: {detail}'.format(detail=detail))
 		try:
-			time = sidereal.parse_time(arg_list[1])
+			time = sdr.parse_time(arg_list[1])
 		except SyntaxError, detail:
 			usage('Invalid time: {detail}'.format(detail=detail))
 		dt = date.combine(date, time)

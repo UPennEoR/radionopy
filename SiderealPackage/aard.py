@@ -2,7 +2,7 @@
 from __future__ import print_function
 import sys
 import re
-import sidereal
+import sidereal as sdr
 #================================================================
 # Manifest consants
 #----------------------------------------------------------------
@@ -19,9 +19,9 @@ def main():
 	# [ if sys.argv contains a valid set of command line
 	#  arguments ->
 	#	 alt_az := the azimuth and altitude as
-	#				a sidereal.alt_az instance
+	#				a sdr.alt_az instance
 	#	 lat_lon := the observer's location as a
-	#				 sidereal.lat_lon instance
+	#				 sdr.lat_lon instance
 	#	 dt := the observer's date and time as a
 	#			 datetime.datetime instance
 	#  else ->
@@ -34,14 +34,14 @@ def main():
 	#	 utc := dt
 	#  else ->
 	#	 utc := the UTC equivalent to dt ]
-	if dt.tzinfo is None or dt.utcoffset() is None:
+	if dt.tzinfo is None or dt.utc_offset() is None:
 		utc = dt
 	else:
-		utc = dt - dt.utcoffset()
+		utc = dt - dt.utc_offset()
 
 	#-- 3 --
 	# [ sys.stdout +:= local sidereal time for dt and lat_lon ]
-	gst = sidereal.SiderealTime.from_datetime(utc)
+	gst = sdr.SiderealTime.from_datetime(utc)
 	lst = gst.lst(lat_lon.lon)
 	print('Horizon coordinates:', alt_az)
 	print('Observer\'s location:', lat_lon)
@@ -63,8 +63,8 @@ def check_args():
 
 	 [ if sys.argv[1:] is a valid set of command line arguments ->
 		 return (alt_az, lat_lon, dt) where alt_az is a set of
-		 horizon coordinates as a sidereal.alt_az instance,
-		 lat_lon is position as a sidereal.lat_lon instance, and
+		 horizon coordinates as a sdr.alt_az instance,
+		 lat_lon is position as a sdr.lat_lon instance, and
 		 dt is a datetime.datetime instance
 		else ->
 		 sys.stderr +:= error message
@@ -85,7 +85,7 @@ def check_args():
 
 	#-- 2 --
 	# [ if raw_alt_az is a valid set of horizon coordinates ->
-	#	 alt_az := those coordinates as a sidereal.alt_az instance
+	#	 alt_az := those coordinates as a sdr.alt_az instance
 	alt_az = check_alt_az(raw_alt_az)
 
 	#-- 3 --
@@ -95,9 +95,9 @@ def check_args():
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		lat = sidereal.parse_lat(raw_lat)
+		lat = sdr.parse_lat(raw_lat)
 	except SyntaxError, detail:
-		usage('Invalid latitude: %s' % detail)
+		usage('Invalid latitude: {detail}'.format(detail=detail))
 
 	#-- 4 --
 	# [ if raw_lon is a valid longitude ->
@@ -106,9 +106,9 @@ def check_args():
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		lon = sidereal.parse_lon(raw_lon)
+		lon = sdr.parse_lon(raw_lon)
 	except SyntaxError, detail:
-		usage('Invalid longitude: %s' % detail)
+		usage('Invalid longitude: {detail}'.format(detail=detail))
 
 	#-- 5 --
 	# [ if raw_dt is a valid date-time string ->
@@ -117,12 +117,12 @@ def check_args():
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		dt = sidereal.parse_datetime(raw_dt)
+		dt = sdr.parse_datetime(raw_dt)
 	except SyntaxError, detail:
-		usage('Invalid timestamp: %s' % detail)
+		usage('Invalid timestamp: {detail}'.format(detail=detail))
 
 	#-- 6 --
-	lat_lon = sidereal.lat_lon(lat, lon)
+	lat_lon = sdr.lat_lon(lat, lon)
 	return (alt_az, lat_lon, dt)
 # - - -  u s a g e
 
@@ -136,7 +136,7 @@ def usage(*L):
 	'''
 	print(>>sys.stderr, '*** Usage:')
 	print(>>sys.stderr, '***  aard az+alt lat lon datetime')
-	print(>>sys.stderr, '*** Error: %s' % ''.join(L))
+	print(>>sys.stderr, '*** Error: {msg}'.format(msg=''.join(L)))
 	raise SystemExit
 #--- check_alt_az
 
@@ -146,7 +146,7 @@ def check_alt_az(raw_alt_az):
 
 	 [ raw_alt_az is a string ->
 		 if raw_alt_az is a valid set of horizon coordinates ->
-			return those coordinates as a sidereal.alt_az instance
+			return those coordinates as a sdr.alt_az instance
 		 else ->
 			sys.stderr +:= error message
 			stop execution ]
@@ -177,7 +177,7 @@ def check_alt_az(raw_alt_az):
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		az = sidereal.parse_angle(raw_az)
+		az = sdr.parse_angle(raw_az)
 	except SyntaxError, detail:
 		usage("Azimuth '{az}' should have the form 'NNNd[NNm[NN.NNNs]]'.".format(az=raw_az))
 
@@ -188,7 +188,7 @@ def check_alt_az(raw_alt_az):
 	#	 sys.stderr +:= error message
 	#	 stop execution ]
 	try:
-		abs_alt = sidereal.parse_angle(raw_alt)
+		abs_alt = sdr.parse_angle(raw_alt)
 	except SyntaxError, detail:
 		usage("Altitude '{alt}' should have the form 'NNd[NNm[NN.NNNs]]'.".format(alt=raw_alt)
 
@@ -199,7 +199,7 @@ def check_alt_az(raw_alt_az):
 		alt = abs_alt
 
 	#-- 6 --
-	return sidereal.alt_az(alt, az)
+	return sdr.alt_az(alt, az)
 #================================================================
 # Epilogue
 #----------------------------------------------------------------

@@ -9,7 +9,7 @@
 #----------------------------------------------------------------
 from __future__ import print_function
 import sys
-from sidereal import *
+import sidereal as sdr
 #--- main
 
 def main():
@@ -34,7 +34,7 @@ def main():
 
 	#-- 2 --
 	# [ jd := a JulianDate instance for Julian date j ]
-	jd = JulianDate(j)
+	jd = sdr.JulianDate(j)
 
 	#-- 3 --
 	# [ dt := jd as a datetime.datetime instance ]

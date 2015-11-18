@@ -7,7 +7,7 @@
 # Imports
 #----------------------------------------------------------------
 from __future__ import print_function
-from math import *
+import math
 import re
 import datetime
 #================================================================
@@ -15,16 +15,15 @@ import datetime
 #----------------------------------------------------------------
 
 FIRST_GREGORIAN_YEAR = 1583
-TWO_PI = 2.0 * pi
-PI_OVER_12 = pi / 12.0
+TWO_PI = 2.0 * math.pi
+PI_OVER_12 = math.pi / 12.0
 JULIAN_BIAS = 2200000	# 2,200,000
 SIDEREAL_A = 0.0657098
-FLOAT_PAT = re.compile (
-	r'\d+'		 # Matches one or more digits
-	r'('			# Start optional fraction
-	 r'[.]'		 # Matches the decimal point
-	 r'\d+'		 # Matches one or more digits
-	r')?')		 # End optional group
+FLOAT_PAT = re.compile(r'\d+'		 # Matches one or more digits
+						r'('			# Start optional fraction
+						r'[.]'		 # Matches the decimal point
+						r'\d+'		 # Matches one or more digits
+						r')?')		 # End optional group
 D_PAT = re.compile(r'[dD]')
 M_PAT = re.compile(r'[mM]')
 S_PAT = re.compile(r'[sS]')
@@ -63,7 +62,7 @@ def hour_angle_to_ra(h, ut, e_lon):
 	#			longitude e_lon ]
 	lst = gst.lst(e_lon)
 	#-- 3 --
-	# [ alpha := lst - h, normalized to [0,2*pi) ]
+	# [ alpha := lst - h, normalized to [0, 2 * math.pi) ]
 	alpha = (lst.radians - h) % TWO_PI
 
 	#-- 4 --
@@ -89,7 +88,7 @@ def ra_to_hour_angle(ra, ut, e_lon):
 	#			longitude e_lon ]
 	lst = gst.lst(e_lon)
 	#-- 3 --
-	# [ h := lst - ra, normalized to [0,2*pi) ]
+	# [ h := lst - ra, normalized to [0, 2 * math.pi) ]
 	h = (lst.radians - ra) % TWO_PI
 
 	#-- 4 --
@@ -162,23 +161,22 @@ YEAR_FIELD = 'Y'
 MONTH_FIELD = 'M'
 DAY_FIELD = 'D'
 
-date_re = (
-	r'('			# Begin YEAR_FIELD
-	 r'?P<%s>'	  # Name this group YEAR_FIELD
-	 r'\d{4}'		# Match exactly four digits
-	r')'			# End YEAR_FIELD
-	r'\-'		  # Matches one hyphen
-	r'('			# Begin MONTH_FIELD
-	 r'?P<%s>'	  # Name this group MONTH_FIELD
-	 r'\d{1,2}'	 # Matches one or two digits
-	r')'			# End MONTH_FIELD
-	r'\-'		  # Matches '-'
-	r'('			# Begin DAY_FIELD
-	 r'?P<%s>'	  # Name this group DAY_FIELD
-	 r'\d{1,2}'	 # Matches one or two digits
-	r')'			# End DAY_FIELD
-	r'$'			# Make sure all characters match
-	) % (YEAR_FIELD, MONTH_FIELD, DAY_FIELD)
+date_re = (r'('			# Begin YEAR_FIELD
+			r'?P<%s>'	  # Name this group YEAR_FIELD
+			r'\d{4}'		# Match exactly four digits
+			r')'			# End YEAR_FIELD
+			r'\-'		  # Matches one hyphen
+			r'('			# Begin MONTH_FIELD
+			r'?P<%s>'	  # Name this group MONTH_FIELD
+			r'\d{1,2}'	 # Matches one or two digits
+			r')'			# End MONTH_FIELD
+			r'\-'		  # Matches '-'
+			r'('			# Begin DAY_FIELD
+			r'?P<%s>'	  # Name this group DAY_FIELD
+			r'\d{1,2}'	 # Matches one or two digits
+			r')'			# End DAY_FIELD
+			r'$'			# Make sure all characters match
+			) % (YEAR_FIELD, MONTH_FIELD, DAY_FIELD)
 DATE_PAT = re.compile(date_re)
 
 def parse_date(s):
@@ -195,7 +193,7 @@ def parse_date(s):
 	#  else -> raise SyntaxError ]
 	m = DATE_PAT.match(s)
 	if m is None:
-		raise SyntaxError,("Date does not have pattern YYYY-DD-MM: '{date_str}'".format(date_str=date_str)
+		raise SyntaxError, ("Date does not have pattern YYYY-DD-MM: '{date_str}'".format(date_str=date_str)
 	#-- 2 --
 	year  = int(m.group(YEAR_FIELD))
 	month = int(m.group(MONTH_FIELD))
@@ -313,9 +311,8 @@ def parse_zone(s):
 		raise SyntaxError, ("Unknown time zone code: '{zone_code}'".format(zone_code=s))
 # - - -  p a r s e F i x e d Z o n e
 
-HHMM_PAT = re.compile(
-	r'\d{4}'	# Matches exactly four digits
-	r'$')		# Be sure everything is matched
+HHMM_PAT = re.compile(r'\d{4}'	# Matches exactly four digits
+						r'$')		# Be sure everything is matched
 
 def parse_fixed_zone(s):
 	'''Convert a +hhmm or -hhmm zone suffix.
@@ -332,7 +329,7 @@ def parse_fixed_zone(s):
 	elif s.startswith('-'):
 		sign = -1
 	else:
-		raise SyntaxError, ("Expecting zone modifier as %shhmm: '{time_zone}'".format(time_zone=(s[0], s)))
+		raise SyntaxError, ("Expecting zone modifier as {zone_suffix}hhmm: '{time_zone}'".format(zone_suffix=s[0], time_zone=s))
 
 	#-- 2 --
 	# [ if s[1:] matches HHMM_PAT ->
@@ -342,7 +339,7 @@ def parse_fixed_zone(s):
 	raw_hhmm = s[1:]
 	m = HHMM_PAT.match(raw_hhmm)
 	if m is None:
-		raise SyntaxError, ("Expecting zone modifier as %sHHMM: '{time_zone}'".format(time_zone=(s[0], s)))
+		raise SyntaxError, ("Expecting zone modifier as {zone_suffix}hhmm: '{time_zone}'".format(zone_suffix=s[0], time_zone=s))
 	else:
 		hours = int(raw_hhmm[:2])
 		minutes = int(raw_hhmm[2:])
@@ -376,7 +373,7 @@ class FixedZone(datetime.tzinfo):
 		'''
 		self.__offset = datetime.timedelta(hours=hh, minutes=mm)
 		self.__name = name
-	def utcoffset(self, dt):
+	def utc_offset(self, dt):
 		'''Return self's offset east of UTC.
 		'''
 		return self.__offset
@@ -436,7 +433,7 @@ class USTimeZone(datetime.tzinfo):
 			return self.__dst_name
 		else:
 			return self.__std_name
-	def utcoffset(self, dt):
+	def utc_offset(self, dt):
 		return self.__offset + self.dst(dt)
 	def dst(self, dt):
 		'''Return the current DST offset.
@@ -475,7 +472,7 @@ class USTimeZone(datetime.tzinfo):
 utc_zone = FixedZone(0, 0, 'UTC')
 
 est_zone = FixedZone(-5, 0, 'EST')
-edtZone = FixedZone(-4, 0, 'EDT')
+edt_zone = FixedZone(-4, 0, 'EDT')
 et_zone  = USTimeZone(-5, 0, 'ET', 'EST', 'EDT')
 
 cst_zone = FixedZone(-6, 0, 'CST')
@@ -492,7 +489,7 @@ pt_zone  = USTimeZone(-8, 0, 'PT', 'PST', 'PDT')
 
 zone_code_map = {
 	'UTC': utc_zone,
-	'EST': est_zone, 'EDT': edtZone, 'ET': et_zone,
+	'EST': est_zone, 'EDT': edt_zone, 'ET': et_zone,
 	'CST': cst_zone, 'CDT': cdt_zone, 'CT': ct_zone,
 	'MST': mst_zone, 'MDT': mdt_zone, 'MT': mt_zone,
 	'PST': pst_zone, 'PDT': pdt_zone, 'PT': pt_zone}
@@ -683,8 +680,7 @@ def parse_lon(s):
 	#  else -> raise SyntaxError ]
 	m = EW_PAT.match(last)
 	if m is None:
-		raise SyntaxError,('Longitude '%s' does not end with '
-							 ''e' or 'w'.' % s)
+		raise SyntaxError, ("Longitude '{lon}' does not end with 'e' or 'w'.".format(lon=s)
 	else:
 		ew_flag = last.lower()
 	#-- 3 --
@@ -945,7 +941,7 @@ class LatLon(object):
 		'''Return self as a string.
 		'''
 		#-- 1 --
-		if self.lon >= pi:
+		if self.lon >= math.pi:
 			e_w = 'W'
 			lon_deg = degrees(TWO_PI - self.lon)
 		else:
@@ -967,7 +963,10 @@ class LatLon(object):
 		lon_list = dms_units.format(dms_units.single_to_mix(lon_deg), 1)
 
 		#-- 4 --
-		return ("[%sd %s\' %s' %s Lat %sd %s\' %s' %s Lon]" % (lat_list[0], lat_list[1], lat_list[2], n_s, lon_list[0], lon_list[1], lon_list[2], e_w))
+		return '[{lat_d}d {lat_s}\' {lat_m}" {ns} Lat {lon_d}d {lon_s}\' {lon_m}" {ew} Lon]'.format(lat_d=lat_list[0], lat_s=lat_list[1],
+																									lat_m=lat_list[2], ns=n_s,
+																									lon_d=lon_list[0], lon_s=lon_list[1],
+																									lon_m=lon_list[2], ew=e_w)
 
 # - - - - -  c l a s s  J u l i a n D a t e
 
@@ -1025,9 +1024,9 @@ class JulianDate(object):
 			mm = int(g - 13)
 		#-- 9 --
 		if mm > 2.5:
-			yyyy = int(d-4716)
+			yyyy = int(d - 4716)
 		else:
-			yyyy = int(d-4715)
+			yyyy = int(d - 4715)
 		#-- 10 --
 		sec, frac_sec = divmod(sc, 1.0)
 		usec = int(frac_sec * 1e6)
@@ -1090,9 +1089,9 @@ class JulianDate(object):
 		# [ if dt is naive ->
 		#	 utc := dt
 		#  else ->
-		#	 utc := dt - dt.utcoffset() ]
+		#	 utc := dt - dt.utc_offset() ]
 		utc = dt
-		offset = dt.utcoffset()
+		offset = dt.utc_offset()
 		if offset:
 			utc = dt - offset
 		#-- 2 --
@@ -1120,10 +1119,10 @@ class JulianDate(object):
 		#-- 7 --
 		# [ if frac_day+0.5 >= 1.0 ->
 		#	 s += 1
-		#	 frac_day := (frac_day+0.5) % 1.0
+		#	 frac_day := (frac_day + 0.5) % 1.0
 		#  else ->
 		#	 frac_day := frac_day + 0.5 ]
-		day_carry, frac_day = divmod(frac_day+0.5, 1.0)
+		day_carry, frac_day = divmod(frac_day + 0.5, 1.0)
 		d += day_carry
 
 		#-- 8 --
@@ -1163,7 +1162,8 @@ class SiderealTime(object):
 		values = dms_units.format(mix, decimals=3, lz=True)
 
 		#-- 2 --
-		return '[%sh %sm %ss]' % tuple(values)
+		values = tuple(values)
+		return '[{hh}h {mm}m {ss}s]'.format(hh=values[0], mm=values[1], ss=values[2])
 # - - -  S i d e r e a l T i m e . u t c
 
 	def utc(self, date):
@@ -1293,7 +1293,7 @@ class SiderealTime(object):
 		utc = dt
 		tz = dt.tzinfo
 		if tz is not None:
-			offset = tz.utcoffset(dt)
+			offset = tz.utc_offset(dt)
 			if offset is not None:
 				utc = dt - offset
 
@@ -1322,8 +1322,8 @@ class AltAz(object):
 	'''Represents a sky location in horizon coords. (altitude/azimuth)
 
 	 Exports/Invariants:
-		.alt:  [ altitude in radians, in [-pi,+pi] ]
-		.az:	[ azimuth in radians, in [0,2*pi] ]
+		.alt:  [ altitude in radians, in [-math.pi, +math.pi] ]
+		.az:	[ azimuth in radians, in [0, 2 * math.pi] ]
 	'''
 # - - -  A l t A z . _ _ i n i t _ _
 
@@ -1377,7 +1377,10 @@ class AltAz(object):
 		az_list = dms_units.format(dms_units.single_to_mix(degrees(self.az)), lz=True, decimals=3)
 
 		#-- 2 --
-		return ('[az %sd %s' %s\' alt %sd %s' %s\']' % (tuple(az_list)+tuple(alt_list)))
+		az_list = tuple(az_list)
+		alt_list = tuple(alt_list)
+		return '[az {az_d}d {az_m}\' {az_s}" alt {alt_d}d {alt_m}\' {alt_s}"]'.format(az_d=az_list[0], az_m=az_list[1], az_s=az_list[2],
+																						alt_d=alt_list[0], alt_m=alt_list[1], alt_s=alt_list[2])
 # - - -  c o o r d R o t a t e
 
 def coord_rotate(x, y, z):
@@ -1385,14 +1388,14 @@ def coord_rotate(x, y, z):
 
 	 [ x, y, and z are angles in radians ->
 		 return (xt, yt) where
-		 xt=arcsin(sin(x)*sin(y)+cos(x)*cos(y)*cos(z)) and
-		 yt=arccos((sin(x)-sin(y)*sin(xt))/(cos(y)*cos(xt))) ]
+		 xt = arcsin(sin(x) * sin(y) + cos(x) * cos(y) * cos(z)) and
+		 yt = arccos((sin(x) - sin(y) * sin(xt)) / (cos(y) * cos(xt))) ]
 	'''
 	#-- 1 --
 	xt = asin(sin(x) * sin(y) + cos(x) * cos(y) * cos(z))
 
 	#-- 2 --
-	yt = acos(( sin(x) - sin(y) * sin(xt)) / (cos(y) * cos(xt)))
+	yt = acos((sin(x) - sin(y) * sin(xt)) / (cos(y) * cos(xt)))
 
 	#-- 3 --
 	if sin(z) > 0.0:
@@ -1457,4 +1460,7 @@ class RADec(object):
 		dec_units = dms_units.format(dms_units.single_to_mix(degrees(self.dec)), lz=True, decimals=3)
 
 		#-- 2 --
-		return ("[%sh %sm %ss, %sd %s' %s\']" % (tuple(ra_units)+tuple(dec_units)))
+		ra_units = tuple(ra_units)
+		dec_units = tuple(dec_units)
+		return '[{ra_h}h {ra_m}m {ra_s}s, {dec_d}d {dec_m}\' {dec_s}"]'.format(ra_d=ra_units[0], ra_m=ra_units[1], ra_s=ra_units[2],
+																				dec_d=dec_units[0], dec_m=dec_units[1], dec_s=dec_units[2])
