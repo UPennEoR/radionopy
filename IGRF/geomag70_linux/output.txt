@@ -1,0 +1,2 @@
+Date Coord-System Altitude Latitude Longitude D_deg D_min I_deg I_min H_nT X_nT Y_nT Z_nT F_nT dD_min dI_min dH_nT dX_nT dY_nT dZ_nT dF_nT
+2012,01,26 C K6821.0 29.9948662793 69.9948662793     1d 15m    46d 23m   26265.2  26258.9    574.7  27566.0  38075.5     2.2       4.9        -15.8    -16.2     16.7     62.9     34.7
