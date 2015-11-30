@@ -306,6 +306,7 @@ def PuncIonOffset(LatObs,AzSou,ZeSou,AltIon):
 
 	# The 2-D sine rule gives the zenith angle at the
 	# Ionospheric piercing point
+        # This is Equation 5
 	ZenPunc = np.arcsin((RadiusEarth*np.sin(ZeSou))/(RadiusEarth + AltIon)) 
 
 	# Use the sum of the internal angles of a triange to determine theta
