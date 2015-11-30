@@ -45,6 +45,9 @@ radec = SkyCoord(ra=RAstr,dec=DECstr,location=location,obstime=time0)
 # altitude per day (not per hour: CHECK.  Certainly the DHGT keyword
 # only appears once)
 TEC = ri.readIonexTEC(IONEXfile)
+
+""" The functionality to interpolate a TEC and TEC RMS value at a give lat / lon is not implemented here, and the algorithm is in teccalc.calcTEC and in the memo ionex_memo.pdf """
+
 # Ionosphere altitude comes from the IONEX file
 AltIon = TEC['AltIon']
 # Now loop through times to reproduce ionFRM.py output
@@ -66,10 +69,10 @@ UTs = np.linspace(0,23,num=24)
 #        # Now we need to calculate the TEC at the given time at the
 #        # requested Lat/Lon plus offsets.  This original code is
 #        # goddamn mess.
-#        VTEC = ri.interpTEC(TEC,LatO + offLat,LonO + offLon,UT)
+#        VTEC = ri.interpTEC(TEC,LatO + offLat,LonO + offLon,UT) # This funcion does not exist and needs to be written, but should be based off of calctec
 #        TECpath = VTEC*TEC2m2/np.cos(ZenPunct)
-#        VRMSTEC
-#        RMSTECpath = VRMSTEC*TEC2m2/math.cos(ZenPunct)
+#        VRMSTEC = ri.interpTEC(TEC,LatO + offLat,LonO + offLon,UT)
+#        RMSTECpath = VRMSTEC*TEC2m2/np.cos(ZenPunct)
 #
 #        # Get the mangetic field
 #        Totfield = ri.B_IGRF(year,month,day,AltIon,LonObs,offLon,LatObs,offLat,AzPunct,ZenPunct)
