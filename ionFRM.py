@@ -12,7 +12,7 @@ import scipy
 
 import subprocess
 
-base_path = '/home/immwa/
+base_path = '/home/immwa/'
 
 if __name__ == '__main__':
 	# Defining some variables for further use
