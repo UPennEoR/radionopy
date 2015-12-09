@@ -299,8 +299,13 @@ def calc_ion_height(filename):
 def B_IGRF(year, month, day, alt_ion, lon_o, lat_o, off_lat, az_punct, zen_punct):
 	al_s_punct = (np.pi / 2.0) - zen_punct
 
-	# Calculation of TEC path value for the indicated 'hour' and therefore 
-	# at the IPP
+	# Checking the arguments are given correctly
+	arg_list  =  sys.argv[1:]
+	if len(arg_list) != 5:
+		usage('Incorrect command line argument count.')
+	else:
+		raw_ra_dec, raw_latitude, raw_longitude, raw_d_time, IONEX_name = arg_list
+
 	# Calculation of RMS TEC path value (same as the step above)
 	if raw_latitude[-1] == 's':
 		lat_val = -1
@@ -311,6 +316,9 @@ def B_IGRF(year, month, day, alt_ion, lon_o, lat_o, off_lat, az_punct, zen_punct
 	elif raw_longitude[-1] == 'w':
 		lon_val = -1
 
+	# Calculation of TEC path value for the indicated 'hour' and therefore 
+	# at the IPP
+	#calc_TEC same as read_IONEX_TEC but simply grabs important values
 	TEC_arr = calc_TEC(lat_val * (lat_o + off_lat) * 180.0 / np.pi, lon_val * (lon_o + off_lon) * 180.0 / np.pi, IONEX_name)
 	RMS_TEC_arr = calc_TEC(lat_val * (lat_o + off_lat) * 180.0 / np.pi, lon_val * (lon_o + off_lon) * 180.0 / pi, IONEX_name)
 
@@ -357,13 +365,6 @@ if __name__ == '__main__':
 	TEC2m2 = 0.1 * TECU
 	earth_radius = 6371000.0 # in meters
 	tesla_to_gauss = pow(10, 4)
-
-	# Cheking the arguments are given correctly
-	arg_list  =  sys.argv[1:]
-	if len(arg_list) != 5:
-		usage('Incorrect command line argument count.')
-	else:
-		raw_ra_dec, raw_latitude, raw_longitude, raw_d_time, IONEX_name = arg_list
 
 	## Nominally try to reproduce the output of this command
 	## ionFRM.py 16h50m04.0s+79d11m25.0s 52d54m54.64sn 6d36m16.04se 2004-05-19T00:00:00 CODG1400.04I
