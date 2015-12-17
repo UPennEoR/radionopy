@@ -40,6 +40,9 @@ o.add_option('-v',dest='v',default=0.,help='magnitude of v vector for baseline (
 o.add_option('-w',dest='w',default=0.,help='magnitude of w vector for baseline (in m).')
 
 o.add_option('-p','--pol',dest='pol',default='XX',help='Polarization. Currently used as a simple labelling system.')
+o.add_option('--freq_min',dest='freq_min', default=0.117, help='Minimum frequency (in GHz).')
+o.add_option('--freq_max',dest='freq_max', default=0.182, help='Maximum frequency (in GHz).')
+o.add_option('--freq_bins',dest='freq_bins', default=131, help='Number of frequency bins.')
 
 #sky options
 o.add_option('--map',dest='map',default=None,help='healpix map to pass overhead. If None, a uniform, 100 K background will be used. If "point", a 500 K point source on a 0 K background will be used.')
@@ -66,7 +69,10 @@ opts.w = float(opts.w)
 nside = int(opts.nside)
 npix = hp.nside2npix(nside)
 
-freqs = np.linspace(0.117,0.182,num=131) #aipy likes GHz units. avoiding band edges
+freqmin=float(opts.freq_min)
+freqmax=float(opts.freq_max)
+freqbins=int(opts.freq_bins)
+freqs = np.linspace(freqmin,freqmax,num=freqbins) #aipy likes GHz units. avoiding band edges
 
 #### BEAMS ####
 if opts.beamnpz != None: beam = np.load(opts.beamnpz)['maps']	
@@ -106,7 +112,7 @@ l,m = hp.Alm.getlm(lmax)
 
 #frequencies in Hz
 nfreq=freqs.shape[0]
-nu = np.outer(np.linspace(117e6,182e6,num=nfreq),np.ones(npix))#*u.Hz
+nu = np.outer(np.linspace(freqmin*1e9,freqmax*1e9,num=nfreq),np.ones(npix))#*u.Hz
 
 if opts.mapnpz is None:
 	#define sky -- completely arbitrary choice of temp
