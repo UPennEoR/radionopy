@@ -15,37 +15,6 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude,
 
 base_path = os.path.expanduser('~')
 
-def IONEX_file_needed(year, month, day):
-    time_str = '{year} {month} {day}'.format(year=year, month=month, day=day)
-    day_of_year = datetime.datetime.strptime(time_str, '%Y %m %d').timetuple().tm_yday
-
-    if day_of_year < 10:
-        day_of_year = '00{day_of_year}'.format(day_of_year=day_of_year)
-    elif 10 <= day_of_year < 100:
-        day_of_year = '0{day_of_year}'.format(day_of_year=day_of_year)
-
-    # Outputing the name of the IONEX file you require
-    ionex_file = 'CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
-
-    return ionex_file
-
-def get_IONEX_file(year, month, day):
-    server = 'ftp.unibe.ch'
-
-    ftp_dir = os.path.join('aiub/CODE/', year)
-    IONEX_file = IONEX_file_needed(year, month, day)
-    IONEX_file_Z = ''.join((IONEX_file, '.Z'))
-
-    getting_file_str = 'Retrieving {IONEX_file_Z} for {day} {month} {year}'.format(IONEX_file_Z=IONEX_file_Z, day=day, month=month, year=year)
-    print(getting_file_str)
-
-    ftp = ftplib.FTP(server, 'anonymous', 'jaguirre@sas.upenn.edu')
-    ftp.cwd(ftp_dir)
-    ftp.retrbinary(' '.join(('RETR', IONEX_file_Z)), open(IONEX_file_Z, 'wb').write)
-    ftp.quit()
-
-    return True
-
 def read_IONEX_TEC(filename):
     #==========================================================================
     # Reading and storing only the TEC values of 1 day
@@ -127,77 +96,6 @@ def read_IONEX_TEC(filename):
     return TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a)
     #==========================================================================
 
-def calc_TEC(coord_lon, coord_lat, filename): 
-    time_int = 1.0 # hours
-    total_maps = 25
-
-    TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a) = read_IONEX_TEC(filename)
-
-    #==========================================================================================
-    # producing interpolated TEC maps, and consequently a new array that will 
-    # contain 25 TEC maps in total. The interpolation method used is the second
-    # one indicated in the IONEX manual
-
-    # creating a new array that will contain 25 maps in total 
-    newa = np.zeros((total_maps, points_lat, points_lon))
-    inc = 0
-    for item in range(int(number_of_maps)):
-        newa[inc, :, :] = a[item, :, :]
-        inc = inc + 2
-
-    # performing the interpolation to create 12 addional maps 
-    # from the 13 TEC maps available
-    while int(time_int) <= (total_maps - 2):
-        for lat in range(int(points_lat)):
-            for lon in range(int(points_lon)):
-                # interpolation type 2:
-                # newa[int(time_int),lat,lon] = 0.5*newa[int(time_int)-1,lat,lon] + 0.5*newa[int(time_int)+1,lat,lon]
-                # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
-                # Correct for this):
-                if (lon >= 4) and (lon <= (points_lon - 4)):
-                    newa[int(time_int), lat, lon] = 0.5 * newa[int(time_int) - 1, lat, lon + 3] + 0.5 * newa[int(time_int) + 1, lat, lon -3 ] 
-        time_int = time_int + 2.0
-    #==========================================================================================
-
-
-    #=========================================================================
-    # Finding out the TEC value for the coordinates given
-    # at every hour
-
-    # Locating the 4 points in the IONEX grid map which surround
-    # the coordinate you want to calculate the TEC value from  
-    index_lat = 0
-    index_lon = 0
-    n = 0
-    m = 0
-    for lon in range(int(points_lon)):
-        if (coord_lon > (start_lon + (n + 1) * step_lon)  and coord_lon < (start_lon + (n + 2) * step_lon)):
-            lower_index_lon =  n + 1
-            higher_index_lon = n + 2
-        n = n + 1
-    for lat in range(int(points_lat)):
-        if (coord_lat < (start_lat + (m + 1) * step_lat) and coord_lat > (start_lat + (m + 2) * step_lat)):
-            lower_index_lat =  m + 1
-            higher_index_lat = m + 2
-        m = m + 1
-
-    # Using the 4-point formula indicated in the IONEX manual
-    # The TEC value at the coordinates you desire for every 
-    # hour are estimated 
-    diff_lon = coord_lon - (start_lon + lower_index_lon * step_lon)
-    p = diff_lon / step_lon
-    diff_lat = coord_lat - (start_lat + lower_index_lat * step_lat)
-    q = diff_lat / step_lat
-    TEC_values = []
-    for m in range(total_maps):
-        TEC_values.append((1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
-                            + p * (1.0 - q) * newa[m, lower_index_lat, higher_index_lon]\
-                            + q * (1.0 - p) * newa[m, higher_index_lat, lower_index_lon]\
-                            + p * q * newa[m, higher_index_lat, higher_index_lon])
-    #=========================================================================
-
-    return {'TEC_values': np.array(TEC_values), 'a': np.array(a), 'newa': np.array(newa)}
-
 def interp_TEC(TEC, UT, coord_lon, coord_lat, other_info):
     total_maps = 25
 
@@ -241,7 +139,7 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, other_info):
     n = 0
     m = 0
     for lon in range(int(points_lon)):
-        if (coord_lon > (start_lon + (n + 1) * step_lon)  and coord_lon < (start_lon + (n + 2) * step_lon)):
+        if (coord_lon > (start_lon + (n + 1) * step_lon) and coord_lon < (start_lon + (n + 2) * step_lon)):
             lower_index_lon =  n + 1
             higher_index_lon = n + 2
         n = n + 1
@@ -267,44 +165,44 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, other_info):
     #=========================================================================
 
     #return {'TEC_values': np.array(TEC_values), 'a': np.array(a), 'newa': np.array(newa)}
-    return np.array(TEC_values)
+    return np.array(TEC_values)[UT]
 
-def punc_ion_offset(lat_obs, az_sou, ze_sou, alt_ion):
+def punct_ion_offset(lat_obs, az_source, zen_source, alt_ion):
     radius_earth = 6371000.0 # in meters
 
     # The 2-D sine rule gives the zenith angle at the
     # Ionospheric piercing point
-    zen_punc = np.asin((radius_earth * np.sin(ze_sou)) / (radius_earth + alt_ion)) 
+    zen_punct = np.asin((radius_earth * np.sin(zen_source)) / (radius_earth + alt_ion)) 
 
     # Use the sum of the internal angles of a triange to determine theta
-    theta = ze_sou - zen_punc
+    theta = zen_source - zen_punct
 
     # The cosine rule for spherical triangles gives us the latitude
     # at the IPP
-    lat_ion = np.asin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_sou)) 
+    lat_ion = np.asin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_source)) 
     d_lat = lat_ion - lat_obs # latitude difference
 
     # Longitude difference using the 3-D sine rule (or for spherical triangles)
-    d_lon = np.asin(np.sin(az_sou) * np.sin(theta) / np.cos(lat_ion))
+    d_lon = np.asin(np.sin(az_source) * np.sin(theta) / np.cos(lat_ion))
 
     # Azimuth at the IPP using the 3-D sine rule
-    s_az_ion = np.sin(az_sou) * np.cos(lat_obs) / np.cos(lat_ion)
-    az_punc = np.asin(s_az_ion)
+    s_az_ion = np.sin(az_source) * np.cos(lat_obs) / np.cos(lat_ion)
+    az_punct = np.asin(s_az_ion)
 
-    return d_lon, d_lat, az_punc, zen_punc
+    return d_lon, d_lat, az_punct, zen_punct
 
-def get_coords(raw_lon, raw_lat, lon_o, lat_o, off_lon, off_lat):
-    if raw_lon[-1] == 'e':
+def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
+    if lon_str[-1] == 'e':
         lon_val = 1
-    elif raw_lon[-1] == 'w':
+    elif lon_str[-1] == 'w':
         lon_val = -1
-    if raw_lat[-1] == 's':
+    if lat_str[-1] == 's':
         lat_val = -1
-    elif raw_lat[-1] == 'n':
+    elif lat_str[-1] == 'n':
         lat_val = 1
 
-    coord_lon = lon_val * (lon_o + off_lon) * 180.0 / np.pi
-    coord_lat = lat_val * (lat_o + off_lat) * 180.0 / np.pi
+    coord_lon = lon_val * (lon_obs + off_lon) * 180.0 / np.pi
+    coord_lat = lat_val * (lat_obs + off_lat) * 180.0 / np.pi
 
     return coord_lon, coord_lat
 
@@ -359,19 +257,24 @@ if __name__ == '__main__':
     ## Nominally try to reproduce the output of this command
     ## ionFRM.py 16h50m04.0s+79d11m25.0s 52d54m54.64sn 6d36m16.04se 2004-05-19T00:00:00 CODG1400.04I
     ## Echo back what he has ... 
-    #RAstr = '16h50m04.0s'
-    #DECstr = '+79d11m25.0s'
-    #LatStr = '52d54m54.64sn'
-    #LonStr = '6d36m16.04se'
-    #TimeStr = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
-    #IONEXfile = 'CODG1400.04I'
+    ra_str = '16h50m04.0s'
+    dec_str = '+79d11m25.0s'
+    lon_str = '6d36m16.04se'
+    lat_str = '52d54m54.64sn'
+    time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
+    IONEX_file = 'CODG1400.04I'
+    IONEX_name = os.path.join(base_path, IONEX_file)
 
-    # Checking the arguments are given correctly
-    arg_list  =  sys.argv[1:]
-    if len(arg_list) != 5:
-        usage('Incorrect command line argument count.')
-    else:
-        raw_ra_dec, raw_lat, raw_lon, raw_d_time, IONEX_name = arg_list
+    year, month, day = time_str.split('T')[0].split('-')
+
+    lon_obs = Longitude(Angle(lon_str[:-1]))
+    lat_obs = Latitude(Angle(lat_str[:-1]))
+
+    location = EarthLocation(lon=lon_obs, lat=lat_obs, height=0 * u.m)
+    start_time = Time(time_str)
+
+    # Create a sky coordinate object, from which we can subsequently derive the necessary alt/az
+    ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time)
 
     TEC, other_info = read_IONEX_TEC(IONEX_name)
     #TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a) = read_IONEX_TEC(IONEX_name)
@@ -383,25 +286,26 @@ if __name__ == '__main__':
     UTs = np.linspace(0, 23, num=24)
     for i, UT in enumerate(UTs):    
         if UT < 10:
-            raw_time = '{date_time}T0{hour}:00:00'.format(date_time=raw_d_time.split('T')[0], hour=UT)
+            hour = '0{hour}'.format(hour=UT)
         else:
-            raw_time = '{date_time}T{hour}:00:00'.format(date_time=raw_d_time.split('T')[0], hour=UT)
+            hour = '{hour}'.format(hour=UT)
         
-        hour = raw_time.split('T')[1].split(':')[0]
-        #date = raw_time.split('T')[0].split('-')
-        year, month, day = raw_time.split('T')[0].split('-')[:2]
+        ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
 
-        # RA and Dec (of the source in degrees) to Alt and Az (radians)
-        az_s, al_s, ha, lat_o, lon_o = rdalaz.alt_az(raw_time)
-        zen_s = (np.pi / 2.0) - al_s
+        # Calculate alt and az
+        alt_source = ra_dec.altaz.alt
+        az_source = ra_dec.altaz.az
 
-        # output data only when the altitude of the source is above 0 degrees
-        if al_s * (180.0 / np.pi) > 0: 
-            # Alt and AZ coordinates of the Ionospheric piercing point
-            # Lon and Lat distances wrt the location of the antenna are also 
-            # calculated (radians)
-            off_lon, off_lat, az_punct, zen_punct = punc_ion_offset(lat_o, az_s, zen_s, alt_ion)
-            coord_lon, coord_lat = get_coords(raw_lon, raw_lat, lon_o, lat_o, off_lon, off_lat)
+        # zen_source is a different kind of object than Alt/Az
+        zen_source = ra_dec.altaz.zen
+
+        if (alt_source.degree > 0):
+            print(i, alt_source, az_source)
+            # Calculate the ionospheric piercing point.  Inputs and outputs in radians
+            off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_source.radian, zen_source.to(u.radian).value, alt_ion)
+            print(off_lon, off_lat, az_punct, zen_punct)
+
+            coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
 
             TEC_path, RMS_TEC_path, tot_field = B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct)
 
