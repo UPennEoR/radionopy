@@ -28,6 +28,8 @@ def read_IONEX_TEC(filename):
     add = 0 
     new_IONEX_list = []
     for file_data in IONEX_list:
+        if not file_data:
+            continue
         if file_data.split()[-2:] == ['RMS', 'MAP']:
             add = 0
         elif file_data.split()[-2:] == ['IN', 'FILE']:
@@ -37,14 +39,14 @@ def read_IONEX_TEC(filename):
             new_IONEX_list.append(file_data)
 
         if file_data.split()[0] == 'END' and file_data.split()[2] == 'HEADER':
-            add = 1
+                add = 1
 
         if file_data.split()[-1] == 'DHGT':
             ion_h = float(file_data.split()[0])
         elif file_data.split()[-1] == 'DLON':
-            start_lon, end_lon, step_lon = [float(data_item) for data_item in file_data[:2]]
+            start_lon, end_lon, step_lon = [float(data_item) for data_item in file_data.split()[:3]]
         elif file_data.split()[-1] == 'DLAT':
-            start_lat, end_lat, step_lat = [float(data_item) for data_item in file_data[:2]]
+            start_lat, end_lat, step_lat = [float(data_item) for data_item in file_data.split()[:3]]
 
     # Variables that indicate the number of points in Lat. and Lon.
     points_lon = ((end_lon - start_lon) / step_lon) + 1
@@ -135,6 +137,11 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, other_info):
     index_lon = 0
     n = 0
     m = 0
+    lower_index_lon = 0
+    higher_index_lon = 0
+    lower_index_lat = 0
+    higher_index_lat = 0
+
     for lon in range(int(points_lon)):
         if (coord_lon > (start_lon + (n + 1) * step_lon) and coord_lon < (start_lon + (n + 2) * step_lon)):
             lower_index_lon =  n + 1
@@ -169,22 +176,22 @@ def punct_ion_offset(lat_obs, az_source, zen_source, alt_ion):
 
     # The 2-D sine rule gives the zenith angle at the
     # Ionospheric piercing point
-    zen_punct = np.asin((radius_earth * np.sin(zen_source)) / (radius_earth + alt_ion)) 
+    zen_punct = np.arcsin((radius_earth * np.sin(zen_source)) / (radius_earth + alt_ion)) 
 
     # Use the sum of the internal angles of a triange to determine theta
     theta = zen_source - zen_punct
 
     # The cosine rule for spherical triangles gives us the latitude
     # at the IPP
-    lat_ion = np.asin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_source)) 
+    lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_source)) 
     d_lat = lat_ion - lat_obs # latitude difference
 
     # Longitude difference using the 3-D sine rule (or for spherical triangles)
-    d_lon = np.asin(np.sin(az_source) * np.sin(theta) / np.cos(lat_ion))
+    d_lon = np.arcsin(np.sin(az_source) * np.sin(theta) / np.cos(lat_ion))
 
     # Azimuth at the IPP using the 3-D sine rule
     s_az_ion = np.sin(az_source) * np.cos(lat_obs) / np.cos(lat_ion)
-    az_punct = np.asin(s_az_ion)
+    az_punct = np.arcsin(s_az_ion)
 
     return d_lon, d_lat, az_punct, zen_punct
 
@@ -198,8 +205,8 @@ def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
     elif lat_str[-1] == 'n':
         lat_val = 1
 
-    coord_lon = lon_val * (lon_obs + off_lon) * 180.0 / np.pi
-    coord_lat = lat_val * (lat_obs + off_lat) * 180.0 / np.pi
+    coord_lon = lon_val * (lon_obs.value + off_lon) * 180.0 / np.pi
+    coord_lat = lat_val * (lat_obs.value + off_lat) * 180.0 / np.pi
 
     return coord_lon, coord_lat
 
@@ -304,7 +311,7 @@ if __name__ == '__main__':
 
             coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
 
-            TEC_path, RMS_TEC_path, tot_field = B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct)
+            TEC_path, RMS_TEC_path, tot_field = B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct, other_info)
 
             # Saving the Ionosheric RM and its corresponding
             # rms value to a file for the given 'hour' value
