@@ -221,7 +221,7 @@ def B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, z
     with open(input_file, 'w') as f:
         f.write('{year},{month},{day} C K{sky_rad} {ipp_lat} {ipp_lon}'.format(year=year, month=month, day=day,
                                                                                sky_rad=(earth_radius + alt_ion) / 1000.0,
-                                                                               ipp_lon=coord_lon, ipp_lat=coord_lat)
+                                                                               ipp_lon=coord_lon, ipp_lat=coord_lat))
 
     #XXX runs the geomag exe script
     script_name = os.path.join(base_path, 'IGRF/geomag70_linux/geomag70.exe')
