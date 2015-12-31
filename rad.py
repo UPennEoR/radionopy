@@ -1,7 +1,5 @@
 import os
 import sys
-sys.path.append(os.path.join(os.path.expanduser('~'), 'radionopy/SiderealPackage'))
-import rdalaz
 import numpy as np
 import subprocess
 import pylab as plt
@@ -13,7 +11,7 @@ from astropy.wcs import WCS
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude, Longitude
 
-base_path = os.path.expanduser('~')
+base_path = os.path.expanduser('~/radionopy')
 
 def read_IONEX_TEC(filename):
     #==========================================================================
@@ -91,7 +89,6 @@ def read_IONEX_TEC(filename):
                 new_start_lat = new_start_lat + step_lat
             counter_maps = counter_maps + 1
 
-    #return {'TEC': np.array(a), 'lat': latitude, 'lon': longitude}
     TEC =  {'TEC': np.array(a), 'lat': latitude, 'lon': longitude, 'AltIon': ion_h * 1000.0}
     return TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a)
     #==========================================================================
@@ -216,8 +213,8 @@ def B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, z
     TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
     RMS_TEC_path = VRMS_TEC * TEC2m2 / np.cos(zen_punct) # from vertical RMS TEC to line of sight RMS TEC
 
-    input_file = os.path.join(base_path, 'ionFR/IGRF/geomag70_linux/input.txt')
-    output_file = os.path.join(base_path, 'ionFR/IGRF/geomag70_linux/output.txt')
+    input_file = os.path.join(base_path, 'IGRF/geomag70_linux/input.txt')
+    output_file = os.path.join(base_path, 'IGRF/geomag70_linux/output.txt')
 
     #uses lat_val, lon_val from above
     # Calculation of the total magnetic field along the line of sight at the IPP
@@ -227,8 +224,8 @@ def B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, z
                                                                                ipp_lon=coord_lon, ipp_lat=coord_lat)
 
     #XXX runs the geomag exe script
-    script_name = os.path.join(base_path, 'ionFR/IGRF/geomag70_linux/geomag70.exe')
-    script_data = os.path.join(base_path, 'ionFR/IGRF/geomag70_linux/IGRF11.COF')
+    script_name = os.path.join(base_path, 'IGRF/geomag70_linux/geomag70.exe')
+    script_data = os.path.join(base_path, 'IGRF/geomag70_linux/IGRF11.COF')
     script_option = 'f'
     subprocess.call([script_name, script_data, script_option, input_file, output_file])
 
