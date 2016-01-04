@@ -206,8 +206,10 @@ def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
     elif lat_str[-1] == 'n':
         lat_val = 1
 
-    coord_lon = lon_val * (lon_obs.value + off_lon) * 180.0 / np.pi
-    coord_lat = lat_val * (lat_obs.value + off_lat) * 180.0 / np.pi
+    #coord_lon = lon_val * (lon_obs.value + off_lon) * 180.0 / np.pi
+    #coord_lat = lat_val * (lat_obs.value + off_lat) * 180.0 / np.pi
+    coord_lon = lon_val * (lon_obs.value + off_lon)
+    coord_lat = lat_val * (lat_obs.value + off_lat)
 
     return coord_lon, coord_lat
 
