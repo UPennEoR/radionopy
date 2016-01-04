@@ -100,6 +100,7 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, other_info):
 
     start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a = other_info
 
+    new_UT = UT
     #==========================================================================================
     # producing interpolated TEC maps, and consequently a new array that will 
     # contain 25 TEC maps in total. The interpolation method used is the second
@@ -114,16 +115,16 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, other_info):
 
     # performing the interpolation to create 12 addional maps 
     # from the 13 TEC maps available
-    while int(UT) <= (total_maps - 2):
+    while int(new_UT) <= (total_maps - 2):
         for lat in range(int(points_lat)):
             for lon in range(int(points_lon)):
                 # interpolation type 2:
-                # newa[int(UT), lat, lon] = 0.5 * newa[int(UT) - 1, lat, lon] + 0.5 * newa[int(UT) + 1, lat, lon]
+                # newa[int(new_UT), lat, lon] = 0.5 * newa[int(new_UT) - 1, lat, lon] + 0.5 * newa[int(new_UT) + 1, lat, lon]
                 # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
                 # Correct for this):
                 if (lon >= 4) and (lon <= (points_lon - 4)):
-                    newa[int(UT), lat, lon] = 0.5 * newa[int(UT) - 1, lat, lon + 3] + 0.5 * newa[int(UT) + 1, lat, lon -3 ] 
-        UT = UT + 2.0
+                    newa[int(new_UT), lat, lon] = 0.5 * newa[int(new_UT) - 1, lat, lon + 3] + 0.5 * newa[int(new_UT) + 1, lat, lon - 3] 
+        new_UT = new_UT + 2.0
     #==========================================================================================
 
 
@@ -231,12 +232,12 @@ def B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, z
                                                                                ipp_lon=coord_lon, ipp_lat=coord_lat))
 
     #XXX runs the geomag exe script
-    script_name = os.path.join(base_path, 'IGRF/geomag70_linux/geomag70.exe')
+    script_name = os.path.join('./', base_path, 'IGRF/geomag70_linux/geomag70')
     script_data = os.path.join(base_path, 'IGRF/geomag70_linux/IGRF11.COF')
     script_option = 'f'
     subprocess.call([script_name, script_data, script_option, input_file, output_file])
 
-    with open(output_file, 'w') as g:
+    with open(output_file, 'r') as g:
         data = g.readlines()
 
 
@@ -288,7 +289,8 @@ if __name__ == '__main__':
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
-    for i, UT in enumerate(UTs):    
+    for i, UT in enumerate(UTs):
+        print(UT)
         if UT < 10:
             hour = '0{hour}'.format(hour=UT)
         else:
