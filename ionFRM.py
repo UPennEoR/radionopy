@@ -69,7 +69,7 @@ if __name__ == '__main__':
 				lon_val = -1
 
 			TEC_arr = teccalc.calcTEC(lat_val * (lat_o + off_lat) * 180.0 / scipy.pi, lon_val * (lon_o + off_lon) * 180.0 / scipy.pi, IONEX_name)
-			RMS_TEC_arr = tecrmscalc.calcRMSTEC(lat_val * (lat_o + off_lat) * 180.0 / scipy.pi, lon_val * (lon_o + off_lon) * 180.0 / pi,
+			RMS_TEC_arr = tecrmscalc.calcRMSTEC(lat_val * (lat_o + off_lat) * 180.0 / scipy.pi, lon_val * (lon_o + off_lon) * 180.0 / scipy.pi,
 												IONEX_name)
 
 			VTEC = TEC_arr[int(hour)]
