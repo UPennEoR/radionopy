@@ -37,12 +37,12 @@ def read_IONEX_TEC(filename, rms=False):
         elif file_data.split()[-2:] == ['IN', 'FILE']:
             number_of_maps = float(file_data.split()[0])
 
-        if add == 1:
-            new_IONEX_list.append(file_data)
-
         if not rms:
             if file_data.split()[0] == 'END' and file_data.split()[2] == 'HEADER':
                 add = 1
+
+        if add == 1:
+            new_IONEX_list.append(file_data)
 
         if file_data.split()[-1] == 'DHGT':
             ion_h = float(file_data.split()[0])
@@ -103,7 +103,7 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
 
     start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a = info
 
-    start_time = 1.0
+    time_count = 1.0
     #new_UT = UT
     #==========================================================================================
     # producing interpolated TEC maps, and consequently a new array that will 
@@ -119,16 +119,16 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
 
     # performing the interpolation to create 12 addional maps 
     # from the 13 TEC maps available
-    while int(start_time) <= (total_maps - 2):
+    while int(time_count) <= (total_maps - 2):
         for lat in range(int(points_lat)):
             for lon in range(int(points_lon)):
                 # interpolation type 2:
-                # newa[int(start_time), lat, lon] = 0.5 * newa[int(start_time) - 1, lat, lon] + 0.5 * newa[int(start_time) + 1, lat, lon]
+                # newa[int(time_count), lat, lon] = 0.5 * newa[int(time_count) - 1, lat, lon] + 0.5 * newa[int(time_count) + 1, lat, lon]
                 # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
                 # Correct for this):
                 if (lon >= 4) and (lon <= (points_lon - 4)):
-                    newa[int(start_time), lat, lon] = 0.5 * newa[int(start_time) - 1, lat, lon + 3] + 0.5 * newa[int(start_time) + 1, lat, lon - 3] 
-        start_time = start_time + 2.0
+                    newa[int(time_count), lat, lon] = 0.5 * newa[int(time_count) - 1, lat, lon + 3] + 0.5 * newa[int(time_count) + 1, lat, lon - 3] 
+        time_count = time_count + 2.0
     #==========================================================================================
 
 
@@ -168,20 +168,20 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
     TEC_values = []
     for m in range(total_maps):
         TEC_values.append((1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
-                            + p * (1.0 - q) * newa[m, lower_index_lat, higher_index_lon]\
-                            + q * (1.0 - p) * newa[m, higher_index_lat, lower_index_lon]\
-                            + p * q * newa[m, higher_index_lat, higher_index_lon])
+                          + p * (1.0 - q) * newa[m, lower_index_lat, higher_index_lon]\
+                          + q * (1.0 - p) * newa[m, higher_index_lat, lower_index_lon]\
+                          + p * q * newa[m, higher_index_lat, higher_index_lon])
     #=========================================================================
 
     #return {'TEC_values': np.array(TEC_values), 'a': np.array(a), 'newa': np.array(newa)}
     return np.array(TEC_values)[UT]
 
 def punct_ion_offset(lat_obs, az_source, zen_source, alt_ion):
-    radius_earth = 6371000.0 # in meters
+    #earth_radius = 6371000.0 # in meters
 
     # The 2-D sine rule gives the zenith angle at the
     # Ionospheric piercing point
-    zen_punct = np.arcsin((radius_earth * np.sin(zen_source)) / (radius_earth + alt_ion)) 
+    zen_punct = np.arcsin((earth_radius * np.sin(zen_source)) / (earth_radius + alt_ion)) 
 
     # Use the sum of the internal angles of a triange to determine theta
     theta = zen_source - zen_punct
@@ -210,8 +210,6 @@ def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
     elif lat_str[-1] == 'n':
         lat_val = 1
 
-    #coord_lon = lon_val * (lon_obs.value + off_lon) * 180.0 / np.pi
-    #coord_lat = lat_val * (lat_obs.value + off_lat) * 180.0 / np.pi
     coord_lon = lon_val * (lon_obs.value + off_lon)
     coord_lat = lat_val * (lat_obs.value + off_lat)
 
@@ -264,7 +262,7 @@ if __name__ == '__main__':
     # Defining some variables for further use
     TECU = pow(10, 16)
     TEC2m2 = 0.1 * TECU
-    earth_radius = 6371000.0 # in meters
+    earth_radius = c.R_earth.value #6371000.0 # in meters
     tesla_to_gauss = pow(10, 4)
 
     ## Nominally try to reproduce the output of this command
