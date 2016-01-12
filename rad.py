@@ -2,8 +2,8 @@ import os
 import sys
 import numpy as np
 import subprocess
-import pylab as plt
-import healpy as hp
+#import pylab as plt
+#import healpy as hp
 from astropy import units as u
 from astropy import constants as c
 from astropy.io import fits
@@ -52,8 +52,8 @@ def read_IONEX_TEC(filename, rms=False):
             start_lat, end_lat, step_lat = [float(data_item) for data_item in file_data.split()[:3]]
 
     # Variables that indicate the number of points in Lat. and Lon.
-    points_lon = ((end_lon - start_lon) // step_lon) + 1
-    points_lat = ((end_lat - start_lat) // step_lat) + 1
+    points_lon = ((end_lon - start_lon) / step_lon) + 1
+    points_lat = ((end_lat - start_lat) / step_lat) + 1
 
     print(start_lon, end_lon, step_lon)
     print(start_lat, end_lat, step_lat)
@@ -103,7 +103,8 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
 
     start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a = info
 
-    new_UT = UT
+    start_time = 1.0
+    #new_UT = UT
     #==========================================================================================
     # producing interpolated TEC maps, and consequently a new array that will 
     # contain 25 TEC maps in total. The interpolation method used is the second
@@ -118,16 +119,16 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
 
     # performing the interpolation to create 12 addional maps 
     # from the 13 TEC maps available
-    while int(new_UT) <= (total_maps - 2):
+    while int(start_time) <= (total_maps - 2):
         for lat in range(int(points_lat)):
             for lon in range(int(points_lon)):
                 # interpolation type 2:
-                # newa[int(new_UT), lat, lon] = 0.5 * newa[int(new_UT) - 1, lat, lon] + 0.5 * newa[int(new_UT) + 1, lat, lon]
+                # newa[int(start_time), lat, lon] = 0.5 * newa[int(start_time) - 1, lat, lon] + 0.5 * newa[int(start_time) + 1, lat, lon]
                 # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
                 # Correct for this):
                 if (lon >= 4) and (lon <= (points_lon - 4)):
-                    newa[int(new_UT), lat, lon] = 0.5 * newa[int(new_UT) - 1, lat, lon + 3] + 0.5 * newa[int(new_UT) + 1, lat, lon - 3] 
-        new_UT = new_UT + 2.0
+                    newa[int(start_time), lat, lon] = 0.5 * newa[int(start_time) - 1, lat, lon + 3] + 0.5 * newa[int(start_time) + 1, lat, lon - 3] 
+        start_time = start_time + 2.0
     #==========================================================================================
 
 
@@ -161,9 +162,9 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
     # The TEC value at the coordinates you desire for every 
     # hour are estimated 
     diff_lon = coord_lon - (start_lon + lower_index_lon * step_lon)
-    p = diff_lon // step_lon
+    p = diff_lon / step_lon
     diff_lat = coord_lat - (start_lat + lower_index_lat * step_lat)
-    q = diff_lat // step_lat
+    q = diff_lat / step_lat
     TEC_values = []
     for m in range(total_maps):
         TEC_values.append((1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
