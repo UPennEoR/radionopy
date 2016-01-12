@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude,
 
 base_path = os.path.expanduser('~/radionopy')
 
-def read_IONEX_TEC(filename):
+def read_IONEX_TEC(filename, rms=False):
     #==========================================================================
     # Reading and storing only the TEC values of 1 day
     # (13 maps) into a 3D array
@@ -32,13 +32,16 @@ def read_IONEX_TEC(filename):
             continue
         if file_data.split()[-2:] == ['RMS', 'MAP']:
             add = 0
+            if rms:
+                add = 1
         elif file_data.split()[-2:] == ['IN', 'FILE']:
             number_of_maps = float(file_data.split()[0])
 
         if add == 1:
             new_IONEX_list.append(file_data)
 
-        if file_data.split()[0] == 'END' and file_data.split()[2] == 'HEADER':
+        if not rms:
+            if file_data.split()[0] == 'END' and file_data.split()[2] == 'HEADER':
                 add = 1
 
         if file_data.split()[-1] == 'DHGT':
@@ -49,8 +52,8 @@ def read_IONEX_TEC(filename):
             start_lat, end_lat, step_lat = [float(data_item) for data_item in file_data.split()[:3]]
 
     # Variables that indicate the number of points in Lat. and Lon.
-    points_lon = ((end_lon - start_lon) / step_lon) + 1
-    points_lat = ((end_lat - start_lat) / step_lat) + 1
+    points_lon = ((end_lon - start_lon) // step_lon) + 1
+    points_lat = ((end_lat - start_lat) // step_lat) + 1
 
     print(start_lon, end_lon, step_lon)
     print(start_lat, end_lat, step_lat)
@@ -95,10 +98,10 @@ def read_IONEX_TEC(filename):
     return TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a)
     #==========================================================================
 
-def interp_TEC(TEC, UT, coord_lon, coord_lat, other_info):
+def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
     total_maps = 25
 
-    start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a = other_info
+    start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a = info
 
     new_UT = UT
     #==========================================================================================
@@ -158,9 +161,9 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, other_info):
     # The TEC value at the coordinates you desire for every 
     # hour are estimated 
     diff_lon = coord_lon - (start_lon + lower_index_lon * step_lon)
-    p = diff_lon / step_lon
+    p = diff_lon // step_lon
     diff_lat = coord_lat - (start_lat + lower_index_lat * step_lat)
-    q = diff_lat / step_lat
+    q = diff_lat // step_lat
     TEC_values = []
     for m in range(total_maps):
         TEC_values.append((1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
@@ -213,15 +216,15 @@ def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
 
     return coord_lon, coord_lat
 
-def B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct, other_info):
+def TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info):
+    VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info)
+    TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
+
+    return TEC_path
+
+def B_IGRF(year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct):
     # Calculation of TEC path value for the indicated 'hour' and therefore 
     # at the IPP
-
-    VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, other_info)
-    VRMS_TEC = interp_TEC(TEC, UT, coord_lon, coord_lat, other_info)
-
-    TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
-    RMS_TEC_path = VRMS_TEC * TEC2m2 / np.cos(zen_punct) # from vertical RMS TEC to line of sight RMS TEC
 
     input_file = os.path.join(base_path, 'IGRF/geomag70_linux/input.txt')
     output_file = os.path.join(base_path, 'IGRF/geomag70_linux/output.txt')
@@ -249,12 +252,14 @@ def B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, z
                     x_field * np.sin(zen_punct) * np.cos(az_punct)
 
     #remove files once used
-    os.remove(input_file)
-    os.remove(output_file)
+    #os.remove(input_file)
+    #os.remove(output_file)
 
-    return TEC_path, RMS_TEC_path, tot_field
+    return tot_field
 
 if __name__ == '__main__':
+    with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:
+        pass
     # Defining some variables for further use
     TECU = pow(10, 16)
     TEC2m2 = 0.1 * TECU
@@ -283,8 +288,8 @@ if __name__ == '__main__':
     # Create a sky coordinate object, from which we can subsequently derive the necessary alt/az
     ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time)
 
-    TEC, other_info = read_IONEX_TEC(IONEX_name)
-    #TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a) = read_IONEX_TEC(IONEX_name)
+    TEC, info = read_IONEX_TEC(IONEX_name)
+    RMS_TEC, rms_info = read_IONEX_TEC(IONEX_name, rms=True)
 
     # Reading the altitude of the Ionosphere in km (from IONEX file)
     alt_ion = TEC['AltIon']
@@ -315,7 +320,9 @@ if __name__ == '__main__':
 
             coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
 
-            TEC_path, RMS_TEC_path, tot_field = B_IGRF(TEC, UT, year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct, other_info)
+            TEC_path = TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info)
+            RMS_TEC_path = TEC_paths(RMS_TEC, UT, coord_lon, coord_lat, zen_punct, rms_info)
+            tot_field = B_IGRF(year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct)
 
             # Saving the Ionosheric RM and its corresponding
             # rms value to a file for the given 'hour' value
