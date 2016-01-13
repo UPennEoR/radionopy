@@ -27,7 +27,7 @@ def read_IONEX_TEC(filename, rms=False):
     # with the TEC maps
     add = 0 
     new_IONEX_list = []
-    for file_data in IONEX_list:
+    for file_data in IONEX_list[:-1]:
         if not file_data:
             continue
         if file_data.split()[-2:] == ['RMS', 'MAP']:
@@ -142,10 +142,6 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
     index_lon = 0
     n = 0
     m = 0
-    lower_index_lon = 0
-    higher_index_lon = 0
-    lower_index_lat = 0
-    higher_index_lat = 0
 
     for lon in range(int(points_lon)):
         if (coord_lon > (start_lon + (n + 1) * step_lon) and coord_lon < (start_lon + (n + 2) * step_lon)):
