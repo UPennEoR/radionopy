@@ -294,9 +294,9 @@ if __name__ == '__main__':
     for i, UT in enumerate(UTs):
         print(UT)
         if UT < 10:
-            hour = '0{hour}'.format(hour=UT)
+            hour = '0{hour}'.format(hour=int(UT))
         else:
-            hour = '{hour}'.format(hour=UT)
+            hour = '{hour}'.format(hour=int(UT))
         
         ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
 
@@ -323,6 +323,7 @@ if __name__ == '__main__':
             # rms value to a file for the given 'hour' value
             IFR = 2.6 * pow(10, -17) * tot_field * TEC_path
             RMS_IFR = 2.6 * pow(10, -17) * tot_field * RMS_TEC_path
+
             with open(os.path.join(base_path, 'IonRM.txt'), 'a') as f:
                 f.write('{hour} {TEC_path} {tot_field} {IFR} {RMS_IFR}\n'.format(hour=hour, TEC_path=TEC_path, tot_field=tot_field,
                                                                                  IFR=IFR, RMS_IFR=RMS_IFR))
