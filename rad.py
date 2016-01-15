@@ -313,7 +313,8 @@ if __name__ == '__main__':
             off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_source.radian, zen_source.to(u.radian).value, alt_ion)
             print(off_lon, off_lat, az_punct, zen_punct)
 
-            coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
+            #coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
+            coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
 
             TEC_path = TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info)
             RMS_TEC_path = TEC_paths(RMS_TEC, UT, coord_lon, coord_lat, zen_punct, rms_info)
