@@ -11,6 +11,7 @@ from astropy.wcs import WCS
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude, Longitude
 
+### Make the base path settable
 base_path = os.path.expanduser('~/radionopy')
 
 def read_IONEX_TEC(filename, rms=False):
@@ -261,6 +262,22 @@ if __name__ == '__main__':
     earth_radius = c.R_earth.value #6371000.0 # in meters
     tesla_to_gauss = pow(10, 4)
 
+### Here we need to accept an array of RA/Dec which correspond to the
+### centers of healpix pixels, and all subsequent operations should
+### allow ra/dec to be vectorized
+
+### The returned value of the function is then an RA/Dec map of the RM
+### above the array
+
+### npix = hp.nside2npix(nside)
+### ipix = np.arange(npix)
+### ra,dec = hp.pix2ang(nside,ipix)
+### ra_dec = SkyCoord() # go from healpix theta,phi radians to astropy ra,dec
+### alt_source = ra_dec.altaz.al
+### az_source = ra_dec.altaz.az
+### that passes in to the new function
+
+
     ## Nominally try to reproduce the output of this command
     ## ionFRM.py 16h50m04.0s+79d11m25.0s 52d54m54.64sn 6d36m16.04se 2004-05-19T00:00:00 CODG1400.04I
     ## Echo back what he has ... 
@@ -307,6 +324,10 @@ if __name__ == '__main__':
         # zen_source is a different kind of object than Alt/Az
         zen_source = ra_dec.altaz.zen
 
+### From here to the end should be a function that takes
+### lat_obs,lon_obs,alt_src,az_src,height_ion and computes the RM,
+### returning a dictionary with TEC, RMS_TEC, IFR, RMS_IFR,tot_field,
+### etc ...
         if (alt_source.degree > 0):
             print(i, alt_source, az_source)
             # Calculate the ionospheric piercing point.  Inputs and outputs in radians
