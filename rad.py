@@ -13,6 +13,11 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude,
 
 ### Make the base path settable
 base_path = os.path.expanduser('~/radionopy')
+TECU = pow(10, 16)
+TEC2m2 = 0.1 * TECU
+earth_radius = c.R_earth.value #6371000.0 # in meters
+tesla_to_gauss = pow(10, 4)
+
 
 def read_IONEX_TEC(filename, rms=False):
     #==========================================================================
