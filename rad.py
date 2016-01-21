@@ -20,8 +20,9 @@ earth_radius = c.R_earth.value #6371000.0 # in meters
 tesla_to_gauss = 1e4
 
 def gen_IONEX_list(IONEX_list):
-    add = 0
-    new_IONEX_list = []
+    add = False
+    rms_add = False
+    base_IONEX_list = []
     RMS_IONEX_list = []
     for file_data in IONEX_list[:-1]:
         if not file_data:
@@ -38,7 +39,7 @@ def gen_IONEX_list(IONEX_list):
         if rms_add:
             RMS_IONEX_list.append(file_data)
         if add:
-            new_IONEX_list.append(file_data)
+            base_IONEX_list.append(file_data)
 
         if file_data.split()[-1] == 'DHGT':
             ion_h = float(file_data.split()[0])
@@ -114,11 +115,11 @@ def read_IONEX_TEC(filename):
 
     tec_a = TEC_list[0]['a']
     rms_a = TEC_list[1]['a']
-    TEC =  {'TEC': TEC_list[0]), 'lat': latitude, 'lon': longitude, 'ion_height': ion_h * 1000.0}
-    RMS_TEC =  {'TEC': TEC_list[1]), 'lat': latitude, 'lon': longitude, 'ion_height': ion_h * 1000.0}
+    TEC =  {'TEC': TEC_list[0]['TEC'], 'lat': latitude, 'lon': longitude}
+    RMS_TEC =  {'TEC': TEC_list[1]['TEC'], 'lat': latitude, 'lon': longitude}
     
     #return TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a)
-    return TEC, RMS_TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, tec_a, rms_a)
+    return TEC, RMS_TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
     #==========================================================================
 
 def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
@@ -354,11 +355,9 @@ if __name__ == '__main__':
     #RMS_TEC, rms_info = read_IONEX_TEC(IONEX_name, rms=True)
     TEC, RMS_TEC, all_info = read_IONEX_TEC(IONEX_name)
 
-    info = all_info[:7] + all_info[7]
-    rms_info = all_info[:7] + all_info[8]
-
-    # Reading the altitude of the Ionosphere in km (from IONEX file)
-    ion_height = TEC['ion_height']
+    info = all_info[:7] + (all_info[7],)
+    rms_info = all_info[:7] + (all_info[8],)
+    ion_height = all_info[9]
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
