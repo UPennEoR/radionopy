@@ -11,12 +11,13 @@ from astropy.wcs import WCS
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude, Longitude
 
+# Defining some variables for further use
 ### Make the base path settable
 base_path = os.path.expanduser('~/radionopy')
-TECU = pow(10, 16)
+TECU = 1e16
 TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
-tesla_to_gauss = pow(10, 4)
+tesla_to_gauss = 1e4
 
 
 def read_IONEX_TEC(filename, rms=False):
@@ -100,7 +101,7 @@ def read_IONEX_TEC(filename, rms=False):
                 new_start_lat = new_start_lat + step_lat
             counter_maps = counter_maps + 1
 
-    TEC =  {'TEC': np.array(a), 'lat': latitude, 'lon': longitude, 'AltIon': ion_h * 1000.0}
+    TEC =  {'TEC': np.array(a), 'lat': latitude, 'lon': longitude, 'ion_height': ion_h * 1000.0}
     return TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a)
     #==========================================================================
 
@@ -178,26 +179,26 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
     #return {'TEC_values': np.array(TEC_values), 'a': np.array(a), 'newa': np.array(newa)}
     return np.array(TEC_values)[UT]
 
-def punct_ion_offset(lat_obs, az_source, zen_source, alt_ion):
+def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     #earth_radius = 6371000.0 # in meters
 
     # The 2-D sine rule gives the zenith angle at the
     # Ionospheric piercing point
-    zen_punct = np.arcsin((earth_radius * np.sin(zen_source)) / (earth_radius + alt_ion)) 
+    zen_punct = np.arcsin((earth_radius * np.sin(zen_src)) / (earth_radius + ion_height)) 
 
     # Use the sum of the internal angles of a triange to determine theta
-    theta = zen_source - zen_punct
+    theta = zen_src - zen_punct
 
     # The cosine rule for spherical triangles gives us the latitude
     # at the IPP
-    lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_source)) 
+    lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_src)) 
     d_lat = lat_ion - lat_obs # latitude difference
 
     # Longitude difference using the 3-D sine rule (or for spherical triangles)
-    d_lon = np.arcsin(np.sin(az_source) * np.sin(theta) / np.cos(lat_ion))
+    d_lon = np.arcsin(np.sin(az_src) * np.sin(theta) / np.cos(lat_ion))
 
     # Azimuth at the IPP using the 3-D sine rule
-    s_az_ion = np.sin(az_source) * np.cos(lat_obs) / np.cos(lat_ion)
+    s_az_ion = np.sin(az_src) * np.cos(lat_obs) / np.cos(lat_ion)
     az_punct = np.arcsin(s_az_ion)
 
     return d_lon, d_lat, az_punct, zen_punct
@@ -217,13 +218,22 @@ def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
 
     return coord_lon, coord_lat
 
-def TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info):
+def one_TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info):
     VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info)
     TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
 
     return TEC_path
 
-def B_IGRF(year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct):
+def TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info):
+    VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info)
+    TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
+
+    VRMS_TEC = interp_TEC(RMS_TEC, UT, coord_lon, coord_lat, rms_info)
+    RMS_TEC_path = VRMS_TEC * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
+
+    return TEC_path, RMS_TEC_path
+
+def B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_punct):
     # Calculation of TEC path value for the indicated 'hour' and therefore 
     # at the IPP
 
@@ -234,7 +244,7 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct)
     # Calculation of the total magnetic field along the line of sight at the IPP
     with open(input_file, 'w') as f:
         f.write('{year},{month},{day} C K{sky_rad} {ipp_lat} {ipp_lon}'.format(year=year, month=month, day=day,
-                                                                               sky_rad=(earth_radius + alt_ion) / 1000.0,
+                                                                               sky_rad=(earth_radius + ion_height) / 1000.0,
                                                                                ipp_lon=coord_lon, ipp_lat=coord_lat))
 
     #XXX runs the geomag exe script
@@ -247,7 +257,7 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct)
         data = g.readlines()
 
 
-        x_field, y_field, z_field = [abs(float(field_data)) * pow(10, -9) * tesla_to_gauss for field_data in data[1].split()[10:13]]
+        x_field, y_field, z_field = [abs(float(field_data)) * 1e-9 * tesla_to_gauss for field_data in data[1].split()[10:13]]
         tot_field = z_field * np.cos(zen_punct) +\
                     y_field * np.sin(zen_punct) * np.sin(az_punct) +\
                     x_field * np.sin(zen_punct) * np.cos(az_punct)
@@ -261,12 +271,6 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct)
 if __name__ == '__main__':
     with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:
         pass
-    # Defining some variables for further use
-    TECU = pow(10, 16)
-    TEC2m2 = 0.1 * TECU
-    earth_radius = c.R_earth.value #6371000.0 # in meters
-    tesla_to_gauss = pow(10, 4)
-
 ### Here we need to accept an array of RA/Dec which correspond to the
 ### centers of healpix pixels, and all subsequent operations should
 ### allow ra/dec to be vectorized
@@ -276,12 +280,11 @@ if __name__ == '__main__':
 
 ### npix = hp.nside2npix(nside)
 ### ipix = np.arange(npix)
-### ra,dec = hp.pix2ang(nside,ipix)
-### ra_dec = SkyCoord() # go from healpix theta,phi radians to astropy ra,dec
-### alt_source = ra_dec.altaz.al
-### az_source = ra_dec.altaz.az
+### ra, dec = hp.pix2ang(nside, ipix)
+### ra_dec = SkyCoord(ra=ra, dec=dec) # go from healpix theta, phi radians to astropy ra, dec
+### alt_src = ra_dec.altaz.alt
+### az_src = ra_dec.altaz.az
 ### that passes in to the new function
-
 
     ## Nominally try to reproduce the output of this command
     ## ionFRM.py 16h50m04.0s+79d11m25.0s 52d54m54.64sn 6d36m16.04se 2004-05-19T00:00:00 CODG1400.04I
@@ -309,7 +312,7 @@ if __name__ == '__main__':
     RMS_TEC, rms_info = read_IONEX_TEC(IONEX_name, rms=True)
 
     # Reading the altitude of the Ionosphere in km (from IONEX file)
-    alt_ion = TEC['AltIon']
+    ion_height = TEC['ion_height']
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
@@ -323,33 +326,36 @@ if __name__ == '__main__':
         ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
 
         # Calculate alt and az
-        alt_source = ra_dec.altaz.alt
-        az_source = ra_dec.altaz.az
+        alt_src = ra_dec.altaz.alt
+        az_src = ra_dec.altaz.az
 
-        # zen_source is a different kind of object than Alt/Az
-        zen_source = ra_dec.altaz.zen
+        # zen_src is a different kind of object than Alt/Az
+        zen_src = ra_dec.altaz.zen
 
 ### From here to the end should be a function that takes
 ### lat_obs,lon_obs,alt_src,az_src,height_ion and computes the RM,
 ### returning a dictionary with TEC, RMS_TEC, IFR, RMS_IFR,tot_field,
 ### etc ...
-        if (alt_source.degree > 0):
-            print(i, alt_source, az_source)
+        thing = some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height)
+        #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
+        if (alt_src.degree > 0):
+            print(i, alt_src, az_src)
             # Calculate the ionospheric piercing point.  Inputs and outputs in radians
-            off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_source.radian, zen_source.to(u.radian).value, alt_ion)
+            off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
             print(off_lon, off_lat, az_punct, zen_punct)
 
             #coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
             coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
 
-            TEC_path = TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info)
-            RMS_TEC_path = TEC_paths(RMS_TEC, UT, coord_lon, coord_lat, zen_punct, rms_info)
-            tot_field = B_IGRF(year, month, day, coord_lon, coord_lat, alt_ion, az_punct, zen_punct)
+            #TEC_path = TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info)
+            #RMS_TEC_path = TEC_paths(RMS_TEC, UT, coord_lon, coord_lat, zen_punct, rms_info)
+            TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info)
+            tot_field = B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_punct)
 
             # Saving the Ionosheric RM and its corresponding
             # rms value to a file for the given 'hour' value
-            IFR = 2.6 * pow(10, -17) * tot_field * TEC_path
-            RMS_IFR = 2.6 * pow(10, -17) * tot_field * RMS_TEC_path
+            IFR = 2.6e-17 * tot_field * TEC_path
+            RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
 
             with open(os.path.join(base_path, 'IonRM.txt'), 'a') as f:
                 f.write('{hour} {TEC_path} {tot_field} {IFR} {RMS_IFR}\n'.format(hour=hour, TEC_path=TEC_path, tot_field=tot_field,

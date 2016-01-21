@@ -55,8 +55,7 @@ def get_results_dict(lat_str,lon_str,radec_src,height_ion,TECinfo,TEC_RMSinfo,ve
     coord_lon, coord_lat = rad.get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
     
     #XXX again, would be nice for TEC_paths to return both at once
-    TEC_path = rad.TEC_paths(TEC, UT.hour, coord_lon, coord_lat, zen_punct, TECinfo)
-    RMS_TEC_path = rad.TEC_paths(RMS_TEC, UT.hour, coord_lon, coord_lat, zen_punct, TEC_RMSinfo)
+    TEC_path, RMS_TEC_path = rad.TEC_paths(TEC, RMS_TEC, UT.hour, coord_lon, coord_lat, zen_punct, TECinfo. TEC_RMSinfo)
     
     tot_field = rad.B_IGRF(UT.year, UT.month, UT.day, coord_lon, coord_lat, height_ion, az_punct, zen_punct)
     
@@ -152,7 +151,7 @@ TEC, info = rad.read_IONEX_TEC(IONEX_name)
 RMS_TEC, rms_info = rad.read_IONEX_TEC(IONEX_name, rms=True)
 
 # Reading the altitude of the Ionosphere in km (from IONEX file)
-hgt_ion = TEC['AltIon']
+hgt_ion = TEC['ion_height']
 
 
 for i, UT in enumerate(UTs):
