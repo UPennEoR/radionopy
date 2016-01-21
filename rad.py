@@ -292,7 +292,7 @@ def some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_T
             f.write('{hour} {TEC_path} {tot_field} {IFR} {RMS_IFR}\n'.format(hour=hour, TEC_path=TEC_path, tot_field=tot_field,
                                                                              IFR=IFR, RMS_IFR=RMS_IFR))
 
-        return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
+        return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'RM': IFR, 'RMS_RM': RMS_IFR, 'tot_field': tot_field}
 
 if __name__ == '__main__':
     with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:

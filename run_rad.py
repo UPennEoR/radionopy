@@ -55,7 +55,7 @@ def get_results_dict(lat_str,lon_str,radec_src,height_ion,TECinfo,TEC_RMSinfo,ve
     coord_lon, coord_lat = rad.get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
     
     #XXX again, would be nice for TEC_paths to return both at once
-    TEC_path, RMS_TEC_path = rad.TEC_paths(TEC, RMS_TEC, UT.hour, coord_lon, coord_lat, zen_punct, TECinfo. TEC_RMSinfo)
+    TEC_path, RMS_TEC_path = rad.TEC_paths(TEC, RMS_TEC, UT.hour, coord_lon, coord_lat, zen_punct, TECinfo, TEC_RMSinfo)
     
     tot_field = rad.B_IGRF(UT.year, UT.month, UT.day, coord_lon, coord_lat, height_ion, az_punct, zen_punct)
     
