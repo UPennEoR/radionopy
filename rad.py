@@ -192,16 +192,16 @@ def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     # The cosine rule for spherical triangles gives us the latitude
     # at the IPP
     lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_src)) 
-    d_lat = lat_ion - lat_obs # latitude difference
+    off_lat = lat_ion - lat_obs # latitude difference
 
     # Longitude difference using the 3-D sine rule (or for spherical triangles)
-    d_lon = np.arcsin(np.sin(az_src) * np.sin(theta) / np.cos(lat_ion))
+    off_lon = np.arcsin(np.sin(az_src) * np.sin(theta) / np.cos(lat_ion))
 
     # Azimuth at the IPP using the 3-D sine rule
     s_az_ion = np.sin(az_src) * np.cos(lat_obs) / np.cos(lat_ion)
     az_punct = np.arcsin(s_az_ion)
 
-    return d_lon, d_lat, az_punct, zen_punct
+    return off_lon, off_lat, az_punct, zen_punct
 
 def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
     if lon_str[-1] == 'e':
@@ -268,6 +268,32 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_pun
 
     return tot_field
 
+def some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT):
+    if (alt_src.degree > 0):
+        print(i, alt_src, az_src)
+        # Calculate the ionospheric piercing point.  Inputs and outputs in radians
+        off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
+        print(off_lon, off_lat, az_punct, zen_punct)
+
+        #coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
+        coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
+
+        #TEC_path = TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info)
+        #RMS_TEC_path = TEC_paths(RMS_TEC, UT, coord_lon, coord_lat, zen_punct, rms_info)
+        TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info)
+        tot_field = B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_punct)
+
+        # Saving the Ionosheric RM and its corresponding
+        # rms value to a file for the given 'hour' value
+        IFR = 2.6e-17 * tot_field * TEC_path
+        RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
+
+        with open(os.path.join(base_path, 'IonRM.txt'), 'a') as f:
+            f.write('{hour} {TEC_path} {tot_field} {IFR} {RMS_IFR}\n'.format(hour=hour, TEC_path=TEC_path, tot_field=tot_field,
+                                                                             IFR=IFR, RMS_IFR=RMS_IFR))
+
+        return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
+
 if __name__ == '__main__':
     with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:
         pass
@@ -332,31 +358,5 @@ if __name__ == '__main__':
         # zen_src is a different kind of object than Alt/Az
         zen_src = ra_dec.altaz.zen
 
-### From here to the end should be a function that takes
-### lat_obs,lon_obs,alt_src,az_src,height_ion and computes the RM,
-### returning a dictionary with TEC, RMS_TEC, IFR, RMS_IFR,tot_field,
-### etc ...
-        thing = some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height)
         #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
-        if (alt_src.degree > 0):
-            print(i, alt_src, az_src)
-            # Calculate the ionospheric piercing point.  Inputs and outputs in radians
-            off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
-            print(off_lon, off_lat, az_punct, zen_punct)
-
-            #coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
-            coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
-
-            #TEC_path = TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info)
-            #RMS_TEC_path = TEC_paths(RMS_TEC, UT, coord_lon, coord_lat, zen_punct, rms_info)
-            TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info)
-            tot_field = B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_punct)
-
-            # Saving the Ionosheric RM and its corresponding
-            # rms value to a file for the given 'hour' value
-            IFR = 2.6e-17 * tot_field * TEC_path
-            RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
-
-            with open(os.path.join(base_path, 'IonRM.txt'), 'a') as f:
-                f.write('{hour} {TEC_path} {tot_field} {IFR} {RMS_IFR}\n'.format(hour=hour, TEC_path=TEC_path, tot_field=tot_field,
-                                                                                 IFR=IFR, RMS_IFR=RMS_IFR))
+        thing = some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT)
