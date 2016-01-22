@@ -137,16 +137,16 @@ def interp(points_lat, points_lon, number_of_maps, total_maps, a):
 
     # performing the interpolation to create 12 addional maps 
     # from the 13 TEC maps available
-    while int(time_count) <= (total_maps - 2):
-        for lat in range(int(points_lat)):
-            for lon in range(int(points_lon)):
-                # interpolation type 2:
-                # newa[int(time_count), lat, lon] = 0.5 * newa[int(time_count) - 1, lat, lon] + 0.5 * newa[int(time_count) + 1, lat, lon]
-                # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
-                # Correct for this):
-                if (lon >= 4) and (lon <= (points_lon - 4)):
-                    newa[int(time_count), lat, lon] = 0.5 * newa[int(time_count) - 1, lat, lon + 3] + 0.5 * newa[int(time_count) + 1, lat, lon - 3] 
-        time_count = time_count + 2.0
+    time_int = int(time_count)
+    while time_int <= (total_maps - 2):
+        for lon in range(int(points_lon)):
+            # interpolation type 2:
+            # newa[int(time_count), :, lon] = 0.5 * newa[int(time_count) - 1, :, lon] + 0.5 * newa[int(time_count) + 1, :, lon]
+            # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
+            # Correct for this):
+            if (lon >= 4) and (lon <= (points_lon - 4)):
+                newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, lon + 3] + 0.5 * newa[time_int + 1, :, lon - 3] 
+        time_int = time_int + 2
 
     return newa
 
