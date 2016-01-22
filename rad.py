@@ -285,7 +285,7 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_pun
 
     return tot_field
 
-def some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT):
+def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT):
     if (alt_src.degree > 0):
         print(i, alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
@@ -361,6 +361,9 @@ if __name__ == '__main__':
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
+    
+    results_dict = {}
+    
     for i, UT in enumerate(UTs):
         print(UT)
         if UT < 10:
@@ -376,6 +379,7 @@ if __name__ == '__main__':
 
         # zen_src is a different kind of object than Alt/Az
         zen_src = ra_dec.altaz.zen
-
-        #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
-        thing = some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT)
+        
+        results = get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT)
+    
+        results_dict[UT] = results
