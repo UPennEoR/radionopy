@@ -340,8 +340,6 @@ if __name__ == '__main__':
     # Create a sky coordinate object, from which we can subsequently derive the necessary alt/az
     ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time)
 
-    #TEC, info = read_IONEX_TEC(IONEX_name)
-    #RMS_TEC, rms_info = read_IONEX_TEC(IONEX_name, rms=True)
     TEC, RMS_TEC, all_info = read_IONEX_TEC(IONEX_name)
 
     info = all_info[:7] + (all_info[7],)
