@@ -234,12 +234,6 @@ def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
 
     return coord_lon, coord_lat
 
-def one_TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info):
-    VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info)
-    TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
-
-    return TEC_path
-
 def TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info):
     VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info)
     TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
