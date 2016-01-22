@@ -118,7 +118,6 @@ def read_IONEX_TEC(filename):
     TEC =  {'TEC': TEC_list[0]['TEC'], 'lat': latitude, 'lon': longitude}
     RMS_TEC =  {'TEC': TEC_list[1]['TEC'], 'lat': latitude, 'lon': longitude}
     
-    #return TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a)
     return TEC, RMS_TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
     #==========================================================================
 
@@ -285,7 +284,7 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_pun
 
     return tot_field
 
-def some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT):
+def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT):
     if (alt_src.degree > 0):
         print(i, alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
@@ -295,8 +294,6 @@ def some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_T
         #coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
         coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
 
-        #TEC_path = TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info)
-        #RMS_TEC_path = TEC_paths(RMS_TEC, UT, coord_lon, coord_lat, zen_punct, rms_info)
         TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info)
         tot_field = B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_punct)
 
@@ -378,4 +375,4 @@ if __name__ == '__main__':
         zen_src = ra_dec.altaz.zen
 
         #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
-        thing = some_func(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT)
+        thing = get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT)
