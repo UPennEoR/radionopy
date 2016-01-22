@@ -1,13 +1,14 @@
 import numpy as np
+import os
 import pylab as plt
 import polarized_beams as pb
 reload(pb)
 import healpyTools as hpt
 
 # Get the PAPER beams from Rich, which only amplitude info
-bradley_paper_file = '/Users/jaguirre/Documents/PAPER/2010_beam/sdipole_05e_eg_ffx_150.txt'
+bradley_paper_file = os.getcwd()+'/sdipole_05e_eg_ffx_150.txt'
 # Get the HERA beams from Rich, which are truly complex
-bradley_hera_file = '/Users/jaguirre/PyModules/hera-cst/mdl01/HERA_DISH_paper_feed_cyl36_150mhz'
+bradley_hera_file = os.getcwd()+'/HERA_DISH_paper_feed_cyl36_150mhz'
 
 hera_rich = pb.bradley_hera_polarized_beams(bradley_hera_file)
 

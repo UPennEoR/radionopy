@@ -356,6 +356,9 @@ if __name__ == '__main__':
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
+    
+    results_dict = {}
+    
     for i, UT in enumerate(UTs):
         print(UT)
         if UT < 10:
