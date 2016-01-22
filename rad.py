@@ -118,17 +118,11 @@ def read_IONEX_TEC(filename):
     TEC =  {'TEC': TEC_list[0]['TEC'], 'lat': latitude, 'lon': longitude}
     RMS_TEC =  {'TEC': TEC_list[1]['TEC'], 'lat': latitude, 'lon': longitude}
     
-    #return TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a)
     return TEC, RMS_TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
     #==========================================================================
 
-def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
-    total_maps = 25
-
-    start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, a = info
-
+def interp(points_lat, points_lon, number_of_maps, total_maps, a):
     time_count = 1.0
-    #new_UT = UT
     #==========================================================================================
     # producing interpolated TEC maps, and consequently a new array that will 
     # contain 25 TEC maps in total. The interpolation method used is the second
@@ -153,8 +147,12 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info):
                 if (lon >= 4) and (lon <= (points_lon - 4)):
                     newa[int(time_count), lat, lon] = 0.5 * newa[int(time_count) - 1, lat, lon + 3] + 0.5 * newa[int(time_count) + 1, lat, lon - 3] 
         time_count = time_count + 2.0
-    #==========================================================================================
 
+    return newa
+
+def interp_TEC(TEC, UT, coord_lon, coord_lat, info, newa):
+    start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, _ = info
+    total_maps = 25
 
     #=========================================================================
     # Finding out the TEC value for the coordinates given
@@ -235,17 +233,11 @@ def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
 
     return coord_lon, coord_lat
 
-def one_TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info):
-    VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info)
+def TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info, newa, rmsa):
+    VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info, newa)
     TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
 
-    return TEC_path
-
-def TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info):
-    VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info)
-    TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
-
-    VRMS_TEC = interp_TEC(RMS_TEC, UT, coord_lon, coord_lat, rms_info)
+    VRMS_TEC = interp_TEC(RMS_TEC, UT, coord_lon, coord_lat, rms_info, rmsa)
     RMS_TEC_path = VRMS_TEC * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
@@ -285,19 +277,16 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_pun
 
     return tot_field
 
-def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT):
+def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT, newa, rmsa):
     if (alt_src.degree > 0):
         print(i, alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
         off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
         print(off_lon, off_lat, az_punct, zen_punct)
 
-        #coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat)
         coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
 
-        #TEC_path = TEC_paths(TEC, UT, coord_lon, coord_lat, zen_punct, info)
-        #RMS_TEC_path = TEC_paths(RMS_TEC, UT, coord_lon, coord_lat, zen_punct, rms_info)
-        TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info)
+        TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info, newa, rmsa)
         tot_field = B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_punct)
 
         # Saving the Ionosheric RM and its corresponding
@@ -359,6 +348,12 @@ if __name__ == '__main__':
     rms_info = all_info[:7] + (all_info[8],)
     ion_height = all_info[9]
 
+    _, _, points_lon, _, _, points_lat, number_of_maps, a = info
+    _, _, _, _, _, _, _, rms_a = rms_info
+
+    newa = interp(points_lat, points_lon, number_of_maps, 25, a)
+    rmsa = interp(points_lat, points_lon, number_of_maps, 25, rms_a)
+
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
     
@@ -379,7 +374,6 @@ if __name__ == '__main__':
 
         # zen_src is a different kind of object than Alt/Az
         zen_src = ra_dec.altaz.zen
-        
-        results = get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT)
-    
-        results_dict[UT] = results
+
+        #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
+        thing = get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT, newa, rmsa)
