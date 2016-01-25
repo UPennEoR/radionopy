@@ -1,6 +1,9 @@
 from __future__ import print_function
-import numpy as np, healpy as hp
-import pylab, os, sys
+import os
+import sys
+import numpy as np
+import healpy as hp
+import pylab
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy import units as u
@@ -76,9 +79,9 @@ if __name__ == '__main__':
 	c = 0
 	for p in range(npix):
 		ra_str = '{ra_h}h{ra_m}m{ra_s}s'.format(ra_h=int(ra_h[p]), ra_m=int(ra_m[p]), ra_s=int(ra_s[p]))
-		dec_str_base = '{dec_d}h{dec_m}m{dec_s}s'.format(dec_d=int(dec_d[p]), dec_m=int(abs(dec_m[p])), dec_s=abs(dec_s[p]))
+		dec_str_base = '{dec_h}h{dec_m}m{dec_s}s'.format(dec_h=int(dec_h[p]), dec_m=int(abs(dec_m[p])), dec_s=abs(dec_s[p]))
 
-		if dec_d[p] > 0:
+		if dec_h[p] > 0:
 			dec_str = ''.join(('+', dec_str_base))
 		else:
 			dec_str = dec_str_base
