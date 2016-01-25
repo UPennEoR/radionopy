@@ -390,9 +390,9 @@ if __name__ == '__main__':
     ra_str = ['16h50m04.0s', '16h24m54.2s', '16h53m08.9s']
     dec_str = ['+79d11m25.0s','+79d13m32.5s', '+79d54m11.4s']
     # PAPER INFO
-	#time_str = '2012-02-13T22:00:00'
-	#lat_str = '30d43m17.5ss'
-	#lon_str = '21d25m41.9se'
+    #lat_str = '30d43m17.5ss'
+    #lon_str = '21d25m41.9se'
+    #time_str = '2012-02-13T22:00:00'
 
     year, month, day = time_str.split('T')[0].split('-')
     IONEX_file = IONEX_file_needed(year, month, day)
