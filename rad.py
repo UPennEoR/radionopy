@@ -368,6 +368,7 @@ if __name__ == '__main__':
     ## Echo back what he has ... 
     ra_str = '16h50m04.0s'
     dec_str = '+79d11m25.0s'
+
     lon_str = '6d36m16.04se'
     lat_str = '52d54m54.64sn'
     time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
@@ -407,7 +408,15 @@ if __name__ == '__main__':
     UTs = np.linspace(0, 23, num=24)
     
     results_dict = {}
-    
+   
+    #idea is take arrays of RA and DEC
+    #generate skycoord arrays
+    #get alt_src, az_src, zen_src arrays
+    #pass into get_results
+    #get off_lon, off_lat, az_punct, and zen_punct arrays
+    #get coord_lon, coord_lat arrays
+    #etc...
+
     for UT in UTs:
         hour = std_hour(UT)
         
