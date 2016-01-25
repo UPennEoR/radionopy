@@ -198,33 +198,37 @@ def interp_TEC(TEC, UT, coord_lon, coord_lat, info, newa):
     # the coordinate you want to calculate the TEC value from  
     index_lat = 0
     index_lon = 0
-    n = 0
     m = 0
+    n = 0
 
-    for lon in range(int(points_lon)):
-        if (coord_lon > (start_lon + (n + 1) * step_lon) and coord_lon < (start_lon + (n + 2) * step_lon)):
-            lower_index_lon =  n + 1
-            higher_index_lon = n + 2
-        n = n + 1
     for lat in range(int(points_lat)):
-        if (coord_lat < (start_lat + (m + 1) * step_lat) and coord_lat > (start_lat + (m + 2) * step_lat)):
+        if ((coord_lat < (start_lat + (m + 1) * step_lat)).all()\
+        and (coord_lat > (start_lat + (m + 2) * step_lat)).all()):
             lower_index_lat =  m + 1
             higher_index_lat = m + 2
         m = m + 1
 
+    for lon in range(int(points_lon)):
+        if (coord_lon > (start_lon + (n + 1) * step_lon)).all()\
+        and (coord_lon < (start_lon + (n + 2) * step_lon)).all():
+            lower_index_lon =  n + 1
+            higher_index_lon = n + 2
+        n = n + 1
+
     # Using the 4-point formula indicated in the IONEX manual
     # The TEC value at the coordinates you desire for every 
     # hour are estimated 
-    diff_lon = coord_lon - (start_lon + lower_index_lon * step_lon)
-    p = diff_lon / step_lon
     diff_lat = coord_lat - (start_lat + lower_index_lat * step_lat)
     q = diff_lat / step_lat
+    diff_lon = coord_lon - (start_lon + lower_index_lon * step_lon)
+    p = diff_lon / step_lon
     TEC_values = []
     for m in range(total_maps):
-        TEC_values.append((1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
-                          + p * (1.0 - q) * newa[m, lower_index_lat, higher_index_lon]\
-                          + q * (1.0 - p) * newa[m, higher_index_lat, lower_index_lon]\
-                          + p * q * newa[m, higher_index_lat, higher_index_lon])
+        TEC_values.append(
+            (1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
+            + p * (1.0 - q) * newa[m, lower_index_lat, higher_index_lon]\
+            + q * (1.0 - p) * newa[m, higher_index_lat, lower_index_lon]\
+            + p * q * newa[m, higher_index_lat, higher_index_lon])
     #=========================================================================
 
     #return {'TEC_values': np.array(TEC_values), 'a': np.array(a), 'newa': np.array(newa)}
@@ -314,7 +318,7 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_pun
     return tot_field
 
 def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT, newa, rmsa):
-    if (alt_src.degree > 0):
+    if (alt_src.degree.all() > 0):
         print(alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
         off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
@@ -366,14 +370,18 @@ if __name__ == '__main__':
     ## Nominally try to reproduce the output of this command
     ## ionFRM.py 16h50m04.0s+79d11m25.0s 52d54m54.64sn 6d36m16.04se 2004-05-19T00:00:00 CODG1400.04I
     ## Echo back what he has ... 
-    ra_str = '16h50m04.0s'
-    dec_str = '+79d11m25.0s'
+    #ra_str = ['16h50m04.0s']
+    #dec_str = ['+79d11m25.0s']
 
     lon_str = '6d36m16.04se'
     lat_str = '52d54m54.64sn'
     time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
     #IONEX_file = 'CODG1400.04I'
 
+    #if ra_strs / dec_strs too far apart, errors occur (~50m?)
+    #example arrays
+    ra_str = ['16h50m04.0s', '16h24m54.2s', '16h53m08.9s']
+    dec_str = ['+79d11m25.0s','+79d13m32.5s', '+79d54m11.4s']
     # PAPER INFO
     #lon_str = '25d00m00.00se'
     #lat_str = '30d00m00.00ss'
