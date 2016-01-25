@@ -432,6 +432,10 @@ if __name__ == '__main__':
     #get coord_lat, coord_lon arrays
     #etc...
 
+    for i in range(len(ra_str)):
+        new_file = os.path.join(base_path, 'RM_files', 'IonRM{i}.txt'.format(i=i))
+        with open(new_file, 'w') as f:
+            pass
     for UT in UTs:
         hour = std_hour(UT)
         
