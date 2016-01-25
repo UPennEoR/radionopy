@@ -79,12 +79,12 @@ def gen_IONEX_list(IONEX_list):
 
         if file_data.split()[-1] == 'DHGT':
             ion_h = float(file_data.split()[0])
-        elif file_data.split()[-1] == 'DLON':
-            start_lon, end_lon, step_lon = [float(data_item) for data_item in file_data.split()[:3]]
         elif file_data.split()[-1] == 'DLAT':
             start_lat, end_lat, step_lat = [float(data_item) for data_item in file_data.split()[:3]]
+        elif file_data.split()[-1] == 'DLON':
+            start_lon, end_lon, step_lon = [float(data_item) for data_item in file_data.split()[:3]]
 
-    return base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h, start_lon, end_lon, step_lon, start_lat, end_lat, step_lat
+    return base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h, start_lat, end_lat, step_lat, start_lon, end_lon, step_lon
 
 def read_IONEX_TEC(filename):
     #==========================================================================
@@ -99,20 +99,20 @@ def read_IONEX_TEC(filename):
     # creating a new array without the header and only
     # with the TEC maps
     base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h,\
-    start_lon, end_lon, step_lon,\
-    start_lat, end_lat, step_lat = gen_IONEX_list(IONEX_list)
+    start_lat, end_lat, step_lat,\
+    start_lon, end_lon, step_lon = gen_IONEX_list(IONEX_list)
 
     # Variables that indicate the number of points in Lat. and Lon.
-    points_lon = ((end_lon - start_lon) / step_lon) + 1
     points_lat = ((end_lat - start_lat) / step_lat) + 1
+    points_lon = ((end_lon - start_lon) / step_lon) + 1
 
-    print(start_lon, end_lon, step_lon)
     print(start_lat, end_lat, step_lat)
-    print(points_lon, points_lat)
+    print(start_lon, end_lon, step_lon)
+    print(points_lat, points_lon)
 
     # What are the Lat/Lon coords?
-    longitude = np.linspace(start_lon, end_lon, num=points_lon)
     latitude = np.linspace(start_lat, end_lat, num=points_lat)
+    longitude = np.linspace(start_lon, end_lon, num=points_lon)
 
     TEC_list = []
     # Selecting only the TEC values to store in the 3-D array
@@ -154,7 +154,7 @@ def read_IONEX_TEC(filename):
     TEC =  {'TEC': TEC_list[0]['TEC'], 'lat': latitude, 'lon': longitude}
     RMS_TEC =  {'TEC': TEC_list[1]['TEC'], 'lat': latitude, 'lon': longitude}
     
-    return TEC, RMS_TEC, (start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
+    return TEC, RMS_TEC, (start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
     #==========================================================================
 
 def interp(points_lat, points_lon, number_of_maps, total_maps, a):
@@ -186,8 +186,8 @@ def interp(points_lat, points_lon, number_of_maps, total_maps, a):
 
     return newa
 
-def interp_TEC(TEC, UT, coord_lon, coord_lat, info, newa):
-    start_lon, step_lon, points_lon, start_lat, step_lat, points_lat, number_of_maps, _ = info
+def interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa):
+    start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, _ = info
     total_maps = 25
 
     #=========================================================================
@@ -256,33 +256,33 @@ def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     s_az_ion = np.sin(az_src) * np.cos(lat_obs) / np.cos(lat_ion)
     az_punct = np.arcsin(s_az_ion)
 
-    return off_lon, off_lat, az_punct, zen_punct
+    return off_lat, off_lon, az_punct, zen_punct
 
-def get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon, off_lat):
-    if lon_str[-1] == 'e':
-        lon_val = 1
-    elif lon_str[-1] == 'w':
-        lon_val = -1
+def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     if lat_str[-1] == 's':
         lat_val = -1
     elif lat_str[-1] == 'n':
         lat_val = 1
+    if lon_str[-1] == 'e':
+        lon_val = 1
+    elif lon_str[-1] == 'w':
+        lon_val = -1
 
-    coord_lon = lon_val * (lon_obs.value + off_lon)
     coord_lat = lat_val * (lat_obs.value + off_lat)
+    coord_lon = lon_val * (lon_obs.value + off_lon)
 
-    return coord_lon, coord_lat
+    return coord_lat, coord_lon
 
-def TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info, newa, rmsa):
-    VTEC = interp_TEC(TEC, UT, coord_lon, coord_lat, info, newa)
+def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa):
+    VTEC = interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa)
     TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
 
-    VRMS_TEC = interp_TEC(RMS_TEC, UT, coord_lon, coord_lat, rms_info, rmsa)
+    VRMS_TEC = interp_TEC(RMS_TEC, UT, coord_lat, coord_lon, rms_info, rmsa)
     RMS_TEC_path = VRMS_TEC * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
 
-def B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_punct):
+def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct):
     # Calculation of TEC path value for the indicated 'hour' and therefore 
     # at the IPP
 
@@ -321,13 +321,13 @@ def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS
     if (alt_src.degree.all() > 0):
         print(alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
-        off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
-        print(off_lon, off_lat, az_punct, zen_punct)
+        off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
+        print(off_lat, off_lon, az_punct, zen_punct)
 
-        coord_lon, coord_lat = get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
+        coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat * 180 / np.pi, off_lon * 180 / np.pi)
 
-        TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lon, coord_lat, zen_punct, info, rms_info, newa, rmsa)
-        tot_field = B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_punct)
+        TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa)
+        tot_field = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
 
         # Saving the Ionosheric RM and its corresponding
         # rms value to a file for the given 'hour' value
@@ -373,8 +373,8 @@ if __name__ == '__main__':
     #ra_str = ['16h50m04.0s']
     #dec_str = ['+79d11m25.0s']
 
-    lon_str = '6d36m16.04se'
     lat_str = '52d54m54.64sn'
+    lon_str = '6d36m16.04se'
     time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
     #IONEX_file = 'CODG1400.04I'
 
@@ -383,19 +383,19 @@ if __name__ == '__main__':
     ra_str = ['16h50m04.0s', '16h24m54.2s', '16h53m08.9s']
     dec_str = ['+79d11m25.0s','+79d13m32.5s', '+79d54m11.4s']
     # PAPER INFO
-    #lon_str = '25d00m00.00se'
-    #lat_str = '30d00m00.00ss'
-    #time_str = '2012-02-13T00:00:00'
+	#time_str = '2012-02-13T22:00:00'
+	#lat_str = '30d43m17.5ss'
+	#lon_str = '21d25m41.9se'
 
     year, month, day = time_str.split('T')[0].split('-')
     IONEX_file = IONEX_file_needed(year, month, day)
     IONEX_name = os.path.join(base_path, IONEX_file)
 
-    lon_obs = Longitude(Angle(lon_str[:-1]))
     lat_obs = Latitude(Angle(lat_str[:-1]))
+    lon_obs = Longitude(Angle(lon_str[:-1]))
 
     start_time = Time(time_str)
-    location = EarthLocation(lon=lon_obs, lat=lat_obs, height=0 * u.m)
+    location = EarthLocation(lat=lat_obs, lon=lon_obs, height=0 * u.m)
 
     # Create a sky coordinate object, from which we can subsequently derive the necessary alt/az
     #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time)
@@ -406,7 +406,7 @@ if __name__ == '__main__':
     rms_info = all_info[:7] + (all_info[8],)
     ion_height = all_info[9]
 
-    _, _, points_lon, _, _, points_lat, number_of_maps, a = info
+    _, _, points_lat, _, _, points_lon, number_of_maps, a = info
     _, _, _, _, _, _, _, rms_a = rms_info
 
     newa = interp(points_lat, points_lon, number_of_maps, 25, a)
@@ -421,8 +421,8 @@ if __name__ == '__main__':
     #generate skycoord arrays
     #get alt_src, az_src, zen_src arrays
     #pass into get_results
-    #get off_lon, off_lat, az_punct, and zen_punct arrays
-    #get coord_lon, coord_lat arrays
+    #get off_lat, off_lon, az_punct, and zen_punct arrays
+    #get coord_lat, coord_lon arrays
     #etc...
 
     for UT in UTs:
