@@ -334,9 +334,16 @@ def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS
         IFR = 2.6e-17 * tot_field * TEC_path
         RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
 
-        with open(os.path.join(base_path, 'IonRM.txt'), 'a') as f:
-            f.write('{hour} {TEC_path} {tot_field} {IFR} {RMS_IFR}\n'.format(hour=hour, TEC_path=TEC_path, tot_field=tot_field,
-                                                                             IFR=IFR, RMS_IFR=RMS_IFR))
+        for i in range(len(TEC_path)):
+            new_file = os.path.join(base_path, 'RM_files', 'IonRM{i}.txt'.format(i=i))
+            with open(new_file, 'a') as f:
+                f.write(('{hour} {TEC_path} '
+                         '{tot_field} {IFR} '
+                         '{RMS_IFR}\n').format(hour=hour,
+                                               TEC_path=TEC_path[i],
+                                               tot_field=tot_field[i],
+                                               IFR=IFR[i],
+                                               RMS_IFR=RMS_IFR[i]))
 
         return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'RM': IFR, 'RMS_RM': RMS_IFR, 'tot_field': tot_field}
 
@@ -350,8 +357,8 @@ def std_hour(UT):
     return hour
 
 if __name__ == '__main__':
-    with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:
-        pass
+    #with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:
+    #    pass
 ### Here we need to accept an array of RA/Dec which correspond to the
 ### centers of healpix pixels, and all subsequent operations should
 ### allow ra/dec to be vectorized
