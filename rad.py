@@ -1,7 +1,9 @@
 import os
 import sys
-import numpy as np
+import datetime
+import ftplib
 import subprocess
+import numpy as np
 #import pylab as plt
 #import healpy as hp
 from astropy import units as u
@@ -18,6 +20,40 @@ TECU = 1e16
 TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
 tesla_to_gauss = 1e4
+
+def IONEX_file_needed(year, month, day):
+    time_str = '{year} {month} {day}'.format(year=year, month=month, day=day)
+    day_of_year = datetime.datetime.strptime(time_str, '%Y %m %d').timetuple().tm_yday
+
+    if day_of_year < 10:
+        day_of_year = '00{day_of_year}'.format(day_of_year=day_of_year)
+    elif 10 <= day_of_year < 100:
+        day_of_year = '0{day_of_year}'.format(day_of_year=day_of_year)
+
+    # Outputing the name of the IONEX file you require
+    ionex_file = 'CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
+
+    if not os.path.exists(ionex_file):
+        get_IONEX_file(year, month, day)
+
+    return ionex_file
+
+def get_IONEX_file(year, month, day):
+    server = 'ftp.unibe.ch'
+
+    ftp_dir = os.path.join('aiub/CODE/', year)
+    IONEX_file = IONEX_file_needed(year, month, day)
+    IONEX_file_Z = ''.join((IONEX_file, '.Z'))
+
+    getting_file_str = 'Retrieving {IONEX_file_Z} for {day} {month} {year}'.format(IONEX_file_Z=IONEX_file_Z, day=day, month=month, year=year)
+    print(getting_file_str)
+
+    ftp = ftplib.FTP(server, 'anonymous', 'jaguirre@sas.upenn.edu')
+    ftp.cwd(ftp_dir)
+    ftp.retrbinary(' '.join(('RETR', IONEX_file_Z)), open(IONEX_file_Z, 'wb').write)
+    ftp.quit()
+
+    return True
 
 def gen_IONEX_list(IONEX_list):
     add = False
@@ -279,7 +315,7 @@ def B_IGRF(year, month, day, coord_lon, coord_lat, ion_height, az_punct, zen_pun
 
 def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS_TEC, info, rms_info, UT, newa, rmsa):
     if (alt_src.degree > 0):
-        print(i, alt_src, az_src)
+        print(alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
         off_lon, off_lat, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
         print(off_lon, off_lat, az_punct, zen_punct)
@@ -299,6 +335,15 @@ def get_results(lat_obs, lon_obs, alt_src, az_src, zen_src, ion_height, TEC, RMS
                                                                              IFR=IFR, RMS_IFR=RMS_IFR))
 
         return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'RM': IFR, 'RMS_RM': RMS_IFR, 'tot_field': tot_field}
+
+def std_hour(UT):
+    print(int(UT))
+    if UT < 10:
+        hour = '0{hour}'.format(hour=int(UT))
+    else:
+        hour = '{hour}'.format(hour=int(UT))
+
+    return hour
 
 if __name__ == '__main__':
     with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:
@@ -326,19 +371,25 @@ if __name__ == '__main__':
     lon_str = '6d36m16.04se'
     lat_str = '52d54m54.64sn'
     time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
-    IONEX_file = 'CODG1400.04I'
-    IONEX_name = os.path.join(base_path, IONEX_file)
+    #IONEX_file = 'CODG1400.04I'
+
+    # PAPER INFO
+    #lon_str = '25d00m00.00se'
+    #lat_str = '30d00m00.00ss'
+    #time_str = '2012-02-13T00:00:00'
 
     year, month, day = time_str.split('T')[0].split('-')
+    IONEX_file = IONEX_file_needed(year, month, day)
+    IONEX_name = os.path.join(base_path, IONEX_file)
 
     lon_obs = Longitude(Angle(lon_str[:-1]))
     lat_obs = Latitude(Angle(lat_str[:-1]))
 
-    location = EarthLocation(lon=lon_obs, lat=lat_obs, height=0 * u.m)
     start_time = Time(time_str)
+    location = EarthLocation(lon=lon_obs, lat=lat_obs, height=0 * u.m)
 
     # Create a sky coordinate object, from which we can subsequently derive the necessary alt/az
-    ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time)
+    #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time)
 
     TEC, RMS_TEC, all_info = read_IONEX_TEC(IONEX_name)
 
@@ -357,12 +408,8 @@ if __name__ == '__main__':
     
     results_dict = {}
     
-    for i, UT in enumerate(UTs):
-        print(UT)
-        if UT < 10:
-            hour = '0{hour}'.format(hour=int(UT))
-        else:
-            hour = '{hour}'.format(hour=int(UT))
+    for UT in UTs:
+        hour = std_hour(UT)
         
         ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
 
