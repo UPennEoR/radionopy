@@ -317,13 +317,13 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
 
     return tot_field
 
-def get_results(UT, lat_obs, lon_obs, ra_dec, ion_height, TEC, RMS_TEC, info, rms_info, newa, rmsa):
+def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms_info, newa, rmsa):
     # Calculate alt and az
-    alt_src = ra_dec.altaz.alt
-    az_src = ra_dec.altaz.az
+    alt_src = altaz.alt
+    az_src = altaz.az
 
     # zen_src is a different kind of object than Alt/Az
-    zen_src = ra_dec.altaz.zen
+    zen_src = altaz.zen
 
     if (alt_src.degree.all() > 0):
         print(alt_src, az_src)
@@ -447,6 +447,7 @@ if __name__ == '__main__':
         hour = std_hour(UT)
         
         ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
+        altaz = ra_dec.altaz
 
         #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
-        thing = get_results(UT, lat_obs, lon_obs, ra_dec, ion_height, TEC, RMS_TEC, info, rms_info, newa, rmsa)
+        thing = get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms_info, newa, rmsa)
