@@ -331,7 +331,6 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
     # zen_src is a different kind of object than Alt/Az
     zen_src = altaz.zen
 
-    print(alt_src.degree)
     if (alt_src.degree.all() > 0):
         print(alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
