@@ -37,7 +37,8 @@ def IONEX_file_needed(year, month, day):
     ionex_file_z = ''.join((ionex_file, '.Z'))
 
     if not os.path.exists(ionex_file) and not os.path.exists(ionex_file_z):
-        ionex_file = get_IONEX_file(ionex_file, year, month, day)
+        ionex_file_z = get_IONEX_file(ionex_file, year, month, day)
+        subprocess.call(['uncompress', ionex_file_z])
 
     return ionex_file
 
@@ -66,6 +67,7 @@ def gen_IONEX_list(IONEX_list):
     base_IONEX_list = []
     RMS_IONEX_list = []
     for file_data in IONEX_list[:-1]:
+        print(file_data)
         if not file_data:
             continue
         if file_data.split()[-2:] == ['RMS', 'MAP']:
@@ -397,7 +399,7 @@ if __name__ == '__main__':
     lon_str = '21d25m41.9se'
     time_str = '2012-02-13T22:00:00'
     #IONEX_file = 'CODG0440.12I'
-    height = 1000 * u.m
+    height = 1000
 
     #
 
