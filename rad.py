@@ -1,11 +1,13 @@
+from __future__ import print_function
 import os
 import sys
 import datetime
 import ftplib
+import shutil
 import subprocess
 import numpy as np
-#import pylab as plt
-#import healpy as hp
+import pylab as plt
+import healpy as hp
 from astropy import units as u
 from astropy import constants as c
 from astropy.io import fits
@@ -32,28 +34,31 @@ def IONEX_file_needed(year, month, day):
 
     # Outputing the name of the IONEX file you require
     ionex_file = 'CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
+    ionex_file_z = ''.join((ionex_file, '.Z'))
 
-    if not os.path.exists(ionex_file):
-        get_IONEX_file(year, month, day)
+    if not os.path.exists(ionex_file) and not os.path.exists(ionex_file_z):
+        ionex_file = get_IONEX_file(ionex_file, year, month, day)
 
     return ionex_file
 
-def get_IONEX_file(year, month, day):
+def get_IONEX_file(IONEX_file, year, month, day):
     server = 'ftp.unibe.ch'
 
     ftp_dir = os.path.join('aiub/CODE/', year)
-    IONEX_file = IONEX_file_needed(year, month, day)
     IONEX_file_Z = ''.join((IONEX_file, '.Z'))
-
+ 
     getting_file_str = 'Retrieving {IONEX_file_Z} for {day} {month} {year}'.format(IONEX_file_Z=IONEX_file_Z, day=day, month=month, year=year)
     print(getting_file_str)
 
-    ftp = ftplib.FTP(server, 'anonymous', 'jaguirre@sas.upenn.edu')
-    ftp.cwd(ftp_dir)
-    ftp.retrbinary(' '.join(('RETR', IONEX_file_Z)), open(IONEX_file_Z, 'wb').write)
-    ftp.quit()
+    try:
+        ftp = ftplib.FTP(server, 'anonymous', 'jaguirre@sas.upenn.edu')
+        ftp.cwd(ftp_dir)
+        ftp.retrbinary(' '.join(('RETR', IONEX_file_Z)), open(IONEX_file_Z, 'wb').write)
+        ftp.quit()
+    except:
+        os.remove(IONEX_file_Z)
 
-    return True
+    return IONEX_file_Z
 
 def gen_IONEX_list(IONEX_list):
     add = False
@@ -366,40 +371,35 @@ def std_hour(UT):
 if __name__ == '__main__':
     #with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:
     #    pass
-### Here we need to accept an array of RA/Dec which correspond to the
-### centers of healpix pixels, and all subsequent operations should
-### allow ra/dec to be vectorized
-
-### The returned value of the function is then an RA/Dec map of the RM
-### above the array
-
-### npix = hp.nside2npix(nside)
-### ipix = np.arange(npix)
-### ra, dec = hp.pix2ang(nside, ipix)
-### ra_dec = SkyCoord(ra=ra, dec=dec) # go from healpix theta, phi radians to astropy ra, dec
-### alt_src = ra_dec.altaz.alt
-### az_src = ra_dec.altaz.az
-### that passes in to the new function
-
     ## Nominally try to reproduce the output of this command
     ## ionFRM.py 16h50m04.0s+79d11m25.0s 52d54m54.64sn 6d36m16.04se 2004-05-19T00:00:00 CODG1400.04I
     ## Echo back what he has ... 
     #ra_str = ['16h50m04.0s']
     #dec_str = ['+79d11m25.0s']
 
-    lat_str = '52d54m54.64sn'
-    lon_str = '6d36m16.04se'
-    time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
+    # EXAMPLE INFO
+    #lat_str = '52d54m54.64sn'
+    #lon_str = '6d36m16.04se'
+    #time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
     #IONEX_file = 'CODG1400.04I'
+    #height = 0
 
-    #if ra_strs / dec_strs too far apart, errors occur (~50m?)
-    #example arrays
-    ra_str = ['16h50m04.0s', '16h24m54.2s', '16h53m08.9s']
-    dec_str = ['+79d11m25.0s','+79d13m32.5s', '+79d54m11.4s']
     # PAPER INFO
-    #lat_str = '30d43m17.5ss'
-    #lon_str = '21d25m41.9se'
-    #time_str = '2012-02-13T22:00:00'
+    nside = 32
+    npix = hp.nside2npix(nside)
+    ipix = np.arange(npix)
+    theta, phi = hp.pix2ang(nside, ipix)
+
+    alt = (90. - np.degrees(np.array(theta))) * u.degree
+    az = (np.degrees(np.array(phi))) * u.degree
+
+    lat_str = '30d43m17.5ss'
+    lon_str = '21d25m41.9se'
+    time_str = '2012-02-13T22:00:00'
+    #IONEX_file = 'CODG0440.12I'
+    height = 1000 * u.m
+
+    #
 
     year, month, day = time_str.split('T')[0].split('-')
     IONEX_file = IONEX_file_needed(year, month, day)
@@ -409,10 +409,7 @@ if __name__ == '__main__':
     lon_obs = Longitude(Angle(lon_str[:-1]))
 
     start_time = Time(time_str)
-    location = EarthLocation(lat=lat_obs, lon=lon_obs, height=0 * u.m)
-
-    # Create a sky coordinate object, from which we can subsequently derive the necessary alt/az
-    #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time)
+    location = EarthLocation(lat=lat_obs, lon=lon_obs, height=height * u.m)
 
     TEC, RMS_TEC, all_info = read_IONEX_TEC(IONEX_name)
 
@@ -446,8 +443,9 @@ if __name__ == '__main__':
     for UT in UTs:
         hour = std_hour(UT)
         
-        ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
-        altaz = ra_dec.altaz
+        #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
+        #altaz = ra_dec.altaz
+        altaz = SkyCoord(alt=alt, az=az, location=location, obstime=start_time + UT * u.hr, frame='altaz')
 
         #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
         thing = get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms_info, newa, rmsa)
