@@ -67,7 +67,6 @@ def gen_IONEX_list(IONEX_list):
     base_IONEX_list = []
     RMS_IONEX_list = []
     for file_data in IONEX_list[:-1]:
-        print(file_data)
         if not file_data:
             continue
         if file_data.split()[-2:] == ['RMS', 'MAP']:
@@ -332,6 +331,7 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
     # zen_src is a different kind of object than Alt/Az
     zen_src = altaz.zen
 
+    print(alt_src.degree)
     if (alt_src.degree.all() > 0):
         print(alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
@@ -371,8 +371,6 @@ def std_hour(UT):
     return hour
 
 if __name__ == '__main__':
-    #with open(os.path.join(base_path, 'IonRM.txt'), 'w') as f:
-    #    pass
     ## Nominally try to reproduce the output of this command
     ## ionFRM.py 16h50m04.0s+79d11m25.0s 52d54m54.64sn 6d36m16.04se 2004-05-19T00:00:00 CODG1400.04I
     ## Echo back what he has ... 
@@ -438,7 +436,7 @@ if __name__ == '__main__':
     #get coord_lat, coord_lon arrays
     #etc...
 
-    for i in range(len(ra_str)):
+    for i in range(len(alt)):
         new_file = os.path.join(base_path, 'RM_files', 'IonRM{i}.txt'.format(i=i))
         with open(new_file, 'w') as f:
             pass
