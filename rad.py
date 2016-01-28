@@ -210,14 +210,14 @@ def interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa):
     for lat in range(int(points_lat)):
         if ((coord_lat < (start_lat + (m + 1) * step_lat)).all()\
         and (coord_lat > (start_lat + (m + 2) * step_lat)).all()):
-            lower_index_lat =  m + 1
+            lower_index_lat = m + 1
             higher_index_lat = m + 2
         m = m + 1
 
     for lon in range(int(points_lon)):
         if (coord_lon > (start_lon + (n + 1) * step_lon)).all()\
         and (coord_lon < (start_lon + (n + 2) * step_lon)).all():
-            lower_index_lon =  n + 1
+            lower_index_lon = n + 1
             higher_index_lon = n + 2
         n = n + 1
 
@@ -331,7 +331,8 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
     # zen_src is a different kind of object than Alt/Az
     zen_src = altaz.zen
 
-    if (alt_src.degree.all() > 0):
+    #if (alt_src.degree.all() > 0):
+    if True:
         print(alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
         off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
