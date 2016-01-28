@@ -55,8 +55,7 @@ def get_results_dict(lat_str,lon_str,radec_src,height_ion,TECinfo,TEC_RMSinfo,ve
     coord_lon, coord_lat = rad.get_coords(lon_str, lat_str, lon_obs, lat_obs, off_lon * 180 / np.pi, off_lat * 180 / np.pi)
     
     #XXX again, would be nice for TEC_paths to return both at once
-    TEC_path = rad.TEC_paths(TEC, UT.hour, coord_lon, coord_lat, zen_punct, TECinfo)
-    RMS_TEC_path = rad.TEC_paths(RMS_TEC, UT.hour, coord_lon, coord_lat, zen_punct, TEC_RMSinfo)
+    TEC_path, RMS_TEC_path = rad.TEC_paths(TEC, RMS_TEC, UT.hour, coord_lon, coord_lat, zen_punct, TECinfo, TEC_RMSinfo)
     
     tot_field = rad.B_IGRF(UT.year, UT.month, UT.day, coord_lon, coord_lat, height_ion, az_punct, zen_punct)
     
@@ -125,46 +124,44 @@ alt = (90. - np.degrees(np.array(theta))) * u.degree
 az = (np.degrees(np.array(phi))) * u.degree
 
 # Create a sky coordinate object which holds alt and az in degrees (along with some metadata) following healpix indexing
-altaz = SkyCoord(alt=alt, az=az, obstime=start_time, frame='altaz', location=location)
-radec = altaz.icrs
-
-#split into hour, min and sec arrays
-ra_h, ra_m, ra_s = radec.ra.hms
-dec_h, dec_m, dec_s = radec.dec.dms
-
-
-# predict the ionospheric RM for every hour within a day 
-#UTs = np.linspace(0, 23, num=24)
 
 UTs = np.array(range(24))
-"""
-_alt,_az,_altaz = [],[],[]
-print 'Calculating Alt/Az per hour'
-for a in altaz:
-    _temp = a.transform_to(AltAz(obstime=start_time+UTs*u.hour,location=location))
-    _alt.append(_temp.alt) #24 numbers*u.deg 
-    _az.append(_temp.az)#24 numbers*u.deg
-    _altaz.append(_temp.altaz) #1 SkyCoord object (with all metadata PER LOOP)
-"""
 
+altaz_skydict = {}
+radec_stringdict = {}
+
+#for UT in UTs: altaz_skydict[UT] = SkyCoord(alt=alt, az=az, obstime=start_time + UT*u.hour, frame='altaz', location=location)
+
+initial_altaz = SkyCoord(alt=alt, az=az, obstime=start_time, frame='altaz', location=location)
+for UT in UTs:
+    print UT
+    altaz = initial_altaz.transform_to(AltAz(obstime=start_time+UT*u.hour,location=location))
+    altaz_skydict[UT] = altaz
+    #XXX radec does not change per UT iteration. Is this expected?
+    radec = altaz.icrs
+    radec_stringdict[UT] = {}
+    radec_stringdict[UT]['hour'],radec_stringdict[UT]['minute'],radec_stringdict[UT]['second'] = radec.ra.hms
+    
+import IPython; IPython.embed()
+
+# predict the ionospheric RM for every hour within a day 
 #XXX inefficient to do same call twice. Is it easy to change read_IONEX_TEC to return both at once? If not, OK.
 TEC, info = rad.read_IONEX_TEC(IONEX_name)
 RMS_TEC, rms_info = rad.read_IONEX_TEC(IONEX_name, rms=True)
 
 # Reading the altitude of the Ionosphere in km (from IONEX file)
-hgt_ion = TEC['AltIon']
+hgt_ion = TEC['ion_height']
 
-
+"""
+XXX this loop is now performed in the creation of the SkyCoords objects -- but are the ra/dec there OK?
 for i, UT in enumerate(UTs):
     if opts.verb: print(UT)
     if UT < 10:
         hour = '0{hour}'.format(hour=int(UT))
     else:
         hour = '{hour}'.format(hour=int(UT))
-    
-    #TESTING -- will replace with altaz.icrs arrays
-    radec_src = SkyCoord(ra=opts.ra_str, dec=opts.dec_str, location=location, obstime=start_time + UT * u.hr)
-    
-    R = get_results_dict(opts.lat_str,opts.lon_str,radec_src,hgt_ion,info,rms_info,verb=opts.verb)
-    
-    #import IPython; IPython.embed()
+""" 
+#TESTING -- will replace with altaz.icrs arrays
+radec_src = SkyCoord(ra=opts.ra_str, dec=opts.dec_str, location=location, obstime=start_time)    
+R = get_results_dict(opts.lat_str,opts.lon_str,radec_src,hgt_ion,info,rms_info,verb=opts.verb)
+#import IPython; IPython.embed()
