@@ -10,8 +10,6 @@ import numpy as np
 
 def rotate_healpix_map(map,rot):
     """ Will rotate the pixels of a map into (effectively) a new ordering representing a rotation of the function.  Not sure why this isn't implemented in healpy directly (maybe it is).  In order to map each pixel exactly to a new one, the transform is only accurate to the pixel size.  """
-
-
     
     npix = len(map)
     nside = hp.npix2nside(npix)
@@ -31,7 +29,7 @@ def rotate_healpix_map(map,rot):
     
     return rotmap
 
-def healpixellize(f_in,theta_in,phi_in,nside,fancy=False):
+def healpixellize(f_in,theta_in,phi_in,nside,fancy=True):
     """ A dumb method for converting data f sampled at points theta and phi (not on a healpix grid) into a healpix at resolution nside """
 
     # Input arrays are likely to be rectangular, but this is inconvenient
@@ -57,6 +55,7 @@ def healpixellize(f_in,theta_in,phi_in,nside,fancy=False):
             hits[neighbours] += weights
         map = map/hits
         wh_no_hits = np.where(hits == 0)
+        print 'pixels with no hits',wh_no_hits[0].shape
         map[wh_no_hits[0]] = hp.UNSEEN
     else:    
         for i,v in enumerate(f):
