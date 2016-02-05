@@ -99,7 +99,6 @@ def bradley_hera_polarized_beams(cstfile):
     return {'xx':xx,'yy':yy,'xt':xt,'xp':xp,'yt':yt,'yp':yp}
 
 def xy_ideal_dipole(nside=32):
-    nside=32
     npix = hp.nside2npix(nside)
     ipix = np.arange(npix)
     theta,phi = hp.pix2ang(nside,ipix)
@@ -119,7 +118,6 @@ def xy_ideal_dipole(nside=32):
     return {'xt':pxt,'xp':pxp,'yt':pyt,'yp':pyp}
 
 def zy_ideal_dipole(nside=32):
-    nside=32
     npix = hp.nside2npix(nside)
     ipix = np.arange(npix)
     theta,phi = hp.pix2ang(nside,ipix)
