@@ -192,9 +192,17 @@ def interp(points_lat, points_lon, number_of_maps, total_maps, a):
 
     return newa
 
+def find_nearest(point, vector):
+    diff = np.abs(vector - point)
+    wh = np.where(diff == diff.min())
+    return wh[0]
+
 def interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa):
     start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, _ = info
     total_maps = 25
+
+    latitudes = TEC['lat']
+    longitudes = TEC['lon']
 
     #=========================================================================
     # Finding out the TEC value for the coordinates given
@@ -202,24 +210,13 @@ def interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa):
 
     # Locating the 4 points in the IONEX grid map which surround
     # the coordinate you want to calculate the TEC value from  
-    index_lat = 0
-    index_lon = 0
     m = 0
     n = 0
 
-    for lat in range(int(points_lat)):
-        if ((coord_lat < (start_lat + (m + 1) * step_lat)).all()\
-        and (coord_lat > (start_lat + (m + 2) * step_lat)).all()):
-            lower_index_lat = m + 1
-            higher_index_lat = m + 2
-        m = m + 1
-
-    for lon in range(int(points_lon)):
-        if (coord_lon > (start_lon + (n + 1) * step_lon)).all()\
-        and (coord_lon < (start_lon + (n + 2) * step_lon)).all():
-            lower_index_lon = n + 1
-            higher_index_lon = n + 2
-        n = n + 1
+    lower_index_lat = (find_nearest(coord_lat, latitudes) + 1) % len(latitudes)
+    lower_index_lon = (find_nearest(coord_lon, longitudes) + 1) % len(longitudes)
+    higher_index_lat = (lower_index_lat + 1) % len(latitudes)
+    higher_index_lon = (lower_index_lon + 1) % len(longitudes)
 
     # Using the 4-point formula indicated in the IONEX manual
     # The TEC value at the coordinates you desire for every 
@@ -229,16 +226,22 @@ def interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa):
     diff_lon = coord_lon - (start_lon + lower_index_lon * step_lon)
     p = diff_lon / step_lon
     TEC_values = []
-    for m in range(total_maps):
-        TEC_values.append(
-            (1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
-            + p * (1.0 - q) * newa[m, lower_index_lat, higher_index_lon]\
-            + q * (1.0 - p) * newa[m, higher_index_lat, lower_index_lon]\
-            + p * q * newa[m, higher_index_lat, higher_index_lon])
+    try:
+        for m in range(total_maps):
+            TEC_values.append(
+                (1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
+                + p * (1.0 - q) * newa[m, lower_index_lat, higher_index_lon]\
+                + q * (1.0 - p) * newa[m, higher_index_lat, lower_index_lon]\
+                + p * q * newa[m, higher_index_lat, higher_index_lon])
+    except:
+        print(lower_index_lat)
+        print(lower_index_lon)
+        print(higher_index_lat)
+        print(higher_index_lon)
     #=========================================================================
 
     #return {'TEC_values': np.array(TEC_values), 'a': np.array(a), 'newa': np.array(newa)}
-    return np.array(TEC_values)[UT]
+    return np.array(TEC_values)[UT][0]
 
 def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     #earth_radius = 6371000.0 # in meters
@@ -280,11 +283,13 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     return coord_lat, coord_lon
 
 def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa):
-    VTEC = interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa)
-    TEC_path = VTEC * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
-
-    VRMS_TEC = interp_TEC(RMS_TEC, UT, coord_lat, coord_lon, rms_info, rmsa)
-    RMS_TEC_path = VRMS_TEC * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
+    VTEC = []
+    VRMS_TEC = []
+    for co_lat, co_lon in zip(coord_lat, coord_lon):
+        VTEC.append(interp_TEC(TEC, UT, co_lat, co_lon, info, newa))
+        VRMS_TEC.append(interp_TEC(RMS_TEC, UT, co_lat, co_lon, rms_info, rmsa))
+    TEC_path = np.array(VTEC) * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
+    RMS_TEC_path = np.array(VRMS_TEC) * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
 
@@ -298,9 +303,10 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     #uses lat_val, lon_val from above
     # Calculation of the total magnetic field along the line of sight at the IPP
     with open(input_file, 'w') as f:
-        f.write('{year},{month},{day} C K{sky_rad} {ipp_lat} {ipp_lon}'.format(year=year, month=month, day=day,
-                                                                               sky_rad=(earth_radius + ion_height) / 1000.0,
-                                                                               ipp_lon=coord_lon, ipp_lat=coord_lat))
+        for co_lat, co_lon in zip(coord_lat, coord_lon):
+            f.write('{year},{month},{day} C K{sky_rad} {ipp_lat} {ipp_lon}\n'.format(year=year, month=month, day=day,
+                                                                                   sky_rad=(earth_radius + ion_height) / 1000.0,
+                                                                                   ipp_lat=co_lat, ipp_lon=co_lon))
 
     #XXX runs the geomag exe script
     script_name = os.path.join('./', base_path, 'IGRF/geomag70_linux/geomag70')
@@ -308,22 +314,27 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     script_option = 'f'
     subprocess.call([script_name, script_data, script_option, input_file, output_file])
 
+    tot_field = []
     with open(output_file, 'r') as g:
-        data = g.readlines()
+        all_data = g.readlines()
 
+        for i, data in enumerate(all_data[1:]):
+            x_field, y_field, z_field = [abs(float(field_data)) * 1e-9 * tesla_to_gauss for field_data in data.split()[10:13]]
+            tot_fields = z_field * np.cos(zen_punct[i]) +\
+                         y_field * np.sin(zen_punct[i]) * np.sin(az_punct[i]) +\
+                         x_field * np.sin(zen_punct[i]) * np.cos(az_punct[i])
 
-        x_field, y_field, z_field = [abs(float(field_data)) * 1e-9 * tesla_to_gauss for field_data in data[1].split()[10:13]]
-        tot_field = z_field * np.cos(zen_punct) +\
-                    y_field * np.sin(zen_punct) * np.sin(az_punct) +\
-                    x_field * np.sin(zen_punct) * np.cos(az_punct)
+            tot_field.append(tot_fields)
 
     #remove files once used
     #os.remove(input_file)
     #os.remove(output_file)
 
-    return tot_field
+    return np.array(tot_field)
 
 def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms_info, newa, rmsa):
+    hour = std_hour(UT)
+        
     # Calculate alt and az
     alt_src = altaz.alt
     az_src = altaz.az
@@ -348,9 +359,9 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
         IFR = 2.6e-17 * tot_field * TEC_path
         RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
 
-        for i in range(len(TEC_path)):
-            new_file = os.path.join(base_path, 'RM_files', 'IonRM{i}.txt'.format(i=i))
-            with open(new_file, 'a') as f:
+        new_file = os.path.join(base_path, 'RM_files', 'IonRM{hour}.txt'.format(hour=hour))
+        with open(new_file, 'a') as f:
+            for i in range(len(TEC_path)):
                 f.write(('{hour} {TEC_path} '
                          '{tot_field} {IFR} '
                          '{RMS_IFR}\n').format(hour=hour,
@@ -358,8 +369,7 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
                                                tot_field=tot_field[i],
                                                IFR=IFR[i],
                                                RMS_IFR=RMS_IFR[i]))
-
-        return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'RM': IFR, 'RMS_RM': RMS_IFR, 'tot_field': tot_field}
+        #return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'RM': IFR, 'RMS_RM': RMS_IFR, 'tot_field': tot_field}
 
 def std_hour(UT):
     print(int(UT))
@@ -436,13 +446,11 @@ if __name__ == '__main__':
     #get coord_lat, coord_lon arrays
     #etc...
 
-    for i in range(len(alt)):
-        new_file = os.path.join(base_path, 'RM_files', 'IonRM{i}.txt'.format(i=i))
-        with open(new_file, 'w') as f:
-            pass
+    #for i in range(len(alt)):
+    #    new_file = os.path.join(base_path, 'RM_files', 'IonRM{i}.txt'.format(i=i))
+    #    with open(new_file, 'w') as f:
+    #        pass
     for UT in UTs:
-        hour = std_hour(UT)
-        
         #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
         #altaz = ra_dec.altaz
         altaz = SkyCoord(alt=alt, az=az, location=location, obstime=start_time + UT * u.hr, frame='altaz')
