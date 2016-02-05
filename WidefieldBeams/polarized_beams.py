@@ -142,7 +142,7 @@ def zy_ideal_dipole(nside=32):
 def plot_efield_beams(xt,xp,yt,yp,rot=[0,0],minv = [-1,-1,-1,-1],maxv=[1,1,1,1],figno=1):
     
     A = [xt,xp,yt,yp]
-    plt.figure(1)
+    plt.figure(figno)
     plt.clf()
     for a in range(4):
         hp.orthview(A[a],half_sky=True,sub=(2,2,a+1),min=minv[a],max=maxv[a],rot=rot)
