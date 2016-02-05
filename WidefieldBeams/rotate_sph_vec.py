@@ -29,6 +29,12 @@ phy = np.cos(p)
 phz = np.zeros_like(p)
 phi_hat_cart = np.stack((phx,phy,phz))
 
+# R hat components in Cartesian.  shouldn't need it ...
+rx = np.sin(t)*np.cos(p)
+ry = np.sin(t)*np.sin(p)
+rz = np.cos(t)
+theta_hat_cart = np.stack((thx,thy,thz))
+
 # Define the rotation
 rot = [0,90]
 R = hp.Rotator(rot=rot)
@@ -36,6 +42,11 @@ R = hp.Rotator(rot=rot)
 # Perform the rotation
 theta_hat_rot_cart = R(theta_hat_cart)
 phi_hat_rot_cart = R(phi_hat_cart)
+t_rot,p_rot = R(t,p)
+
+for i in np.arange(3):
+    theta_hat_rot_cart[i,:] = hpt.rotate_healpix_map(theta_hat_rot_cart[i,:],rot)
+    phi_hat_rot_cart[i,:] = hpt.rotate_healpix_map(phi_hat_rot_cart[i,:],rot)
 
 # Extract the components of the rotated vector in the original theta_hat,phi_hat
 # basis
