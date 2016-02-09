@@ -283,15 +283,49 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     return coord_lat, coord_lon
 
 def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa):
-    VTEC = []
-    VRMS_TEC = []
-    for co_lat, co_lon in zip(coord_lat, coord_lon):
-        VTEC.append(interp_TEC(TEC, UT, co_lat, co_lon, info, newa))
-        VRMS_TEC.append(interp_TEC(RMS_TEC, UT, co_lat, co_lon, rms_info, rmsa))
+    #for co_lat, co_lon in zip(coord_lat, coord_lon):
+    #    VTEC.append(interp_TEC(TEC, UT, co_lat, co_lon, info, newa))
+    #    VRMS_TEC.append(interp_TEC(RMS_TEC, UT, co_lat, co_lon, rms_info, rmsa))
+    #nlat = len(TEC['lat'])
+    #nlon = len(TEC['lon'])
+    #lat_rad = np.outer(np.radians(90. - TEC['lat']), np.ones(nlon))
+    #lon_rad = np.outer(np.ones(nlat), np.radians(TEC['lon'] % 360))
+    nlat = len(coord_lat)
+    nlon = len(coord_lon)
+    lat_rad = np.outer(np.radians(90. - coord_lat), np.ones(nlon))
+    lon_rad = np.outer(np.ones(nlat), np.radians(coord_lon % 360))
+
+    VTEC, VRMS_TEC = interp_hp(newa[UT], rmsa[UT], coord_lat, coord_lon, lat_rad, lon_rad)
+
+    #print(VTEC)
+    #print(VRMS_TEC)
     TEC_path = np.array(VTEC) * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
     RMS_TEC_path = np.array(VRMS_TEC) * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
+
+def interp_hp(newa, rmsa, coord_lat, coord_lon, lat_rad, lon_rad):
+    nside = 16
+    TEC_map = healpixellize(newa, lat_rad, lon_rad, nside)
+    RMS_TEC_map = healpixellize(rmsa, lat_rad, lon_rad, nside)
+    ipix = np.arange(hp.nside2npix(nside))
+    t, p = hp.pix2ang(nside, ipix)
+
+    wh = (np.where(TEC_map == np.nan))[0]
+    for i, w in enumerate(wh):
+        #neighbors = hp.get_neighbours(nside, t[i], p[i])
+        neighbors = hp.get_interp_weights(nside, t[i], p[i])
+        TEC_map[w] = np.median(neighbors)
+    wh = (np.where(RMS_TEC_map == np.nan))[0]
+    for i, w in enumerate(wh):
+        #neighbors = hp.get_neighbours(nside, t[i], p[i])
+        neighbors = hp.get_interp_weights(nside, t[i], p[i])
+        RMS_TEC_map[w] = np.median(neighbors)
+
+    #VTEC = hp.get_interp_val(TEC_map, lat_rad, lon_rad)
+    #VRMS_TEC = hp.get_interp_val(RMS_TEC_map, lat_rad, lon_rad)
+
+    return TEC_map, RMS_TEC_map
 
 def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct):
     # Calculation of TEC path value for the indicated 'hour' and therefore 
@@ -360,7 +394,7 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
         RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
 
         new_file = os.path.join(base_path, 'RM_files', 'IonRM{hour}.txt'.format(hour=hour))
-        with open(new_file, 'a') as f:
+        with open(new_file, 'w') as f:
             for i in range(len(TEC_path)):
                 f.write(('{hour} {TEC_path} '
                          '{tot_field} {IFR} '
@@ -369,7 +403,49 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
                                                tot_field=tot_field[i],
                                                IFR=IFR[i],
                                                RMS_IFR=RMS_IFR[i]))
+        if UT == 23:
+            coord_file = os.path.join(base_path, 'RM_files', 'coords.txt')
+            with open(coord_file, 'w') as f:
+                for co_lat, co_lon in zip(coord_lat, coord_lon):
+                    f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
         #return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'RM': IFR, 'RMS_RM': RMS_IFR, 'tot_field': tot_field}
+
+def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
+    ''' A dumb method for converting data f sampled at points theta and phi (not on a healpix grid) into a healpix at resolution nside '''
+
+    # Input arrays are likely to be rectangular, but this is inconvenient
+    f = f_in.flatten()
+    theta = theta_in.flatten()
+    phi = phi_in.flatten()
+    
+    pix = hp.ang2pix(nside, theta, phi)
+
+    hp_map = np.zeros(hp.nside2npix(nside))
+    hits = np.zeros(hp.nside2npix(nside))
+    
+    # Simplest gridding is hp_map[pix] = val. This tries to do some
+    #averaging Better would be to do some weighting by distance from
+    #pixel center or something ...
+    if fancy:
+        for i, v in enumerate(f):
+            # Find the nearest pixels to the pixel in question
+            #neighbours, weights = hp.get_neighbours(nside, theta[i], phi[i])
+            neighbours, weights = hp.get_interp_weights(nside, theta[i], phi[i])
+            # Add weighted values to hp_map
+            hp_map[neighbours] += v * weights
+            # Keep track of weights
+            hits[neighbours] += weights
+        hp_map = hp_map / hits
+        wh_no_hits = np.where(hits == 0)
+        print('pixels with no hits', wh_no_hits[0].shape)
+        hp_map[wh_no_hits[0]] = hp.UNSEEN
+    else:    
+        for i, v in enumerate(f):
+            hp_map[pix[i]] += v
+            hits[pix[i]] += 1
+        hp_map = hp_map / hits
+
+    return hp_map
 
 def std_hour(UT):
     print(int(UT))
@@ -395,7 +471,7 @@ if __name__ == '__main__':
     #height = 0
 
     # PAPER INFO
-    nside = 32
+    nside = 16
     npix = hp.nside2npix(nside)
     ipix = np.arange(npix)
     theta, phi = hp.pix2ang(nside, ipix)
