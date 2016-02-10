@@ -2,11 +2,6 @@ from __future__ import print_function
 import healpy as hp
 import os
 import sys
-#base_path = os.path.expanduser('~/radionopy')
-#path = '/Users/jaguirre/PyModules/radionopy/'
-#sys.path.append(os.path.join(base_path, 'WidefieldBeams'))
-#import healpyTools as hpt
-#reload(hpt)
 import rad
 import numpy as np
 import pylab as plt
@@ -73,11 +68,13 @@ hp.write_map('TECmap.fits',map)
 # We can also request a list of interpolated values anywhere, in particular at the original locations from the IONEX file
 checkmap = hp.get_interp_val(map,lat_rad,lon_rad)
 
-toplot = [TECmap,checkmap,TECmap-checkmap,(TECmap-checkmap)/TECmap,RMSmap]
+toplot = [TECmap,checkmap,TECmap-checkmap,np.log10(np.abs(100.*(TECmap-checkmap)/TECmap)),RMSmap]
+toplot_names = ['TEC','interp(TEC)','TEC - interp(TEC)','log(|% diff.|)','RMS(TEC)']
 for i,t in enumerate(toplot):
     plt.figure(i)
     plt.clf()
     plt.imshow(t)
+    plt.suptitle(toplot_names[i])
     plt.colorbar()
 
 plt.show()
