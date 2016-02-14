@@ -282,10 +282,14 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     return coord_lat, coord_lon
 
 def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa):
-    nlat = len(coord_lat)
-    nlon = len(coord_lon)
-    lat_rad = np.outer(np.radians(90. - coord_lat), np.ones(nlon))
-    lon_rad = np.outer(np.ones(nlat), np.radians(coord_lon % 360))
+    #lat = len(coord_lat)
+    #lon = len(coord_lon)
+    #lat_rad = np.outer(np.radians(90. - coord_lat), np.ones(nlon))
+    #lon_rad = np.outer(np.ones(nlat), np.radians(coord_lon % 360))
+    nlat = len(TEC['lat'])
+    nlon = len(TEC['lon'])
+    lat_rad = np.outer(np.radians(90. - TEC['lat']), np.ones(nlon))
+    lon_rad = np.outer(np.ones(nlat), np.radians(TEC['lon'] % 360))
 
     nside = 16
     VTEC = healpixellize(newa[UT], lat_rad, lon_rad, nside)
@@ -412,7 +416,7 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
             hits[neighbours] += weights
         hp_map = hp_map / hits
         wh_no_hits = np.where(hits == 0)
-        print(list(wh_no_hits[0]))
+        #print(list(wh_no_hits[0]))
         print('pixels with no hits', wh_no_hits[0].shape)
         hp_map[wh_no_hits[0]] = hp.UNSEEN
     else:    
