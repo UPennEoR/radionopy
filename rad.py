@@ -163,7 +163,7 @@ def read_IONEX_TEC(filename):
     return TEC, RMS_TEC, (start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
     #==========================================================================
 
-def interp(points_lat, points_lon, number_of_maps, total_maps, a):
+def interp_time(points_lat, points_lon, number_of_maps, total_maps, a):
     time_count = 1.0
     #==========================================================================================
     # producing interpolated TEC maps, and consequently a new array that will 
@@ -197,7 +197,7 @@ def find_nearest(point, vector):
     wh = np.where(diff == diff.min())
     return wh[0]
 
-def interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa):
+def interp_space(TEC, UT, coord_lat, coord_lon, info, newa):
     start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, _ = info
     total_maps = 25
 
@@ -240,7 +240,6 @@ def interp_TEC(TEC, UT, coord_lat, coord_lon, info, newa):
         print(higher_index_lon)
     #=========================================================================
 
-    #return {'TEC_values': np.array(TEC_values), 'a': np.array(a), 'newa': np.array(newa)}
     return np.array(TEC_values)[UT][0]
 
 def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
@@ -283,19 +282,23 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     return coord_lat, coord_lon
 
 def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa):
-    #for co_lat, co_lon in zip(coord_lat, coord_lon):
-    #    VTEC.append(interp_TEC(TEC, UT, co_lat, co_lon, info, newa))
-    #    VRMS_TEC.append(interp_TEC(RMS_TEC, UT, co_lat, co_lon, rms_info, rmsa))
-    #nlat = len(TEC['lat'])
-    #nlon = len(TEC['lon'])
-    #lat_rad = np.outer(np.radians(90. - TEC['lat']), np.ones(nlon))
-    #lon_rad = np.outer(np.ones(nlat), np.radians(TEC['lon'] % 360))
     nlat = len(coord_lat)
     nlon = len(coord_lon)
     lat_rad = np.outer(np.radians(90. - coord_lat), np.ones(nlon))
     lon_rad = np.outer(np.ones(nlat), np.radians(coord_lon % 360))
 
-    VTEC, VRMS_TEC = interp_hp(newa[UT], rmsa[UT], coord_lat, coord_lon, lat_rad, lon_rad)
+    nside = 16
+    VTEC = healpixellize(newa[UT], lat_rad, lon_rad, nside)
+    VRMS_TEC = healpixellize(rmsa[UT], lat_rad, lon_rad, nside)
+
+    #VTEC_ = []
+    #for co_lat, co_lon in zip(coord_lat, coord_lon):
+    #    vtec = interp_space(TEC, UT, co_lat, co_lon, info, newa)
+    #    VTEC_.append(vtec)
+    #print(np.array(VTEC_))
+
+    #VTEC = hp.get_interp_val(TEC_map, lat_rad, lon_rad)
+    #VRMS_TEC = hp.get_interp_val(RMS_TEC_map, lat_rad, lon_rad)
 
     #print(VTEC)
     #print(VRMS_TEC)
@@ -303,29 +306,6 @@ def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info,
     RMS_TEC_path = np.array(VRMS_TEC) * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
-
-def interp_hp(newa, rmsa, coord_lat, coord_lon, lat_rad, lon_rad):
-    nside = 16
-    TEC_map = healpixellize(newa, lat_rad, lon_rad, nside)
-    RMS_TEC_map = healpixellize(rmsa, lat_rad, lon_rad, nside)
-    ipix = np.arange(hp.nside2npix(nside))
-    t, p = hp.pix2ang(nside, ipix)
-
-    wh = (np.where(TEC_map == np.nan))[0]
-    for i, w in enumerate(wh):
-        #neighbors = hp.get_neighbours(nside, t[i], p[i])
-        neighbors = hp.get_interp_weights(nside, t[i], p[i])
-        TEC_map[w] = np.median(neighbors)
-    wh = (np.where(RMS_TEC_map == np.nan))[0]
-    for i, w in enumerate(wh):
-        #neighbors = hp.get_neighbours(nside, t[i], p[i])
-        neighbors = hp.get_interp_weights(nside, t[i], p[i])
-        RMS_TEC_map[w] = np.median(neighbors)
-
-    #VTEC = hp.get_interp_val(TEC_map, lat_rad, lon_rad)
-    #VRMS_TEC = hp.get_interp_val(RMS_TEC_map, lat_rad, lon_rad)
-
-    return TEC_map, RMS_TEC_map
 
 def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct):
     # Calculation of TEC path value for the indicated 'hour' and therefore 
@@ -359,10 +339,6 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
                          x_field * np.sin(zen_punct[i]) * np.cos(az_punct[i])
 
             tot_field.append(tot_fields)
-
-    #remove files once used
-    #os.remove(input_file)
-    #os.remove(output_file)
 
     return np.array(tot_field)
 
@@ -403,11 +379,10 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
                                                tot_field=tot_field[i],
                                                IFR=IFR[i],
                                                RMS_IFR=RMS_IFR[i]))
-        if UT == 23:
-            coord_file = os.path.join(base_path, 'RM_files', 'coords.txt')
-            with open(coord_file, 'w') as f:
-                for co_lat, co_lon in zip(coord_lat, coord_lon):
-                    f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
+        coord_file = os.path.join(base_path, 'RM_files', 'coords{hour}.txt'.format(hour=hour))
+        with open(coord_file, 'w') as f:
+            for co_lat, co_lon in zip(coord_lat, coord_lon):
+                f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
         #return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'RM': IFR, 'RMS_RM': RMS_IFR, 'tot_field': tot_field}
 
 def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
@@ -417,7 +392,7 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
     f = f_in.flatten()
     theta = theta_in.flatten()
     phi = phi_in.flatten()
-    
+
     pix = hp.ang2pix(nside, theta, phi)
 
     hp_map = np.zeros(hp.nside2npix(nside))
@@ -437,6 +412,7 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
             hits[neighbours] += weights
         hp_map = hp_map / hits
         wh_no_hits = np.where(hits == 0)
+        print(list(wh_no_hits[0]))
         print('pixels with no hits', wh_no_hits[0].shape)
         hp_map[wh_no_hits[0]] = hp.UNSEEN
     else:    
@@ -444,6 +420,11 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
             hp_map[pix[i]] += v
             hits[pix[i]] += 1
         hp_map = hp_map / hits
+
+    wh = np.where(hp_map == np.nan)[0]
+    for i, w in enumerate(wh):
+        neighbors = hp.get_interp_weights(nside, theta[i], phi[i])
+        hp_map[w] = np.median(neighbors)
 
     return hp_map
 
@@ -506,8 +487,8 @@ if __name__ == '__main__':
     _, _, points_lat, _, _, points_lon, number_of_maps, a = info
     _, _, _, _, _, _, _, rms_a = rms_info
 
-    newa = interp(points_lat, points_lon, number_of_maps, 25, a)
-    rmsa = interp(points_lat, points_lon, number_of_maps, 25, rms_a)
+    newa = interp_time(points_lat, points_lon, number_of_maps, 25, a)
+    rmsa = interp_time(points_lat, points_lon, number_of_maps, 25, rms_a)
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
