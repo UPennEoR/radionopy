@@ -281,7 +281,7 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
 
     return coord_lat, coord_lon
 
-def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa):
+def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa):
     nlat = len(TEC['lat'])
     nlon = len(TEC['lon'])
     lat_rad = np.outer(np.radians(90. - TEC['lat']), np.ones(nlon))
@@ -290,12 +290,6 @@ def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info,
     nside = 16
     VTEC = healpixellize(newa[UT], lat_rad, lon_rad, nside)
     VRMS_TEC = healpixellize(rmsa[UT], lat_rad, lon_rad, nside)
-
-    #VTEC_ = []
-    #for co_lat, co_lon in zip(coord_lat, coord_lon):
-    #    vtec = interp_space(TEC, UT, co_lat, co_lon, info, newa)
-    #    VTEC_.append(vtec)
-    #print(np.array(VTEC_))
 
     lat_rad = np.radians(90. - coord_lat)
     lon_rad = np.radians(coord_lon % 360)
@@ -344,7 +338,7 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
 
     return np.array(tot_field)
 
-def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms_info, newa, rmsa):
+def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, newa, rmsa):
     hour = std_hour(UT)
         
     # Calculate alt and az
@@ -363,7 +357,7 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
 
         coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat * 180 / np.pi, off_lon * 180 / np.pi)
 
-        TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa)
+        TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa)
         tot_field = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
 
         # Saving the Ionosheric RM and its corresponding
@@ -385,7 +379,6 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
         with open(coord_file, 'w') as f:
             for co_lat, co_lon in zip(coord_lat, coord_lon):
                 f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
-        #return {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'RM': IFR, 'RMS_RM': RMS_IFR, 'tot_field': tot_field}
 
 def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
     ''' A dumb method for converting data f sampled at points theta and phi (not on a healpix grid) into a healpix at resolution nside '''
@@ -482,10 +475,6 @@ if __name__ == '__main__':
 
     TEC, RMS_TEC, all_info = read_IONEX_TEC(IONEX_name)
 
-    info = all_info[:7] + (all_info[7],)
-    rms_info = all_info[:7] + (all_info[8],)
-    #ion_height = all_info[9]
-
     _, _, points_lat, _, _, points_lon, number_of_maps, a, rms_a, ion_height = all_info
 
     newa = interp_time(points_lat, points_lon, number_of_maps, 25, a)
@@ -510,4 +499,4 @@ if __name__ == '__main__':
         altaz = SkyCoord(alt=alt, az=az, location=location, obstime=start_time + UT * u.hr, frame='altaz')
 
         #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
-        thing = get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms_info, newa, rmsa)
+        thing = get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, newa, rmsa)
