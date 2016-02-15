@@ -288,9 +288,7 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
 
     return np.array(tot_field)
 
-def get_results(UT, TEC_path, RMS_TEC_path, tot_field):
-    hour = std_hour(UT)
-        
+def get_results(hour, TEC_path, RMS_TEC_path, tot_field):
     # Saving the Ionosheric RM and its corresponding
     # rms value to a file for the given 'hour' value
     IFR = 2.6e-17 * tot_field * TEC_path
@@ -360,19 +358,6 @@ def std_hour(UT):
     return hour
 
 if __name__ == '__main__':
-    ## Nominally try to reproduce the output of this command
-    ## ionFRM.py 16h50m04.0s+79d11m25.0s 52d54m54.64sn 6d36m16.04se 2004-05-19T00:00:00 CODG1400.04I
-    ## Echo back what he has ... 
-    #ra_str = ['16h50m04.0s']
-    #dec_str = ['+79d11m25.0s']
-
-    # EXAMPLE INFO
-    #lat_str = '52d54m54.64sn'
-    #lon_str = '6d36m16.04se'
-    #time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
-    #IONEX_file = 'CODG1400.04I'
-    #height = 0
-
     # PAPER INFO
     nside = 16
     npix = hp.nside2npix(nside)
@@ -380,11 +365,11 @@ if __name__ == '__main__':
     theta, phi = hp.pix2ang(nside, ipix)
 
     alt = (90. - np.degrees(np.array(theta))) * u.degree
-    az = (np.degrees(np.array(phi))) * u.degree
+    az = np.degrees(np.array(phi)) * u.degree
 
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
-    time_str = '2012-02-13T22:00:00'
+    time_str = '2012-02-13T00:00:00'
     #IONEX_file = 'CODG0440.12I'
     height = 1000
 
@@ -410,9 +395,8 @@ if __name__ == '__main__':
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
     
-    #results_dict = {}
-   
     for UT in UTs:
+        hour = std_hour(UT)    
         #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
         #altaz = ra_dec.altaz
         altaz = SkyCoord(alt=alt, az=az, location=location, obstime=start_time + UT * u.hr, frame='altaz')
@@ -428,14 +412,13 @@ if __name__ == '__main__':
         #print(off_lat, off_lon, az_punct, zen_punct)
 
         coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat * 180 / np.pi, off_lon * 180 / np.pi)
-        #coord_file = os.path.join(base_path, 'RM_files', 'coords{hour}.txt'.format(hour=std_hour(UT)))
+        #coord_file = os.path.join(base_path, 'RM_files', 'coords{hour}.txt'.format(hour=hour))
         #with open(coord_file, 'w') as f:
         #    for co_lat, co_lon in zip(coord_lat, coord_lon):
         #        f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
 
         TEC_path, RMS_TEC_path = interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa)
-        sys.exit()
         tot_field = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
 
-        #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
-        get_results(UT, TEC_path, RMS_TEC_path, tot_field)
+        #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
+        get_results(hour, TEC_path, RMS_TEC_path, tot_field)
