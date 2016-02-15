@@ -282,10 +282,6 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     return coord_lat, coord_lon
 
 def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info, newa, rmsa):
-    #lat = len(coord_lat)
-    #lon = len(coord_lon)
-    #lat_rad = np.outer(np.radians(90. - coord_lat), np.ones(nlon))
-    #lon_rad = np.outer(np.ones(nlat), np.radians(coord_lon % 360))
     nlat = len(TEC['lat'])
     nlon = len(TEC['lon'])
     lat_rad = np.outer(np.radians(90. - TEC['lat']), np.ones(nlon))
@@ -301,8 +297,10 @@ def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, info, rms_info,
     #    VTEC_.append(vtec)
     #print(np.array(VTEC_))
 
-    #VTEC = hp.get_interp_val(TEC_map, lat_rad, lon_rad)
-    #VRMS_TEC = hp.get_interp_val(RMS_TEC_map, lat_rad, lon_rad)
+    lat_rad = np.radians(90. - coord_lat)
+    lon_rad = np.radians(coord_lon % 360)
+    VTEC = hp.get_interp_val(VTEC, lat_rad, lon_rad)
+    VRMS_TEC = hp.get_interp_val(VRMS_TEC, lat_rad, lon_rad)
 
     #print(VTEC)
     #print(VRMS_TEC)
@@ -358,10 +356,10 @@ def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, info, rms
 
     #if (alt_src.degree.all() > 0):
     if True:
-        print(alt_src, az_src)
+        #print(alt_src, az_src)
         # Calculate the ionospheric piercing point.  Inputs and outputs in radians
         off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
-        print(off_lat, off_lon, az_punct, zen_punct)
+        #print(off_lat, off_lon, az_punct, zen_punct)
 
         coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat * 180 / np.pi, off_lon * 180 / np.pi)
 
@@ -486,10 +484,9 @@ if __name__ == '__main__':
 
     info = all_info[:7] + (all_info[7],)
     rms_info = all_info[:7] + (all_info[8],)
-    ion_height = all_info[9]
+    #ion_height = all_info[9]
 
-    _, _, points_lat, _, _, points_lon, number_of_maps, a = info
-    _, _, _, _, _, _, _, rms_a = rms_info
+    _, _, points_lat, _, _, points_lon, number_of_maps, a, rms_a, ion_height = all_info
 
     newa = interp_time(points_lat, points_lon, number_of_maps, 25, a)
     rmsa = interp_time(points_lat, points_lon, number_of_maps, 25, rms_a)
@@ -497,7 +494,7 @@ if __name__ == '__main__':
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
     
-    results_dict = {}
+    #results_dict = {}
    
     #idea is take arrays of RA and DEC
     #generate skycoord arrays
@@ -507,10 +504,6 @@ if __name__ == '__main__':
     #get coord_lat, coord_lon arrays
     #etc...
 
-    #for i in range(len(alt)):
-    #    new_file = os.path.join(base_path, 'RM_files', 'IonRM{i}.txt'.format(i=i))
-    #    with open(new_file, 'w') as f:
-    #        pass
     for UT in UTs:
         #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
         #altaz = ra_dec.altaz
