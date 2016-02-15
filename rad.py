@@ -192,56 +192,6 @@ def interp_time(points_lat, points_lon, number_of_maps, total_maps, a):
 
     return newa
 
-def find_nearest(point, vector):
-    diff = np.abs(vector - point)
-    wh = np.where(diff == diff.min())
-    return wh[0]
-
-def interp_space(TEC, UT, coord_lat, coord_lon, info, newa):
-    start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, _ = info
-    total_maps = 25
-
-    latitudes = TEC['lat']
-    longitudes = TEC['lon']
-
-    #=========================================================================
-    # Finding out the TEC value for the coordinates given
-    # at every hour
-
-    # Locating the 4 points in the IONEX grid map which surround
-    # the coordinate you want to calculate the TEC value from  
-    m = 0
-    n = 0
-
-    lower_index_lat = (find_nearest(coord_lat, latitudes) + 1) % len(latitudes)
-    lower_index_lon = (find_nearest(coord_lon, longitudes) + 1) % len(longitudes)
-    higher_index_lat = (lower_index_lat + 1) % len(latitudes)
-    higher_index_lon = (lower_index_lon + 1) % len(longitudes)
-
-    # Using the 4-point formula indicated in the IONEX manual
-    # The TEC value at the coordinates you desire for every 
-    # hour are estimated 
-    diff_lat = coord_lat - (start_lat + lower_index_lat * step_lat)
-    q = diff_lat / step_lat
-    diff_lon = coord_lon - (start_lon + lower_index_lon * step_lon)
-    p = diff_lon / step_lon
-    TEC_values = []
-    try:
-        for m in range(total_maps):
-            TEC_values.append(
-                (1.0 - p) * (1.0 - q) * newa[m, lower_index_lat, lower_index_lon]\
-                + p * (1.0 - q) * newa[m, lower_index_lat, higher_index_lon]\
-                + q * (1.0 - p) * newa[m, higher_index_lat, lower_index_lon]\
-                + p * q * newa[m, higher_index_lat, higher_index_lon])
-    except:
-        print(lower_index_lat)
-        print(lower_index_lon)
-        print(higher_index_lat)
-        print(higher_index_lon)
-    #=========================================================================
-
-    return np.array(TEC_values)[UT][0]
-
 def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     #earth_radius = 6371000.0 # in meters
 
@@ -281,7 +231,7 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
 
     return coord_lat, coord_lon
 
-def TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa):
+def interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa):
     nlat = len(TEC['lat'])
     nlon = len(TEC['lon'])
     lat_rad = np.outer(np.radians(90. - TEC['lat']), np.ones(nlon))
@@ -338,47 +288,24 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
 
     return np.array(tot_field)
 
-def get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, newa, rmsa):
+def get_results(UT, TEC_path, RMS_TEC_path, tot_field):
     hour = std_hour(UT)
         
-    # Calculate alt and az
-    alt_src = altaz.alt
-    az_src = altaz.az
+    # Saving the Ionosheric RM and its corresponding
+    # rms value to a file for the given 'hour' value
+    IFR = 2.6e-17 * tot_field * TEC_path
+    RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
 
-    # zen_src is a different kind of object than Alt/Az
-    zen_src = altaz.zen
-
-    #if (alt_src.degree.all() > 0):
-    if True:
-        #print(alt_src, az_src)
-        # Calculate the ionospheric piercing point.  Inputs and outputs in radians
-        off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
-        #print(off_lat, off_lon, az_punct, zen_punct)
-
-        coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat * 180 / np.pi, off_lon * 180 / np.pi)
-
-        TEC_path, RMS_TEC_path = TEC_paths(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa)
-        tot_field = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
-
-        # Saving the Ionosheric RM and its corresponding
-        # rms value to a file for the given 'hour' value
-        IFR = 2.6e-17 * tot_field * TEC_path
-        RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
-
-        new_file = os.path.join(base_path, 'RM_files', 'IonRM{hour}.txt'.format(hour=hour))
-        with open(new_file, 'w') as f:
-            for i in range(len(TEC_path)):
-                f.write(('{hour} {TEC_path} '
-                         '{tot_field} {IFR} '
-                         '{RMS_IFR}\n').format(hour=hour,
-                                               TEC_path=TEC_path[i],
-                                               tot_field=tot_field[i],
-                                               IFR=IFR[i],
-                                               RMS_IFR=RMS_IFR[i]))
-        coord_file = os.path.join(base_path, 'RM_files', 'coords{hour}.txt'.format(hour=hour))
-        with open(coord_file, 'w') as f:
-            for co_lat, co_lon in zip(coord_lat, coord_lon):
-                f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
+    new_file = os.path.join(base_path, 'RM_files', 'IonRM{hour}.txt'.format(hour=hour))
+    with open(new_file, 'w') as f:
+        for i in range(len(TEC_path)):
+            f.write(('{hour} {TEC_path} '
+                     '{tot_field} {IFR} '
+                     '{RMS_IFR}\n').format(hour=hour,
+                                           TEC_path=TEC_path[i],
+                                           tot_field=tot_field[i],
+                                           IFR=IFR[i],
+                                           RMS_IFR=RMS_IFR[i]))
 
 def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
     ''' A dumb method for converting data f sampled at points theta and phi (not on a healpix grid) into a healpix at resolution nside '''
@@ -485,18 +412,30 @@ if __name__ == '__main__':
     
     #results_dict = {}
    
-    #idea is take arrays of RA and DEC
-    #generate skycoord arrays
-    #get alt_src, az_src, zen_src arrays
-    #pass into get_results
-    #get off_lat, off_lon, az_punct, and zen_punct arrays
-    #get coord_lat, coord_lon arrays
-    #etc...
-
     for UT in UTs:
         #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
         #altaz = ra_dec.altaz
         altaz = SkyCoord(alt=alt, az=az, location=location, obstime=start_time + UT * u.hr, frame='altaz')
 
+        alt_src = altaz.alt
+        az_src = altaz.az
+        # zen_src is a different kind of object than Alt/Az
+        zen_src = altaz.zen
+
+        #print(alt_src, az_src)
+        # Calculate the ionospheric piercing point.  Inputs and outputs in radians
+        off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
+        #print(off_lat, off_lon, az_punct, zen_punct)
+
+        coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat * 180 / np.pi, off_lon * 180 / np.pi)
+        #coord_file = os.path.join(base_path, 'RM_files', 'coords{hour}.txt'.format(hour=std_hour(UT)))
+        #with open(coord_file, 'w') as f:
+        #    for co_lat, co_lon in zip(coord_lat, coord_lon):
+        #        f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
+
+        TEC_path, RMS_TEC_path = interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa)
+        sys.exit()
+        tot_field = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
+
         #thing = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
-        thing = get_results(UT, lat_obs, lon_obs, altaz, ion_height, TEC, RMS_TEC, newa, rmsa)
+        get_results(UT, TEC_path, RMS_TEC_path, tot_field)
