@@ -186,8 +186,9 @@ def interp_time(points_lat, points_lon, number_of_maps, total_maps, a):
             # newa[int(time_count), :, lon] = 0.5 * newa[int(time_count) - 1, :, lon] + 0.5 * newa[int(time_count) + 1, :, lon]
             # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
             # Correct for this):
-            if (lon >= 4) and (lon <= (points_lon - 4)):
-                newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, lon + 3] + 0.5 * newa[time_int + 1, :, lon - 3] 
+            #if (lon >= 4) and (lon <= (points_lon - 4)):
+            #    newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, lon + 3] + 0.5 * newa[time_int + 1, :, lon - 3] 
+            newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, (lon + 3) % int(points_lon)] + 0.5 * newa[time_int + 1, :, lon - 3] 
         time_int = time_int + 2
 
     return newa
@@ -231,23 +232,26 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
 
     return coord_lat, coord_lon
 
-def interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa):
-    nlat = len(TEC['lat'])
-    nlon = len(TEC['lon'])
-    lat_rad = np.outer(np.radians(90. - TEC['lat']), np.ones(nlon))
-    lon_rad = np.outer(np.ones(nlat), np.radians(TEC['lon'] % 360))
+def tecs2hp(lat, lon, tec_map, rms_map):
+    nlat = len(lat)
+    nlon = len(lon)
+    lat_rad = np.outer(np.radians(90. - lat), np.ones(nlon))
+    lon_rad = np.outer(np.ones(nlat), np.radians(lon % 360))
 
     nside = 16
-    VTEC = healpixellize(newa[UT], lat_rad, lon_rad, nside)
-    VRMS_TEC = healpixellize(rmsa[UT], lat_rad, lon_rad, nside)
+    tec_hp = healpixellize(tec_map, lat_rad, lon_rad, nside)
+    rms_hp = healpixellize(rms_map, lat_rad, lon_rad, nside)
+
+    return tec_hp, rms_hp
+
+def interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa):
+    tec_hp, rms_hp = tecs2hp(TEC['lat'], TEC['lon'], newa[UT], rmsa[UT])
 
     lat_rad = np.radians(90. - coord_lat)
     lon_rad = np.radians(coord_lon % 360)
-    VTEC = hp.get_interp_val(VTEC, lat_rad, lon_rad)
-    VRMS_TEC = hp.get_interp_val(VRMS_TEC, lat_rad, lon_rad)
+    VTEC = hp.get_interp_val(tec_hp, lat_rad, lon_rad)
+    VRMS_TEC = hp.get_interp_val(rms_hp, lat_rad, lon_rad)
 
-    #print(VTEC)
-    #print(VRMS_TEC)
     TEC_path = np.array(VTEC) * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
     RMS_TEC_path = np.array(VRMS_TEC) * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
@@ -274,36 +278,36 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     script_option = 'f'
     subprocess.call([script_name, script_data, script_option, input_file, output_file])
 
-    tot_field = []
+    B_para = []
     with open(output_file, 'r') as g:
         all_data = g.readlines()
 
         for i, data in enumerate(all_data[1:]):
             x_field, y_field, z_field = [abs(float(field_data)) * 1e-9 * tesla_to_gauss for field_data in data.split()[10:13]]
-            tot_fields = z_field * np.cos(zen_punct[i]) +\
-                         y_field * np.sin(zen_punct[i]) * np.sin(az_punct[i]) +\
-                         x_field * np.sin(zen_punct[i]) * np.cos(az_punct[i])
+            B_paras = z_field * np.cos(zen_punct[i]) +\
+                      y_field * np.sin(zen_punct[i]) * np.sin(az_punct[i]) +\
+                      x_field * np.sin(zen_punct[i]) * np.cos(az_punct[i])
 
-            tot_field.append(tot_fields)
+            B_para.append(B_paras)
 
-    return np.array(tot_field)
+    return np.array(B_para)
 
-def get_results(hour, TEC_path, RMS_TEC_path, tot_field):
+def get_results(hour, TEC_path, RMS_TEC_path, B_para):
     # Saving the Ionosheric RM and its corresponding
     # rms value to a file for the given 'hour' value
-    IFR = 2.6e-17 * tot_field * TEC_path
-    RMS_IFR = 2.6e-17 * tot_field * RMS_TEC_path
+    IFR = 2.6e-17 * B_para * TEC_path
+    RMS_IFR = 2.6e-17 * B_para * RMS_TEC_path
 
     new_file = os.path.join(base_path, 'RM_files', 'IonRM{hour}.txt'.format(hour=hour))
     with open(new_file, 'w') as f:
-        for i in range(len(TEC_path)):
+        for tp, tf, ifr, rms_ifr in zip(TEC_path, B_para, IFR, RMS_IFR):
             f.write(('{hour} {TEC_path} '
-                     '{tot_field} {IFR} '
+                     '{B_para} {IFR} '
                      '{RMS_IFR}\n').format(hour=hour,
-                                           TEC_path=TEC_path[i],
-                                           tot_field=tot_field[i],
-                                           IFR=IFR[i],
-                                           RMS_IFR=RMS_IFR[i]))
+                                           TEC_path=tp,
+                                           B_para=tf,
+                                           IFR=ifr,
+                                           RMS_IFR=rms_ifr))
 
 def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
     ''' A dumb method for converting data f sampled at points theta and phi (not on a healpix grid) into a healpix at resolution nside '''
@@ -332,7 +336,6 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
             hits[neighbours] += weights
         hp_map = hp_map / hits
         wh_no_hits = np.where(hits == 0)
-        #print(list(wh_no_hits[0]))
         print('pixels with no hits', wh_no_hits[0].shape)
         hp_map[wh_no_hits[0]] = hp.UNSEEN
     else:    
@@ -364,8 +367,8 @@ if __name__ == '__main__':
     ipix = np.arange(npix)
     theta, phi = hp.pix2ang(nside, ipix)
 
-    alt = (90. - np.degrees(np.array(theta))) * u.degree
-    az = np.degrees(np.array(phi)) * u.degree
+    alt = 90. - np.degrees(np.array(theta))
+    az = np.degrees(np.array(phi))
 
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
@@ -383,7 +386,8 @@ if __name__ == '__main__':
     lon_obs = Longitude(Angle(lon_str[:-1]))
 
     start_time = Time(time_str)
-    location = EarthLocation(lat=lat_obs, lon=lon_obs, height=height * u.m)
+    #lat is negative because it's south
+    location = EarthLocation(lat=-lat_obs, lon=lon_obs, height=height * u.m)
 
     TEC, RMS_TEC, all_info = read_IONEX_TEC(IONEX_name)
 
@@ -392,33 +396,18 @@ if __name__ == '__main__':
     newa = interp_time(points_lat, points_lon, number_of_maps, 25, a)
     rmsa = interp_time(points_lat, points_lon, number_of_maps, 25, rms_a)
 
+    zen = np.degrees(np.array(theta))
+    off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, np.radians(az), np.radians(zen), ion_height)
+    coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, np.degrees(off_lat), np.degrees(off_lon))
+
+    B_para = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
+
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
     
     for UT in UTs:
         hour = std_hour(UT)    
-        #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
-        #altaz = ra_dec.altaz
-        altaz = SkyCoord(alt=alt, az=az, location=location, obstime=start_time + UT * u.hr, frame='altaz')
-
-        alt_src = altaz.alt
-        az_src = altaz.az
-        # zen_src is a different kind of object than Alt/Az
-        zen_src = altaz.zen
-
-        #print(alt_src, az_src)
-        # Calculate the ionospheric piercing point.  Inputs and outputs in radians
-        off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
-        #print(off_lat, off_lon, az_punct, zen_punct)
-
-        coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat * 180 / np.pi, off_lon * 180 / np.pi)
-        #coord_file = os.path.join(base_path, 'RM_files', 'coords{hour}.txt'.format(hour=hour))
-        #with open(coord_file, 'w') as f:
-        #    for co_lat, co_lon in zip(coord_lat, coord_lon):
-        #        f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
-
         TEC_path, RMS_TEC_path = interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa)
-        tot_field = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
 
-        #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'tot_field': tot_field}
-        get_results(hour, TEC_path, RMS_TEC_path, tot_field)
+        #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'B_para': B_para}
+        get_results(hour, TEC_path, RMS_TEC_path, B_para)
