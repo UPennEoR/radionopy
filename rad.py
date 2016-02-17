@@ -163,6 +163,21 @@ def read_IONEX_TEC(filename):
     return TEC, RMS_TEC, (start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
     #==========================================================================
 
+def interp_hp_time(map_i, map_j, t_i, t_j, t):
+    # Need to check that
+    if not (t_i <= t <= t_j):
+        print('Times will not work')
+        return None
+    w_i = (t_j - t) / (t_j - t_i)
+    w_j = (t - t_i) / (t_j - t_i)
+    dt_i_deg = -np.abs((t - t_i) * 360. / 24.)
+    dt_j_deg = np.abs((t - t_j) * 360. / 24.)
+
+    interp_map = w_i * rotate_healpix_map(map_i, [dt_i_deg, 0]) +\
+                 w_j * rotate_healpix_map(map_j, [dt_j_deg, 0])
+
+    return interp_map
+
 def interp_time(points_lat, points_lon, number_of_maps, total_maps, a):
     time_count = 1.0
     #==========================================================================================
@@ -308,6 +323,31 @@ def get_results(hour, TEC_path, RMS_TEC_path, B_para):
                                            B_para=tf,
                                            IFR=ifr,
                                            RMS_IFR=rms_ifr))
+
+def rotate_healpix_map(map_in, rot):
+    ''' Will rotate the pixels of a map into (effectively) a new ordering
+        representing a rotation of the function.
+        Not sure why this isn't implemented in healpy directly (maybe it is).
+        In order to map each pixel exactly to a new one,
+        the transform is only accurate to the pixel size.  '''
+    
+    npix = len(map_in)
+    nside = hp.npix2nside(npix)
+    
+    rot_map = np.zeros(npix)
+    ipix = np.arange(npix)
+    theta, phi = hp.pix2ang(nside, ipix)
+
+    rotator = hp.Rotator(rot=rot)
+    
+    # For each pixel in the new map, find where it would have come 
+    # from in the old    
+    theta_rot, phi_rot = rotator(theta, phi)
+    ipix_rot = hp.ang2pix(nside, theta_rot, phi_rot)
+    
+    rot_map = map_in[ipix_rot]
+    
+    return rot_map
 
 def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
     ''' A dumb method for converting data f sampled at points theta and phi (not on a healpix grid) into a healpix at resolution nside '''
