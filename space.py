@@ -47,3 +47,35 @@ def interp_space(TEC, UT, coord_lat, coord_lon, info, newa):
     #=========================================================================
 
     return np.array(TEC_values)[UT][0]
+
+    #newa = interp_time(points_lat, points_lon, number_of_maps, 25, a)
+    #rmsa = interp_time(points_lat, points_lon, number_of_maps, 25, rms_a)
+def interp_time(points_lat, points_lon, number_of_maps, total_maps, a):
+    time_count = 1.0
+    #==========================================================================================
+    # producing interpolated TEC maps, and consequently a new array that will 
+    # contain 25 TEC maps in total. The interpolation method used is the second
+    # one indicated in the IONEX manual
+
+    # creating a new array that will contain 25 maps in total 
+    newa = np.zeros((total_maps, points_lat, points_lon))
+    inc = 0
+    for item in range(int(number_of_maps)):
+        newa[inc, :, :] = a[item, :, :]
+        inc = inc + 2
+
+    # performing the interpolation to create 12 addional maps 
+    # from the 13 TEC maps available
+    time_int = int(time_count)
+    while time_int <= (total_maps - 2):
+        for lon in range(int(points_lon)):
+            # interpolation type 2:
+            # newa[int(time_count), :, lon] = 0.5 * newa[int(time_count) - 1, :, lon] + 0.5 * newa[int(time_count) + 1, :, lon]
+            # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
+            # Correct for this):
+            #if (lon >= 4) and (lon <= (points_lon - 4)):
+            #    newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, lon + 3] + 0.5 * newa[time_int + 1, :, lon - 3] 
+            newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, (lon + 3) % int(points_lon)] + 0.5 * newa[time_int + 1, :, lon - 3] 
+        time_int = time_int + 2
+
+    return newa

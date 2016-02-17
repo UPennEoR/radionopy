@@ -166,10 +166,11 @@ def read_IONEX_TEC(filename):
 def interp_hp_time(map_i, map_j, t_i, t_j, t):
     # Need to check that
     if not (t_i <= t <= t_j):
+        print(t_i, t, t_j)
         print('Times will not work')
         return None
-    w_i = (t_j - t) / (t_j - t_i)
-    w_j = (t - t_i) / (t_j - t_i)
+    w_i = float(t_j - t) / (t_j - t_i)
+    w_j = float(t - t_i) / (t_j - t_i)
     dt_i_deg = -np.abs((t - t_i) * 360. / 24.)
     dt_j_deg = np.abs((t - t_j) * 360. / 24.)
 
@@ -178,35 +179,29 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
 
     return interp_map
 
-def interp_time(points_lat, points_lon, number_of_maps, total_maps, a):
-    time_count = 1.0
-    #==========================================================================================
-    # producing interpolated TEC maps, and consequently a new array that will 
-    # contain 25 TEC maps in total. The interpolation method used is the second
-    # one indicated in the IONEX manual
+def interp_time(maps, lat, lon):
+    nlat = len(lat)
+    nlon = len(lon)
+    lat_rad = np.outer(np.radians(90. - lat), np.ones(nlon))
+    lon_rad = np.outer(np.ones(nlat), np.radians(lon % 360))
+    nside = 16
 
-    # creating a new array that will contain 25 maps in total 
-    newa = np.zeros((total_maps, points_lat, points_lon))
-    inc = 0
-    for item in range(int(number_of_maps)):
-        newa[inc, :, :] = a[item, :, :]
-        inc = inc + 2
+    map_len = (len(maps) - 1) * 2
+    hp_maps = []
+    even_maps = [healpixellize(sq_map, lat_rad, lon_rad, nside) for sq_map in maps]
 
-    # performing the interpolation to create 12 addional maps 
-    # from the 13 TEC maps available
-    time_int = int(time_count)
-    while time_int <= (total_maps - 2):
-        for lon in range(int(points_lon)):
-            # interpolation type 2:
-            # newa[int(time_count), :, lon] = 0.5 * newa[int(time_count) - 1, :, lon] + 0.5 * newa[int(time_count) + 1, :, lon]
-            # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
-            # Correct for this):
-            #if (lon >= 4) and (lon <= (points_lon - 4)):
-            #    newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, lon + 3] + 0.5 * newa[time_int + 1, :, lon - 3] 
-            newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, (lon + 3) % int(points_lon)] + 0.5 * newa[time_int + 1, :, lon - 3] 
-        time_int = time_int + 2
+    for i, even_map in enumerate(even_maps):
+        hp_maps.append(even_map)
+        if i < 11:
+            start_time = i
+            end_time = (i + 2) % map_len
+            mid_time = (end_time + start_time) / 2
 
-    return newa
+            odd_map = interp_hp_time(even_maps[i], even_maps[i + 1],
+                                     start_time, end_time, mid_time)
+            hp_maps.append(odd_map)
+
+    return np.array(hp_maps)
 
 def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     #earth_radius = 6371000.0 # in meters
@@ -247,21 +242,7 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
 
     return coord_lat, coord_lon
 
-def tecs2hp(lat, lon, tec_map, rms_map):
-    nlat = len(lat)
-    nlon = len(lon)
-    lat_rad = np.outer(np.radians(90. - lat), np.ones(nlon))
-    lon_rad = np.outer(np.ones(nlat), np.radians(lon % 360))
-
-    nside = 16
-    tec_hp = healpixellize(tec_map, lat_rad, lon_rad, nside)
-    rms_hp = healpixellize(rms_map, lat_rad, lon_rad, nside)
-
-    return tec_hp, rms_hp
-
-def interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa):
-    tec_hp, rms_hp = tecs2hp(TEC['lat'], TEC['lon'], newa[UT], rmsa[UT])
-
+def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     lat_rad = np.radians(90. - coord_lat)
     lon_rad = np.radians(coord_lon % 360)
     VTEC = hp.get_interp_val(tec_hp, lat_rad, lon_rad)
@@ -433,8 +414,8 @@ if __name__ == '__main__':
 
     _, _, points_lat, _, _, points_lon, number_of_maps, a, rms_a, ion_height = all_info
 
-    newa = interp_time(points_lat, points_lon, number_of_maps, 25, a)
-    rmsa = interp_time(points_lat, points_lon, number_of_maps, 25, rms_a)
+    tec_hp = interp_time(a, TEC['lat'], TEC['lon'])
+    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'])
 
     zen = np.degrees(np.array(theta))
     off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, np.radians(az), np.radians(zen), ion_height)
@@ -447,7 +428,7 @@ if __name__ == '__main__':
     
     for UT in UTs:
         hour = std_hour(UT)    
-        TEC_path, RMS_TEC_path = interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa)
+        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT], coord_lat, coord_lon, zen_punct)
 
         #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'B_para': B_para}
         get_results(hour, TEC_path, RMS_TEC_path, B_para)
