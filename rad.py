@@ -186,8 +186,9 @@ def interp_time(points_lat, points_lon, number_of_maps, total_maps, a):
             # newa[int(time_count), :, lon] = 0.5 * newa[int(time_count) - 1, :, lon] + 0.5 * newa[int(time_count) + 1, :, lon]
             # interpolation type 3 ( 3 or 4 columns to the right and left of the odd maps have values of zero
             # Correct for this):
-            if (lon >= 4) and (lon <= (points_lon - 4)):
-                newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, lon + 3] + 0.5 * newa[time_int + 1, :, lon - 3] 
+            #if (lon >= 4) and (lon <= (points_lon - 4)):
+            #    newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, lon + 3] + 0.5 * newa[time_int + 1, :, lon - 3] 
+            newa[time_int, :, lon] = 0.5 * newa[time_int - 1, :, (lon + 3) % int(points_lon)] + 0.5 * newa[time_int + 1, :, lon - 3] 
         time_int = time_int + 2
 
     return newa
@@ -296,14 +297,14 @@ def get_results(hour, TEC_path, RMS_TEC_path, tot_field):
 
     new_file = os.path.join(base_path, 'RM_files', 'IonRM{hour}.txt'.format(hour=hour))
     with open(new_file, 'w') as f:
-        for i in range(len(TEC_path)):
+        for tp, tf, ifr, rms_ifr in zip(TEC_path, tot_field, IFR, RMS_IFR):
             f.write(('{hour} {TEC_path} '
                      '{tot_field} {IFR} '
                      '{RMS_IFR}\n').format(hour=hour,
-                                           TEC_path=TEC_path[i],
-                                           tot_field=tot_field[i],
-                                           IFR=IFR[i],
-                                           RMS_IFR=RMS_IFR[i]))
+                                           TEC_path=tp,
+                                           tot_field=tf,
+                                           IFR=ifr,
+                                           RMS_IFR=rms_ifr))
 
 def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
     ''' A dumb method for converting data f sampled at points theta and phi (not on a healpix grid) into a healpix at resolution nside '''
@@ -411,7 +412,7 @@ if __name__ == '__main__':
         off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
         #print(off_lat, off_lon, az_punct, zen_punct)
 
-        coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat * 180 / np.pi, off_lon * 180 / np.pi)
+        coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, np.degrees(off_lat), np.degrees(off_lon))
         #coord_file = os.path.join(base_path, 'RM_files', 'coords{hour}.txt'.format(hour=hour))
         #with open(coord_file, 'w') as f:
         #    for co_lat, co_lon in zip(coord_lat, coord_lon):
