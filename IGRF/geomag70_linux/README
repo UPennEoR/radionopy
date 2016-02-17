@@ -1,0 +1,3 @@
+geomag70.c needs to be compiled with executable name geomag70
+
+gcc geomag70.c -o geomag70
