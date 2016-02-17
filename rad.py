@@ -336,7 +336,6 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
             hits[neighbours] += weights
         hp_map = hp_map / hits
         wh_no_hits = np.where(hits == 0)
-        #print(list(wh_no_hits[0]))
         print('pixels with no hits', wh_no_hits[0].shape)
         hp_map[wh_no_hits[0]] = hp.UNSEEN
     else:    
@@ -397,16 +396,6 @@ if __name__ == '__main__':
     newa = interp_time(points_lat, points_lon, number_of_maps, 25, a)
     rmsa = interp_time(points_lat, points_lon, number_of_maps, 25, rms_a)
 
-    #unnecessary
-    #altaz = SkyCoord(alt=alt, az=az, location=location, obstime=start_time, frame='altaz')
-
-    #alt_src = altaz.alt
-    #az_src = altaz.az
-    # zen_src is a different kind of object than Alt/Az
-    #zen_src = altaz.zen
-
-    # Calculate the ionospheric piercing point.  Inputs and outputs in radians
-    #off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
     zen = np.degrees(np.array(theta))
     off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, np.radians(az), np.radians(zen), ion_height)
     coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, np.degrees(off_lat), np.degrees(off_lon))
@@ -418,27 +407,6 @@ if __name__ == '__main__':
     
     for UT in UTs:
         hour = std_hour(UT)    
-        #ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
-        #altaz = ra_dec.altaz
-        #altaz = SkyCoord(alt=alt, az=az, location=location, obstime=start_time + UT * u.hr, frame='altaz')
-
-        #alt_src = altaz.alt
-        #az_src = altaz.az
-        ## zen_src is a different kind of object than Alt/Az
-        #zen_src = altaz.zen
-
-        ##print(alt_src, az_src)
-        ## Calculate the ionospheric piercing point.  Inputs and outputs in radians
-        #off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
-        ##print(off_lat, off_lon, az_punct, zen_punct)
-
-        #coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, np.degrees(off_lat), np.degrees(off_lon))
-        ##coord_file = os.path.join(base_path, 'RM_files', 'coords{hour}.txt'.format(hour=hour))
-        ##with open(coord_file, 'w') as f:
-        ##    for co_lat, co_lon in zip(coord_lat, coord_lon):
-        ##        f.write('{co_lat} {co_lon}\n'.format(co_lat=co_lat, co_lon=co_lon))
-
-        #B_para = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
         TEC_path, RMS_TEC_path = interp_space(TEC, RMS_TEC, UT, coord_lat, coord_lon, zen_punct, newa, rmsa)
 
         #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'B_para': B_para}
