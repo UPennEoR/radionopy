@@ -416,7 +416,7 @@ if __name__ == '__main__':
 
     TEC, _, all_info = read_IONEX_TEC(IONEX_name)
 
-    a, rms_a, ion_height = all_info[7:10]
+    a, rms_a, ion_height = all_info[7:]
 
     tec_hp = interp_time(a, TEC['lat'], TEC['lon'])
     rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'])
