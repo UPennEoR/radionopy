@@ -262,11 +262,17 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
 
     #uses lat_val, lon_val from above
     # Calculation of the total magnetic field along the line of sight at the IPP
+    sky_rad = (earth_radius + ion_height) / 1000.0
     with open(input_file, 'w') as f:
         for co_lat, co_lon in zip(coord_lat, coord_lon):
-            f.write('{year},{month},{day} C K{sky_rad} {ipp_lat} {ipp_lon}\n'.format(year=year, month=month, day=day,
-                                                                                   sky_rad=(earth_radius + ion_height) / 1000.0,
-                                                                                   ipp_lat=co_lat, ipp_lon=co_lon))
+            f.write(('{year},{month},{day} '
+                     'C K{sky_rad} '
+                     '{ipp_lat} {ipp_lon}\n').format(year=year,
+                                                     month=month,
+                                                     day=day,
+                                                     sky_rad=sky_rad,
+                                                     ipp_lat=co_lat,
+                                                     ipp_lon=co_lon))
 
     #XXX runs the geomag exe script
     script_name = os.path.join('./', base_path, 'IGRF/geomag70_linux/geomag70')
@@ -294,7 +300,8 @@ def get_results(hour, TEC_path, RMS_TEC_path, B_para):
     IFR = 2.6e-17 * B_para * TEC_path
     RMS_IFR = 2.6e-17 * B_para * RMS_TEC_path
 
-    new_file = os.path.join(base_path, 'RM_files', 'IonRM{hour}.txt'.format(hour=hour))
+    new_file = os.path.join(base_path, 'RM_files',
+                                       'IonRM{hour}.txt'.format(hour=hour))
     with open(new_file, 'w') as f:
         for tp, tf, ifr, rms_ifr in zip(TEC_path, B_para, IFR, RMS_IFR):
             f.write(('{hour} {TEC_path} '
@@ -306,12 +313,13 @@ def get_results(hour, TEC_path, RMS_TEC_path, B_para):
                                            RMS_IFR=rms_ifr))
 
 def rotate_healpix_map(map_in, rot):
-    ''' Will rotate the pixels of a map into (effectively) a new ordering
-        representing a rotation of the function.
-        Not sure why this isn't implemented in healpy directly (maybe it is).
-        In order to map each pixel exactly to a new one,
-        the transform is only accurate to the pixel size.  '''
-    
+    '''
+    Will rotate the pixels of a map into (effectively) a new ordering
+    representing a rotation of the function.
+    Not sure why this isn't implemented in healpy directly (maybe it is).
+    In order to map each pixel exactly to a new one,
+    the transform is only accurate to the pixel size.
+    ''' 
     npix = len(map_in)
     nside = hp.npix2nside(npix)
     
@@ -331,8 +339,11 @@ def rotate_healpix_map(map_in, rot):
     return rot_map
 
 def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
-    ''' A dumb method for converting data f sampled at points theta and phi (not on a healpix grid) into a healpix at resolution nside '''
-
+    '''
+    A dumb method for converting data f sampled at points theta and phi
+    (not on a healpix grid)
+    into a healpix at resolution nside
+    '''
     # Input arrays are likely to be rectangular, but this is inconvenient
     f = f_in.flatten()
     theta = theta_in.flatten()
@@ -343,27 +354,18 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
     hp_map = np.zeros(hp.nside2npix(nside))
     hits = np.zeros(hp.nside2npix(nside))
     
-    # Simplest gridding is hp_map[pix] = val. This tries to do some
-    #averaging Better would be to do some weighting by distance from
-    #pixel center or something ...
-    if fancy:
-        for i, v in enumerate(f):
-            # Find the nearest pixels to the pixel in question
-            #neighbours, weights = hp.get_neighbours(nside, theta[i], phi[i])
-            neighbours, weights = hp.get_interp_weights(nside, theta[i], phi[i])
-            # Add weighted values to hp_map
-            hp_map[neighbours] += v * weights
-            # Keep track of weights
-            hits[neighbours] += weights
-        hp_map = hp_map / hits
-        wh_no_hits = np.where(hits == 0)
-        print('pixels with no hits', wh_no_hits[0].shape)
-        hp_map[wh_no_hits[0]] = hp.UNSEEN
-    else:    
-        for i, v in enumerate(f):
-            hp_map[pix[i]] += v
-            hits[pix[i]] += 1
-        hp_map = hp_map / hits
+    for i, v in enumerate(f):
+        # Find the nearest pixels to the pixel in question
+        neighbours, weights = hp.get_interp_weights(nside, theta[i], phi[i])
+        # Add weighted values to hp_map
+        hp_map[neighbours] += v * weights
+        # Keep track of weights
+        hits[neighbours] += weights
+
+    hp_map = hp_map / hits
+    wh_no_hits = np.where(hits == 0)
+    print('pixels with no hits', wh_no_hits[0].shape)
+    hp_map[wh_no_hits[0]] = hp.UNSEEN
 
     wh = np.where(hp_map == np.nan)[0]
     for i, w in enumerate(wh):
@@ -388,8 +390,9 @@ if __name__ == '__main__':
     ipix = np.arange(npix)
     theta, phi = hp.pix2ang(nside, ipix)
 
-    alt = 90. - np.degrees(np.array(theta))
-    az = np.degrees(np.array(phi))
+    alt_src = 90. - np.degrees(np.array(theta))
+    az_src = np.degrees(np.array(phi))
+    zen_src = np.degrees(np.array(theta))
 
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
@@ -407,28 +410,39 @@ if __name__ == '__main__':
     lon_obs = Longitude(Angle(lon_str[:-1]))
 
     start_time = Time(time_str)
+
     #lat is negative because it's south
     location = EarthLocation(lat=-lat_obs, lon=lon_obs, height=height * u.m)
 
-    TEC, RMS_TEC, all_info = read_IONEX_TEC(IONEX_name)
+    TEC, _, all_info = read_IONEX_TEC(IONEX_name)
 
-    _, _, points_lat, _, _, points_lon, number_of_maps, a, rms_a, ion_height = all_info
+    a, rms_a, ion_height = all_info[7:10]
 
     tec_hp = interp_time(a, TEC['lat'], TEC['lon'])
     rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'])
 
-    zen = np.degrees(np.array(theta))
-    off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian, np.radians(az), np.radians(zen), ion_height)
-    coord_lat, coord_lon = get_coords(lat_str, lon_str, lat_obs, lon_obs, np.degrees(off_lat), np.degrees(off_lon))
+    off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian,
+                                                             np.radians(az_src),
+                                                             np.radians(zen_src),
+                                                             ion_height)
+    coord_lat, coord_lon = get_coords(lat_str, lon_str,
+                                      lat_obs, lon_obs,
+                                      np.degrees(off_lat), np.degrees(off_lon))
 
-    B_para = B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
+    B_para = B_IGRF(year, month, day,
+                    coord_lat, coord_lon,
+                    ion_height, az_punct, zen_punct)
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
     
     for UT in UTs:
         hour = std_hour(UT)    
-        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT], coord_lat, coord_lon, zen_punct)
+        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT],
+                                              coord_lat, coord_lon,
+                                              zen_punct)
 
-        #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC, 'IFR': IFR, 'RMS_IFR': RMS_IFR, 'B_para': B_para}
+        #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC,
+        #           'IFR': IFR, 'RMS_IFR': RMS_IFR,
+        #           'B_para': B_para}
         get_results(hour, TEC_path, RMS_TEC_path, B_para)
