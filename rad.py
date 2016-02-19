@@ -383,6 +383,45 @@ def std_hour(UT):
 
     return hour
 
+def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, zen_src):
+    year, month, day = date_str.split('T')[0].split('-')
+    tec_hp, rms_hp, ion_height = IONEX_data(year, month, day)
+
+    coord_lat, coord_lon, az_punct, zen_punct = ipp(lat_str, lon_str, az_src, zen_src, ion_height)
+
+    B_para = B_IGRF(year, month, day,
+                    coord_lat, coord_lon,
+                    ion_height, az_punct, zen_punct)
+
+    return tec_hp, rms_hp, coord_lat, coord_lon, zen_punct, B_para
+
+def IONEX_data(year, month, day):
+    IONEX_file = IONEX_file_needed(year, month, day)
+    IONEX_name = os.path.join(base_path, IONEX_file)
+    TEC, _, all_info = read_IONEX_TEC(IONEX_name)
+
+    a, rms_a, ion_height = all_info[7:]
+
+    tec_hp = interp_time(a, TEC['lat'], TEC['lon'])
+    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'])
+
+    return tec_hp, rms_hp, ion_height
+
+def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
+    lat_obs = Latitude(Angle(lat_str[:-1]))
+    lon_obs = Longitude(Angle(lon_str[:-1]))
+
+    off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian,
+                                                             np.radians(az_src),
+                                                             np.radians(zen_src),
+                                                             ion_height)
+    coord_lat, coord_lon = get_coords(lat_str, lon_str,
+                                      lat_obs, lon_obs,
+                                      np.degrees(off_lat), np.degrees(off_lon))
+
+    return coord_lat, coord_lon, az_punct, zen_punct
+
+
 if __name__ == '__main__':
     # PAPER INFO
     nside = 16
@@ -397,41 +436,11 @@ if __name__ == '__main__':
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
     time_str = '2012-02-13T00:00:00'
-    #IONEX_file = 'CODG0440.12I'
-    height = 1000
 
-    #
-
-    year, month, day = time_str.split('T')[0].split('-')
-    IONEX_file = IONEX_file_needed(year, month, day)
-    IONEX_name = os.path.join(base_path, IONEX_file)
-
-    lat_obs = Latitude(Angle(lat_str[:-1]))
-    lon_obs = Longitude(Angle(lon_str[:-1]))
-
-    start_time = Time(time_str)
-
-    #lat is negative because it's south
-    location = EarthLocation(lat=-lat_obs, lon=lon_obs, height=height * u.m)
-
-    TEC, _, all_info = read_IONEX_TEC(IONEX_name)
-
-    a, rms_a, ion_height = all_info[7:]
-
-    tec_hp = interp_time(a, TEC['lat'], TEC['lon'])
-    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'])
-
-    off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian,
-                                                             np.radians(az_src),
-                                                             np.radians(zen_src),
-                                                             ion_height)
-    coord_lat, coord_lon = get_coords(lat_str, lon_str,
-                                      lat_obs, lon_obs,
-                                      np.degrees(off_lat), np.degrees(off_lon))
-
-    B_para = B_IGRF(year, month, day,
-                    coord_lat, coord_lon,
-                    ion_height, az_punct, zen_punct)
+    tec_hp, rms_hp,\
+    coord_lat, coord_lon,\
+    zen_punct, B_para = ion_RM(time_str, lat_str, lon_str,
+                               alt_src, az_src, zen_src)
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
@@ -442,7 +451,4 @@ if __name__ == '__main__':
                                               coord_lat, coord_lon,
                                               zen_punct)
 
-        #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC,
-        #           'IFR': IFR, 'RMS_IFR': RMS_IFR,
-        #           'B_para': B_para}
         get_results(hour, TEC_path, RMS_TEC_path, B_para)
