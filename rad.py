@@ -294,14 +294,12 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
 
     return np.array(B_para)
 
-def get_results(hour, TEC_path, RMS_TEC_path, B_para):
+def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path):
     # Saving the Ionosheric RM and its corresponding
     # rms value to a file for the given 'hour' value
     IFR = 2.6e-17 * B_para * TEC_path
     RMS_IFR = 2.6e-17 * B_para * RMS_TEC_path
 
-    new_file = os.path.join(base_path, 'RM_files',
-                                       'IonRM{hour}.txt'.format(hour=hour))
     with open(new_file, 'w') as f:
         for tp, tf, ifr, rms_ifr in zip(TEC_path, B_para, IFR, RMS_IFR):
             f.write(('{hour} {TEC_path} '
@@ -393,7 +391,25 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, zen_src):
                     coord_lat, coord_lon,
                     ion_height, az_punct, zen_punct)
 
-    return tec_hp, rms_hp, coord_lat, coord_lon, zen_punct, B_para
+    UTs = np.linspace(0, 23, num=24)
+
+    RM = []
+    dRM = []
+    for UT in UTs:
+        hour = std_hour(UT)    
+        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT],
+                                              coord_lat, coord_lon,
+                                              zen_punct)
+
+        new_file = os.path.join(base_path, 'RM_files',
+                                           'IonRM{hour}.txt'.format(hour=hour))
+        get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
+
+        _, _, _, RM_add, dRM_add = np.loadtxt(new_file, unpack=True)
+        RM.append(RM_add)
+        dRM.append(dRM_add)
+
+    return B_para, np.array(RM), np.array(dRM)
 
 def IONEX_data(year, month, day):
     IONEX_file = IONEX_file_needed(year, month, day)
@@ -421,7 +437,6 @@ def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
 
     return coord_lat, coord_lon, az_punct, zen_punct
 
-
 if __name__ == '__main__':
     # PAPER INFO
     nside = 16
@@ -437,18 +452,5 @@ if __name__ == '__main__':
     lon_str = '21d25m41.9se'
     time_str = '2012-02-13T00:00:00'
 
-    tec_hp, rms_hp,\
-    coord_lat, coord_lon,\
-    zen_punct, B_para = ion_RM(time_str, lat_str, lon_str,
-                               alt_src, az_src, zen_src)
-
-    # predict the ionospheric RM for every hour within a day 
-    UTs = np.linspace(0, 23, num=24)
-    
-    for UT in UTs:
-        hour = std_hour(UT)    
-        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT],
-                                              coord_lat, coord_lon,
-                                              zen_punct)
-
-        get_results(hour, TEC_path, RMS_TEC_path, B_para)
+    B_para, RM, dRM = ion_RM(time_str, lat_str, lon_str,
+                             alt_src, az_src, zen_src)
