@@ -381,10 +381,11 @@ def std_hour(UT):
 
     return hour
 
-def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, zen_src):
+def ion_RM(date_str, lat_str, lon_str, alt_src, az_src):
     year, month, day = date_str.split('T')[0].split('-')
     tec_hp, rms_hp, ion_height = IONEX_data(year, month, day)
 
+    zen_src = 90. - alt_src
     coord_lat, coord_lon, az_punct, zen_punct = ipp(lat_str, lon_str, az_src, zen_src, ion_height)
 
     B_para = B_IGRF(year, month, day,
@@ -446,11 +447,10 @@ if __name__ == '__main__':
 
     alt_src = 90. - np.degrees(np.array(theta))
     az_src = np.degrees(np.array(phi))
-    zen_src = np.degrees(np.array(theta))
+    #zen_src = np.degrees(np.array(theta))
 
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
     time_str = '2012-02-13T00:00:00'
 
-    B_para, RM, dRM = ion_RM(time_str, lat_str, lon_str,
-                             alt_src, az_src, zen_src)
+    B_para, RM, dRM = ion_RM(time_str, lat_str, lon_str, alt_src, az_src)
