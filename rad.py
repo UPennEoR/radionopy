@@ -17,7 +17,7 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude,
 
 # Defining some variables for further use
 ### Make the base path settable
-base_path = os.path.expanduser('~/radionopy')
+base_path = os.path.expanduser(os.getcwd()) #XXX makes (fair) assumption that you're executing this in the radionopy directory
 TECU = 1e16
 TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
@@ -92,7 +92,7 @@ def gen_IONEX_list(IONEX_list):
 
     return base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h, start_lat, end_lat, step_lat, start_lon, end_lon, step_lon
 
-def read_IONEX_TEC(filename):
+def read_IONEX_TEC(filename,verbose=True):
     #==========================================================================
     # Reading and storing only the TEC values of 1 day
     # (13 maps) into a 3D array
@@ -111,11 +111,11 @@ def read_IONEX_TEC(filename):
     # Variables that indicate the number of points in Lat. and Lon.
     points_lat = ((end_lat - start_lat) / step_lat) + 1
     points_lon = ((end_lon - start_lon) / step_lon) + 1
-
-    print(start_lat, end_lat, step_lat)
-    print(start_lon, end_lon, step_lon)
-    print(points_lat, points_lon)
-
+    if verbose:
+        print(start_lat, end_lat, step_lat)
+        print(start_lon, end_lon, step_lon)
+        print(points_lat, points_lon)
+    
     # What are the Lat/Lon coords?
     latitude = np.linspace(start_lat, end_lat, num=points_lat)
     longitude = np.linspace(start_lon, end_lon, num=points_lon)
@@ -179,7 +179,7 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
 
     return interp_map
 
-def interp_time(maps, lat, lon):
+def interp_time(maps, lat, lon, verbose=True):
     nlat = len(lat)
     nlon = len(lon)
     lat_rad = np.outer(np.radians(90. - lat), np.ones(nlon))
@@ -188,7 +188,7 @@ def interp_time(maps, lat, lon):
 
     map_len = (len(maps) - 1) * 2
     hp_maps = []
-    even_maps = [healpixellize(sq_map, lat_rad, lon_rad, nside) for sq_map in maps]
+    even_maps = [healpixellize(sq_map, lat_rad, lon_rad, nside, verbose=verbose) for sq_map in maps]
 
     for i, even_map in enumerate(even_maps):
         hp_maps.append(even_map)
@@ -336,7 +336,7 @@ def rotate_healpix_map(map_in, rot):
     
     return rot_map
 
-def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
+def healpixellize(f_in, theta_in, phi_in, nside, fancy=True, verbose=True):
     '''
     A dumb method for converting data f sampled at points theta and phi
     (not on a healpix grid)
@@ -362,7 +362,7 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
 
     hp_map = hp_map / hits
     wh_no_hits = np.where(hits == 0)
-    print('pixels with no hits', wh_no_hits[0].shape)
+    if verbose: print('pixels with no hits', wh_no_hits[0].shape)
     hp_map[wh_no_hits[0]] = hp.UNSEEN
 
     wh = np.where(hp_map == np.nan)[0]
@@ -372,8 +372,8 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True):
 
     return hp_map
 
-def std_hour(UT):
-    print(int(UT))
+def std_hour(UT,verbose=True):
+    if verbose: print(int(UT))
     if UT < 10:
         hour = '0{hour}'.format(hour=int(UT))
     else:
@@ -381,9 +381,9 @@ def std_hour(UT):
 
     return hour
 
-def ion_RM(date_str, lat_str, lon_str, alt_src, az_src):
+def ion_RM(date_str, lat_str, lon_str, alt_src, az_src,verbose=True):
     year, month, day = date_str.split('T')[0].split('-')
-    tec_hp, rms_hp, ion_height = IONEX_data(year, month, day)
+    tec_hp, rms_hp, ion_height = IONEX_data(year, month, day, verbose=verbose)
 
     zen_src = 90. - alt_src
     coord_lat, coord_lon, az_punct, zen_punct = ipp(lat_str, lon_str, az_src, zen_src, ion_height)
@@ -397,30 +397,27 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src):
     RM = []
     dRM = []
     for UT in UTs:
-        hour = std_hour(UT)    
-        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT],
-                                              coord_lat, coord_lon,
-                                              zen_punct)
-
-        new_file = os.path.join(base_path, 'RM_files',
-                                           'IonRM{hour}.txt'.format(hour=hour))
+        hour = std_hour(UT,verbose=verbose)    
+        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT],coord_lat, coord_lon,zen_punct)
+        rmfilepath = os.path.join(base_path, 'RM_files')
+        if not os.path.exists(rmfilepath): os.system('mkdir %s'%rmfilepath)
+        new_file = os.path.join(base_path, 'RM_files','IonRM{hour}.txt'.format(hour=hour))
         get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
-
         _, _, _, RM_add, dRM_add = np.loadtxt(new_file, unpack=True)
         RM.append(RM_add)
         dRM.append(dRM_add)
 
     return B_para, np.array(RM), np.array(dRM)
 
-def IONEX_data(year, month, day):
+def IONEX_data(year, month, day,verbose=True):
     IONEX_file = IONEX_file_needed(year, month, day)
     IONEX_name = os.path.join(base_path, IONEX_file)
-    TEC, _, all_info = read_IONEX_TEC(IONEX_name)
+    TEC, _, all_info = read_IONEX_TEC(IONEX_name,verbose=verbose)
 
     a, rms_a, ion_height = all_info[7:]
 
-    tec_hp = interp_time(a, TEC['lat'], TEC['lon'])
-    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'])
+    tec_hp = interp_time(a, TEC['lat'], TEC['lon'],verbose=verbose)
+    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'],verbose=verbose)
 
     return tec_hp, rms_hp, ion_height
 
@@ -453,4 +450,4 @@ if __name__ == '__main__':
     lon_str = '21d25m41.9se'
     time_str = '2012-02-13T00:00:00'
 
-    B_para, RM, dRM = ion_RM(time_str, lat_str, lon_str, alt_src, az_src)
+    B_para, RM, dRM = ion_RM(time_str, lat_str, lon_str, alt_src, az_src,verbose=False)
