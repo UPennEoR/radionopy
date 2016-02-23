@@ -435,8 +435,24 @@ def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
 
     return coord_lat, coord_lon, az_punct, zen_punct
 
+def maps2npz(timestr,npix,locstr='PAPER',verbose=True):
+    #I could fish around in the file read to get npix and then re-loop, but why not just be lazy sometimes
+    rng = np.array(range(0,24))
+    final_TEC, final_rm, final_drm = np.zeros((rng.shape[0],npix)),np.zeros((rng.shape[0],npix)),np.zeros((rng.shape[0],npix))
+    for UT in rng:
+        file = os.path.join(base_path,'RM_files/IonRM{num}.txt'.format(num=std_hour(UT,verbose=verbose)))
+        _, TEC, B, RM, dRM = np.loadtxt(file, unpack=True)
+        final_TEC[UT,:] = TEC
+        final_rm[UT,:] = RM
+        final_drm[UT,:] = dRM
+    fname = timestr.split('T')[0]+'_'+locstr+'.npz'
+    if verbose: print('Saving TEC, RM and dRM data to '+fname)
+    np.savez(fname, TEC=final_TEC, RM=final_rm, dRM=final_drm)
+
+
+
 if __name__ == '__main__':
-    # PAPER INFO
+    
     nside = 16
     npix = hp.nside2npix(nside)
     ipix = np.arange(npix)
@@ -444,10 +460,12 @@ if __name__ == '__main__':
 
     alt_src = 90. - np.degrees(np.array(theta))
     az_src = np.degrees(np.array(phi))
-    #zen_src = np.degrees(np.array(theta))
-
+    
+    # PAPER INFO
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
+    
     time_str = '2012-02-13T00:00:00'
 
     B_para, RM, dRM = ion_RM(time_str, lat_str, lon_str, alt_src, az_src,verbose=False)
+    maps2npz(time_str,npix)
