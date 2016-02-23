@@ -163,16 +163,18 @@ def read_IONEX_TEC(filename, verbose=True):
     TEC =  {'TEC': TEC_list[0]['TEC'], 'lat': latitude, 'lon': longitude}
     RMS_TEC =  {'TEC': TEC_list[1]['TEC'], 'lat': latitude, 'lon': longitude}
     
-    return TEC, RMS_TEC, (start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
+    return TEC, RMS_TEC, (start_lat, step_lat, points_lat,\
+                          start_lon, step_lon, points_lon,\
+                          number_of_maps, tec_a, rms_a, ion_h * 1000.0)
 
 def IONEX_data(year, month, day, verbose=True):
     IONEX_file = IONEX_file_needed(year, month, day)
     IONEX_name = os.path.join(base_path, IONEX_file)
     TEC, _, all_info = read_IONEX_TEC(IONEX_name, verbose=verbose)
 
-    a, rms_a, ion_height = all_info[7:]
+    tec_a, rms_a, ion_height = all_info[7:]
 
-    tec_hp = interp_time(a, TEC['lat'], TEC['lon'], verbose=verbose)
+    tec_hp = interp_time(tec_a, TEC['lat'], TEC['lon'], verbose=verbose)
     rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'], verbose=verbose)
 
     return tec_hp, rms_hp, ion_height
