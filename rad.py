@@ -213,7 +213,7 @@ def interp_time(maps, lat, lon, verbose=True):
 
     for i, even_map in enumerate(even_maps[:-1]):
         hp_maps.append(even_map)
-        if i < 12:
+        if i < len(even_maps[:-1]):
             start_time = i
             end_time = (i + 2) % map_len
             mid_time = (end_time + start_time) / 2
