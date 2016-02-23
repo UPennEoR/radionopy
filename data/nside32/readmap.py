@@ -94,7 +94,7 @@ for i,val in enumerate(UT22):
 	if np.isnan(val):
 		c+=1
 		theta,phi = hp.pix2ang(nside,i)
-		neybs = hp.get_neighbours(nside,theta,phi=phi) 
+		neybs = hp.get_interp_weights(nside,theta,phi=phi) 
 		
 		v = np.nanmean(UT22[neybs[0]])
 		UT22_interp[i] = v
@@ -110,7 +110,7 @@ for i,val in enumerate(UT22_interp):
 	if np.isnan(val):
 		c+=1
 		theta,phi = hp.pix2ang(nside,i)
-		neybs = hp.get_neighbours(nside,theta,phi=phi) 
+		neybs = hp.get_interp_weights(nside,theta,phi=phi) 
 		
 		v = np.nanmean(UT22_interp[neybs[0]])
 		

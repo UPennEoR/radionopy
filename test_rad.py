@@ -19,7 +19,7 @@ reload(rad)
 
 # Defining some variables for further use
 ### Make the base path settable
-base_path = os.path.expanduser('~/PyModules/radionopy')
+base_path = os.path.expanduser('~/github/radionopy')
 TECU = 1e16
 TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
