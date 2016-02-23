@@ -23,6 +23,10 @@ TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
 tesla_to_gauss = 1e4
 
+#######################
+### IONEX FUNCTIONS ###
+#######################
+
 def IONEX_file_needed(year, month, day):
     time_str = '{year} {month} {day}'.format(year=year, month=month, day=day)
     day_of_year = datetime.datetime.strptime(time_str, '%Y %m %d').timetuple().tm_yday
@@ -93,7 +97,6 @@ def gen_IONEX_list(IONEX_list):
     return base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h, start_lat, end_lat, step_lat, start_lon, end_lon, step_lon
 
 def read_IONEX_TEC(filename,verbose=True):
-    #==========================================================================
     # Reading and storing only the TEC values of 1 day
     # (13 maps) into a 3D array
 
@@ -161,7 +164,22 @@ def read_IONEX_TEC(filename,verbose=True):
     RMS_TEC =  {'TEC': TEC_list[1]['TEC'], 'lat': latitude, 'lon': longitude}
     
     return TEC, RMS_TEC, (start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
-    #==========================================================================
+
+def IONEX_data(year, month, day,verbose=True):
+    IONEX_file = IONEX_file_needed(year, month, day)
+    IONEX_name = os.path.join(base_path, IONEX_file)
+    TEC, _, all_info = read_IONEX_TEC(IONEX_name,verbose=verbose)
+
+    a, rms_a, ion_height = all_info[7:]
+
+    tec_hp = interp_time(a, TEC['lat'], TEC['lon'],verbose=verbose)
+    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'],verbose=verbose)
+
+    return tec_hp, rms_hp, ion_height
+
+###############################
+### INTERPOLATION FUNCTIONS ###
+###############################
 
 def interp_hp_time(map_i, map_j, t_i, t_j, t):
     # Need to check that
@@ -203,45 +221,6 @@ def interp_time(maps, lat, lon, verbose=True):
 
     return np.array(hp_maps)
 
-def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
-    #earth_radius = 6371000.0 # in meters
-
-    # The 2-D sine rule gives the zenith angle at the
-    # Ionospheric piercing point
-    zen_punct = np.arcsin((earth_radius * np.sin(zen_src)) / (earth_radius + ion_height)) 
-
-    # Use the sum of the internal angles of a triange to determine theta
-    theta = zen_src - zen_punct
-
-    # The cosine rule for spherical triangles gives us the latitude
-    # at the IPP
-    lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_src)) 
-    off_lat = lat_ion - lat_obs # latitude difference
-
-    # Longitude difference using the 3-D sine rule (or for spherical triangles)
-    off_lon = np.arcsin(np.sin(az_src) * np.sin(theta) / np.cos(lat_ion))
-
-    # Azimuth at the IPP using the 3-D sine rule
-    s_az_ion = np.sin(az_src) * np.cos(lat_obs) / np.cos(lat_ion)
-    az_punct = np.arcsin(s_az_ion)
-
-    return off_lat, off_lon, az_punct, zen_punct
-
-def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
-    if lat_str[-1] == 's':
-        lat_val = -1
-    elif lat_str[-1] == 'n':
-        lat_val = 1
-    if lon_str[-1] == 'e':
-        lon_val = 1
-    elif lon_str[-1] == 'w':
-        lon_val = -1
-
-    coord_lat = lat_val * (lat_obs.value + off_lat)
-    coord_lon = lon_val * (lon_obs.value + off_lon)
-
-    return coord_lat, coord_lon
-
 def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     lat_rad = np.radians(90. - coord_lat)
     lon_rad = np.radians(coord_lon % 360)
@@ -252,6 +231,46 @@ def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     RMS_TEC_path = np.array(VRMS_TEC) * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
+    
+def healpixellize(f_in, theta_in, phi_in, nside, fancy=True, verbose=True):
+    '''
+    A dumb method for converting data f sampled at points theta and phi
+    (not on a healpix grid)
+    into a healpix at resolution nside
+    '''
+    # Input arrays are likely to be rectangular, but this is inconvenient
+    f = f_in.flatten()
+    theta = theta_in.flatten()
+    phi = phi_in.flatten()
+
+    pix = hp.ang2pix(nside, theta, phi)
+
+    hp_map = np.zeros(hp.nside2npix(nside))
+    hits = np.zeros(hp.nside2npix(nside))
+    
+    for i, v in enumerate(f):
+        # Find the nearest pixels to the pixel in question
+        neighbours, weights = hp.get_interp_weights(nside, theta[i], phi[i])
+        # Add weighted values to hp_map
+        hp_map[neighbours] += v * weights
+        # Keep track of weights
+        hits[neighbours] += weights
+
+    hp_map = hp_map / hits
+    wh_no_hits = np.where(hits == 0)
+    if verbose: print('pixels with no hits', wh_no_hits[0].shape)
+    hp_map[wh_no_hits[0]] = hp.UNSEEN
+
+    wh = np.where(hp_map == np.nan)[0]
+    for i, w in enumerate(wh):
+        neighbors = hp.get_interp_weights(nside, theta[i], phi[i])
+        hp_map[w] = np.median(neighbors)
+
+    return hp_map
+
+####################################
+### PHYSICS/COORDINATE FUNCTIONS ###
+####################################
 
 def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct):
     # Calculation of TEC path value for the indicated 'hour' and therefore 
@@ -294,22 +313,59 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
 
     return np.array(B_para)
 
-def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path):
-    # Saving the Ionosheric RM and its corresponding
-    # rms value to a file for the given 'hour' value
-    IFR = 2.6e-17 * B_para * TEC_path
-    RMS_IFR = 2.6e-17 * B_para * RMS_TEC_path
+def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
+    #earth_radius = 6371000.0 # in meters
 
-    with open(new_file, 'w') as f:
-        for tp, tf, ifr, rms_ifr in zip(TEC_path, B_para, IFR, RMS_IFR):
-            f.write(('{hour} {TEC_path} '
-                     '{B_para} {IFR} '
-                     '{RMS_IFR}\n').format(hour=hour,
-                                           TEC_path=tp,
-                                           B_para=tf,
-                                           IFR=ifr,
-                                           RMS_IFR=rms_ifr))
+    # The 2-D sine rule gives the zenith angle at the
+    # Ionospheric piercing point
+    zen_punct = np.arcsin((earth_radius * np.sin(zen_src)) / (earth_radius + ion_height)) 
 
+    # Use the sum of the internal angles of a triange to determine theta
+    theta = zen_src - zen_punct
+
+    # The cosine rule for spherical triangles gives us the latitude
+    # at the IPP
+    lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_src)) 
+    off_lat = lat_ion - lat_obs # latitude difference
+
+    # Longitude difference using the 3-D sine rule (or for spherical triangles)
+    off_lon = np.arcsin(np.sin(az_src) * np.sin(theta) / np.cos(lat_ion))
+
+    # Azimuth at the IPP using the 3-D sine rule
+    s_az_ion = np.sin(az_src) * np.cos(lat_obs) / np.cos(lat_ion)
+    az_punct = np.arcsin(s_az_ion)
+
+    return off_lat, off_lon, az_punct, zen_punct
+
+def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
+    if lat_str[-1] == 's':
+        lat_val = -1
+    elif lat_str[-1] == 'n':
+        lat_val = 1
+    if lon_str[-1] == 'e':
+        lon_val = 1
+    elif lon_str[-1] == 'w':
+        lon_val = -1
+
+    coord_lat = lat_val * (lat_obs.value + off_lat)
+    coord_lon = lon_val * (lon_obs.value + off_lon)
+
+    return coord_lat, coord_lon
+
+def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
+    lat_obs = Latitude(Angle(lat_str[:-1]))
+    lon_obs = Longitude(Angle(lon_str[:-1]))
+
+    off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian,
+                                                             np.radians(az_src),
+                                                             np.radians(zen_src),
+                                                             ion_height)
+    coord_lat, coord_lon = get_coords(lat_str, lon_str,
+                                      lat_obs, lon_obs,
+                                      np.degrees(off_lat), np.degrees(off_lon))
+
+    return coord_lat, coord_lon, az_punct, zen_punct
+    
 def rotate_healpix_map(map_in, rot):
     '''
     Will rotate the pixels of a map into (effectively) a new ordering
@@ -336,41 +392,26 @@ def rotate_healpix_map(map_in, rot):
     
     return rot_map
 
-def healpixellize(f_in, theta_in, phi_in, nside, fancy=True, verbose=True):
-    '''
-    A dumb method for converting data f sampled at points theta and phi
-    (not on a healpix grid)
-    into a healpix at resolution nside
-    '''
-    # Input arrays are likely to be rectangular, but this is inconvenient
-    f = f_in.flatten()
-    theta = theta_in.flatten()
-    phi = phi_in.flatten()
 
-    pix = hp.ang2pix(nside, theta, phi)
+######################################
+### EXECUTION AND HELPER FUNCTIONS ###
+######################################
 
-    hp_map = np.zeros(hp.nside2npix(nside))
-    hits = np.zeros(hp.nside2npix(nside))
-    
-    for i, v in enumerate(f):
-        # Find the nearest pixels to the pixel in question
-        neighbours, weights = hp.get_interp_weights(nside, theta[i], phi[i])
-        # Add weighted values to hp_map
-        hp_map[neighbours] += v * weights
-        # Keep track of weights
-        hits[neighbours] += weights
+def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path):
+    # Saving the Ionosheric RM and its corresponding
+    # rms value to a file for the given 'hour' value
+    IFR = 2.6e-17 * B_para * TEC_path
+    RMS_IFR = 2.6e-17 * B_para * RMS_TEC_path
 
-    hp_map = hp_map / hits
-    wh_no_hits = np.where(hits == 0)
-    if verbose: print('pixels with no hits', wh_no_hits[0].shape)
-    hp_map[wh_no_hits[0]] = hp.UNSEEN
-
-    wh = np.where(hp_map == np.nan)[0]
-    for i, w in enumerate(wh):
-        neighbors = hp.get_interp_weights(nside, theta[i], phi[i])
-        hp_map[w] = np.median(neighbors)
-
-    return hp_map
+    with open(new_file, 'w') as f:
+        for tp, tf, ifr, rms_ifr in zip(TEC_path, B_para, IFR, RMS_IFR):
+            f.write(('{hour} {TEC_path} '
+                     '{B_para} {IFR} '
+                     '{RMS_IFR}\n').format(hour=hour,
+                                           TEC_path=tp,
+                                           B_para=tf,
+                                           IFR=ifr,
+                                           RMS_IFR=rms_ifr))
 
 def std_hour(UT,verbose=True):
     if verbose: print(int(UT))
@@ -408,32 +449,6 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src,verbose=True):
         dRM.append(dRM_add)
 
     return B_para, np.array(RM), np.array(dRM)
-
-def IONEX_data(year, month, day,verbose=True):
-    IONEX_file = IONEX_file_needed(year, month, day)
-    IONEX_name = os.path.join(base_path, IONEX_file)
-    TEC, _, all_info = read_IONEX_TEC(IONEX_name,verbose=verbose)
-
-    a, rms_a, ion_height = all_info[7:]
-
-    tec_hp = interp_time(a, TEC['lat'], TEC['lon'],verbose=verbose)
-    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'],verbose=verbose)
-
-    return tec_hp, rms_hp, ion_height
-
-def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
-    lat_obs = Latitude(Angle(lat_str[:-1]))
-    lon_obs = Longitude(Angle(lon_str[:-1]))
-
-    off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian,
-                                                             np.radians(az_src),
-                                                             np.radians(zen_src),
-                                                             ion_height)
-    coord_lat, coord_lon = get_coords(lat_str, lon_str,
-                                      lat_obs, lon_obs,
-                                      np.degrees(off_lat), np.degrees(off_lon))
-
-    return coord_lat, coord_lon, az_punct, zen_punct
 
 def maps2npz(timestr,npix,locstr='PAPER',verbose=True):
     #I could fish around in the file read to get npix and then re-loop, but why not just be lazy sometimes
