@@ -96,7 +96,7 @@ def gen_IONEX_list(IONEX_list):
 
     return base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h, start_lat, end_lat, step_lat, start_lon, end_lon, step_lon
 
-def read_IONEX_TEC(filename,verbose=True):
+def read_IONEX_TEC(filename, verbose=True):
     # Reading and storing only the TEC values of 1 day
     # (13 maps) into a 3D array
 
@@ -165,15 +165,15 @@ def read_IONEX_TEC(filename,verbose=True):
     
     return TEC, RMS_TEC, (start_lat, step_lat, points_lat, start_lon, step_lon, points_lon, number_of_maps, tec_a, rms_a, ion_h * 1000.0)
 
-def IONEX_data(year, month, day,verbose=True):
+def IONEX_data(year, month, day, verbose=True):
     IONEX_file = IONEX_file_needed(year, month, day)
     IONEX_name = os.path.join(base_path, IONEX_file)
-    TEC, _, all_info = read_IONEX_TEC(IONEX_name,verbose=verbose)
+    TEC, _, all_info = read_IONEX_TEC(IONEX_name, verbose=verbose)
 
     a, rms_a, ion_height = all_info[7:]
 
-    tec_hp = interp_time(a, TEC['lat'], TEC['lon'],verbose=verbose)
-    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'],verbose=verbose)
+    tec_hp = interp_time(a, TEC['lat'], TEC['lon'], verbose=verbose)
+    rms_hp = interp_time(rms_a, TEC['lat'], TEC['lon'], verbose=verbose)
 
     return tec_hp, rms_hp, ion_height
 
@@ -187,6 +187,7 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
         print(t_i, t, t_j)
         print('Times will not work')
         return None
+
     w_i = float(t_j - t) / (t_j - t_i)
     w_j = float(t - t_i) / (t_j - t_i)
     dt_i_deg = -np.abs((t - t_i) * 360. / 24.)
@@ -258,7 +259,8 @@ def healpixellize(f_in, theta_in, phi_in, nside, fancy=True, verbose=True):
 
     hp_map = hp_map / hits
     wh_no_hits = np.where(hits == 0)
-    if verbose: print('pixels with no hits', wh_no_hits[0].shape)
+    if verbose:
+        print('pixels with no hits', wh_no_hits[0].shape)
     hp_map[wh_no_hits[0]] = hp.UNSEEN
 
     wh = np.where(hp_map == np.nan)[0]
@@ -318,14 +320,14 @@ def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
 
     # The 2-D sine rule gives the zenith angle at the
     # Ionospheric piercing point
-    zen_punct = np.arcsin((earth_radius * np.sin(zen_src)) / (earth_radius + ion_height)) 
+    zen_punct = np.arcsin((earth_radius * np.sin(zen_src)) / (earth_radius + ion_height))
 
     # Use the sum of the internal angles of a triange to determine theta
     theta = zen_src - zen_punct
 
     # The cosine rule for spherical triangles gives us the latitude
     # at the IPP
-    lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_src)) 
+    lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_src))
     off_lat = lat_ion - lat_obs # latitude difference
 
     # Longitude difference using the 3-D sine rule (or for spherical triangles)
@@ -413,8 +415,9 @@ def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path):
                                            IFR=ifr,
                                            RMS_IFR=rms_ifr))
 
-def std_hour(UT,verbose=True):
-    if verbose: print(int(UT))
+def std_hour(UT, verbose=True):
+    if verbose:
+        print(int(UT))
     if UT < 10:
         hour = '0{hour}'.format(hour=int(UT))
     else:
@@ -422,7 +425,7 @@ def std_hour(UT,verbose=True):
 
     return hour
 
-def ion_RM(date_str, lat_str, lon_str, alt_src, az_src,verbose=True):
+def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
     year, month, day = date_str.split('T')[0].split('-')
     tec_hp, rms_hp, ion_height = IONEX_data(year, month, day, verbose=verbose)
 
@@ -435,35 +438,43 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src,verbose=True):
 
     UTs = np.linspace(0, 23, num=24)
 
-    RM = []
-    dRM = []
+    RMs = []
+    dRMs = []
     for UT in UTs:
-        hour = std_hour(UT,verbose=verbose)    
-        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT],coord_lat, coord_lon,zen_punct)
-        rmfilepath = os.path.join(base_path, 'RM_files')
-        if not os.path.exists(rmfilepath): os.system('mkdir %s'%rmfilepath)
-        new_file = os.path.join(base_path, 'RM_files','IonRM{hour}.txt'.format(hour=hour))
+        RM_dir = os.path.join(base_path, 'RM_files')
+        if not os.path.exists(RM_dir):
+            os.mkdir(RM_dir)
+
+        TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT], coord_lat, coord_lon, zen_punct)
+
+        hour = std_hour(UT, verbose=verbose)
+        new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
         get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
+
         _, _, _, RM_add, dRM_add = np.loadtxt(new_file, unpack=True)
-        RM.append(RM_add)
-        dRM.append(dRM_add)
+        RMs.append(RM_add)
+        dRMs.append(dRM_add)
 
-    return B_para, np.array(RM), np.array(dRM)
+    return B_para, np.array(RMs), np.array(dRMs)
 
-def maps2npz(timestr,npix,locstr='PAPER',verbose=True):
+def maps2npz(time_str, npix, loc_str='PAPER', verbose=True):
     #I could fish around in the file read to get npix and then re-loop, but why not just be lazy sometimes
-    rng = np.array(range(0,24))
-    final_TEC, final_rm, final_drm = np.zeros((rng.shape[0],npix)),np.zeros((rng.shape[0],npix)),np.zeros((rng.shape[0],npix))
+    rng = np.arange(24)
+    final_TEC, final_rm, final_drm = np.zeros((rng.shape[0], npix)),\
+                                     np.zeros((rng.shape[0], npix)),\
+                                     np.zeros((rng.shape[0], npix))
     for UT in rng:
-        file = os.path.join(base_path,'RM_files/IonRM{num}.txt'.format(num=std_hour(UT,verbose=verbose)))
-        _, TEC, B, RM, dRM = np.loadtxt(file, unpack=True)
-        final_TEC[UT,:] = TEC
-        final_rm[UT,:] = RM
-        final_drm[UT,:] = dRM
-    fname = timestr.split('T')[0]+'_'+locstr+'.npz'
-    if verbose: print('Saving TEC, RM and dRM data to '+fname)
-    np.savez(fname, TEC=final_TEC, RM=final_rm, dRM=final_drm)
+        rm_file = os.path.join(base_path, 'RM_files/IonRM{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
+        _, TEC, B, RM, dRM = np.loadtxt(rm_file, unpack=True)
+        final_TEC[UT, :] = TEC
+        final_rm[UT, :] = RM
+        final_drm[UT, :] = dRM
 
+    f_name = ''.join((time_str.split('T')[0], '_', loc_str, '.npz'))
+    if verbose:
+        print('Saving TEC, RM and dRM data to {filename}'.format(filename=f_name))
+
+    np.savez(f_name, TEC=final_TEC, RM=final_rm, dRM=final_drm)
 
 
 if __name__ == '__main__':
@@ -482,5 +493,5 @@ if __name__ == '__main__':
     
     time_str = '2012-02-13T00:00:00'
 
-    B_para, RM, dRM = ion_RM(time_str, lat_str, lon_str, alt_src, az_src,verbose=False)
-    maps2npz(time_str,npix)
+    B_para, RMs, dRMs = ion_RM(time_str, lat_str, lon_str, alt_src, az_src, verbose=False)
+    maps2npz(time_str, npix)
