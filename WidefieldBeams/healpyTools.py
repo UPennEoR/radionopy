@@ -48,7 +48,7 @@ def healpixellize(f_in,theta_in,phi_in,nside,fancy=True):
     if (fancy):
         for i,v in enumerate(f):
             # Find the nearest pixels to the pixel in question
-            neighbours,weights = hp.get_neighbours(nside,theta[i],phi[i])
+            neighbours,weights = hp.get_interp_weights(nside,theta[i],phi[i])
             # Add weighted values to map
             map[neighbours] += v*weights
             # Keep track of weights
