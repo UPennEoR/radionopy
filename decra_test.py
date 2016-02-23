@@ -69,7 +69,10 @@ def get_results(hour, TEC_path, RMS_TEC_path, B_para):
     new_file = os.path.join(base_path, 'RM_files',
                                        'decra.txt')
     if hour == '00':
-        os.remove(new_file)
+        try:
+            os.remove(new_file)
+        except:
+            pass
     with open(new_file, 'a') as f:
         f.write(('{hour} {TEC_path} '
                  '{B_para} {IFR} '

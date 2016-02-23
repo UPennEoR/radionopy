@@ -211,9 +211,9 @@ def interp_time(maps, lat, lon, verbose=True):
     hp_maps = []
     even_maps = [healpixellize(sq_map, lat_rad, lon_rad, nside, verbose=verbose) for sq_map in maps]
 
-    for i, even_map in enumerate(even_maps):
+    for i, even_map in enumerate(even_maps[:-1]):
         hp_maps.append(even_map)
-        if i < 11:
+        if i < len(even_maps[:-1]):
             start_time = i
             end_time = (i + 2) % map_len
             mid_time = (end_time + start_time) / 2
