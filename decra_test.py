@@ -139,7 +139,7 @@ if __name__ == '__main__':
 
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
-    
+
     for UT in UTs:
         hour = rad.std_hour(UT)    
         ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
