@@ -141,7 +141,7 @@ if __name__ == '__main__':
     UTs = np.linspace(0, 23, num=24)
 
     for UT in UTs:
-        hour = rad.std_hour(UT)    
+        hour = rad.std_hour(UT)
         ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
         altaz = ra_dec.altaz
 
