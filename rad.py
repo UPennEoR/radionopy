@@ -427,8 +427,8 @@ def std_hour(UT, verbose=True):
 
     return hour
 
-def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, height=1051):
-    hour = std_hour(UT)
+def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, height=1051, verbose=True):
+    hour = std_hour(UT,verbose=verbose)
 
     lat_obs = Latitude(Angle(lat_str[:-1]))
     lon_obs = Longitude(Angle(lon_str[:-1]))
