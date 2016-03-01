@@ -427,6 +427,24 @@ def std_hour(UT, verbose=True):
 
     return hour
 
+def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, height=1051):
+    hour = std_hour(UT)
+
+    lat_obs = Latitude(Angle(lat_str[:-1]))
+    lon_obs = Longitude(Angle(lon_str[:-1]))
+
+    start_time = Time(date_str)
+
+    location = EarthLocation(lat=lat_obs, lon=lon_obs, height=height * u.m)
+
+    altaz = SkyCoord(alt=alt_src * u.deg, az=az_src * u.deg, location=location, obstime=start_time + UT * u.hr, frame='altaz')
+    ra = altaz.icrs.ra
+    dec = altaz.icrs.dec
+
+    with open(radec_file, 'w') as f:
+        for r, d in zip(ra, dec):
+            f.write('{ra} {dec}\n'.format(ra=r.value, dec=d.value))
+
 def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
     year, month, day = date_str.split('T')[0].split('-')
     tec_hp, rms_hp, ion_height = IONEX_data(year, month, day, verbose=verbose)
@@ -447,9 +465,12 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
         if not os.path.exists(RM_dir):
             os.mkdir(RM_dir)
 
+        hour = std_hour(UT, verbose=verbose)
+        radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
+        write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str)
+
         TEC_path, RMS_TEC_path = interp_space(tec_hp[UT], rms_hp[UT], coord_lat, coord_lon, zen_punct)
 
-        hour = std_hour(UT, verbose=verbose)
         new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
         get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
 
