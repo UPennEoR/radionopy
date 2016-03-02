@@ -483,21 +483,29 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
 def maps2npz(time_str, npix, loc_str='PAPER', verbose=True):
     #I could fish around in the file read to get npix and then re-loop, but why not just be lazy sometimes
     rng = np.arange(24)
-    final_TEC, final_rm, final_drm = np.zeros((rng.shape[0], npix)),\
+    final_TEC, final_rm, final_drm, ra, dec = np.zeros((rng.shape[0], npix)),\
+                                     np.zeros((rng.shape[0], npix)),\
+                                     np.zeros((rng.shape[0], npix)),\
                                      np.zeros((rng.shape[0], npix)),\
                                      np.zeros((rng.shape[0], npix))
     for UT in rng:
         rm_file = os.path.join(base_path, 'RM_files/IonRM{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
+        radec_file = os.path.join(base_path, 'RM_files/radec{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
+        
         _, TEC, B, RM, dRM = np.loadtxt(rm_file, unpack=True)
+        RA, DEC = np.loadtxt(radec_file,unpack=True)
+        
         final_TEC[UT, :] = TEC
         final_rm[UT, :] = RM
         final_drm[UT, :] = dRM
+        ra[UT,:] = RA
+        dec[UT,:] = DEC
 
     f_name = ''.join((time_str.split('T')[0], '_', loc_str, '.npz'))
     if verbose:
-        print('Saving TEC, RM and dRM data to {filename}'.format(filename=f_name))
+        print('Saving TEC, RM +/- dRM data and RA/Dec mapping to {filename}'.format(filename=f_name))
 
-    np.savez(f_name, TEC=final_TEC, RM=final_rm, dRM=final_drm)
+    np.savez(f_name, TEC=final_TEC, RM=final_rm, dRM=final_drm, RA=ra, DEC=dec)
 
 
 if __name__ == '__main__':
