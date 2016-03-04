@@ -37,7 +37,7 @@ def IONEX_file_needed(year, month, day):
         day_of_year = '0{day_of_year}'.format(day_of_year=day_of_year)
 
     # Outputing the name of the IONEX file you require
-    ionex_file = 'CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
+    ionex_file = 'TEC/CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
     ionex_file_z = ''.join((ionex_file, '.Z'))
 
     if not os.path.exists(ionex_file) and not os.path.exists(ionex_file_z):
@@ -51,7 +51,13 @@ def get_IONEX_file(IONEX_file, year, month, day):
 
     ftp_dir = os.path.join('aiub/CODE/', year)
     IONEX_file_Z = ''.join((IONEX_file, '.Z'))
- 
+
+    if not os.path.exists(tec_dir):
+        os.mkdir(tec_dir)
+    tec_dir = os.path.join(base_path, 'TEC')
+
+    IONEX_file_Z = os.path.join(tec_dir, IONEX_file_Z)
+
     getting_file_str = 'Retrieving {IONEX_file_Z} for {day} {month} {year}'.format(IONEX_file_Z=IONEX_file_Z, day=day, month=month, year=year)
     print(getting_file_str)
 
@@ -504,7 +510,7 @@ def maps2npz(time_str, npix, loc_str='PAPER', verbose=True):
 
     f_name = ''.join((time_str.split('T')[0], '_', loc_str, '.npz'))
     npz_dir = os.path.join(base_path, 'npz')
-    if not npz_path:
+    if not os.path.exists(npz_dir):
         os.mkdir(npz_dir)
     npz_file = os.path.join(npz_dir, f_name)
     if verbose:
