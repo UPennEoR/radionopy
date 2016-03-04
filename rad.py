@@ -428,7 +428,7 @@ def std_hour(UT, verbose=True):
     return hour
 
 def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, height=1051, verbose=True):
-    hour = std_hour(UT,verbose=verbose)
+    hour = std_hour(UT, verbose=False)
 
     lat_obs = Latitude(Angle(lat_str[:-1]))
     lon_obs = Longitude(Angle(lon_str[:-1]))
@@ -461,9 +461,9 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
     RMs = []
     dRMs = []
     for UT in UTs:
-        RM_dir = os.path.join(base_path, 'RM_files')
+        RM_dir = os.path.join(base_path, 'RM_files/{date}'.format(date=date_str.split('T')[0]))
         if not os.path.exists(RM_dir):
-            os.mkdir(RM_dir)
+            os.makedirs(RM_dir)
 
         hour = std_hour(UT, verbose=verbose)
         radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
@@ -484,13 +484,14 @@ def maps2npz(time_str, npix, loc_str='PAPER', verbose=True):
     #I could fish around in the file read to get npix and then re-loop, but why not just be lazy sometimes
     rng = np.arange(24)
     final_TEC, final_rm, final_drm, ra, dec = np.zeros((rng.shape[0], npix)),\
-                                     np.zeros((rng.shape[0], npix)),\
-                                     np.zeros((rng.shape[0], npix)),\
-                                     np.zeros((rng.shape[0], npix)),\
-                                     np.zeros((rng.shape[0], npix))
+                                              np.zeros((rng.shape[0], npix)),\
+                                              np.zeros((rng.shape[0], npix)),\
+                                              np.zeros((rng.shape[0], npix)),\
+                                              np.zeros((rng.shape[0], npix))
+    RM_dir = os.path.join(base_path, 'RM_files/{date}'.format(date=time_str.split('T')[0]))
     for UT in rng:
-        rm_file = os.path.join(base_path, 'RM_files/IonRM{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
-        radec_file = os.path.join(base_path, 'RM_files/radec{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
+        rm_file = os.path.join(RM_dir, 'IonRM{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
+        radec_file = os.path.join(RM_dir, 'radec{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
         
         _, TEC, B, RM, dRM = np.loadtxt(rm_file, unpack=True)
         RA, DEC = np.loadtxt(radec_file,unpack=True)
@@ -502,10 +503,14 @@ def maps2npz(time_str, npix, loc_str='PAPER', verbose=True):
         dec[UT,:] = DEC
 
     f_name = ''.join((time_str.split('T')[0], '_', loc_str, '.npz'))
+    npz_dir = os.path.join(base_path, 'npz')
+    if not npz_path:
+        os.mkdir(npz_dir)
+    npz_file = os.path.join(npz_dir, f_name)
     if verbose:
-        print('Saving TEC, RM +/- dRM data and RA/Dec mapping to {filename}'.format(filename=f_name))
+        print('Saving TEC, RM +/- dRM data and RA/Dec mapping to {filename}'.format(filename=npz_file))
 
-    np.savez(f_name, TEC=final_TEC, RM=final_rm, dRM=final_drm, RA=ra, DEC=dec)
+    np.savez(npz_file, TEC=final_TEC, RM=final_rm, dRM=final_drm, RA=ra, DEC=dec)
 
 
 if __name__ == '__main__':
@@ -522,7 +527,16 @@ if __name__ == '__main__':
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
     
-    time_str = '2012-02-13T00:00:00'
+    #time_str = '2012-02-13T00:00:00'
 
-    B_para, RMs, dRMs = ion_RM(time_str, lat_str, lon_str, alt_src, az_src, verbose=False)
-    maps2npz(time_str, npix)
+    time_part = 'T00:00:00'
+    # 7 Dec 2011 to 27 Feb 2012
+    dates = (('2011-12', range(6, 32)),
+             ('2012-01', range(1, 32)),
+             ('2012-02', range(1, 29)))
+    date_strs = ('-'.join((ym, std_hour(day, verbose=False))) for ym, days in dates for day in days)
+    time_strs = (''.join((date_str, time_part)) for date_str in date_strs)
+
+    for time_str in time_strs:
+        B_para, RMs, dRMs = ion_RM(time_str, lat_str, lon_str, alt_src, az_src, verbose=False)
+        maps2npz(time_str, npix)
