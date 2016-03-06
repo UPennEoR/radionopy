@@ -3,8 +3,7 @@ import os
 import sys
 import numpy as np
 import pylab as plt
-#import healpy as hp
-#import plotly.plotly as py
+from scipy import spatial
 import jdcal
 import rad
 
@@ -25,10 +24,21 @@ def get_LST(UT, year, month, day):
 
     return lst
 
+dec = -30.76528
+def get_RM(num, date, LST):
+    rm_file = os.path.join(RM_dir, '{date}/IonRM{num}.txt'.format(date=date, num=std_hour(num)))
+    _, _, _, RM, dRM = np.loadtxt(rm_file, unpack=True)
+
+    ra = LST * 15
+
+    radec_file = os.path.join(RM_dir, '{date}/radec{num}.txt'.format(date=date, num=std_hour(num)))
+    RADECs = np.loadtxt(radec_file)
+    distance, idx = spatial.KDTree(RADECs).query((ra,dec))
+    #print(distance, idx, RADECs[idx])
+    return RM[idx]
+
 base_path = os.path.expanduser('~/radionopy')
 RM_dir = os.path.join(base_path, 'RM_files')
-
-#time_strs = ('2012-02-13T00:00:00',)
 
 time_part = 'T00:00:00'
 # 7 Dec 2011 to 27 Feb 2012
@@ -38,9 +48,9 @@ dates = (('2011-12', range(6, 32)),
 date_strs = ('-'.join((ym, std_hour(day))) for ym, days in dates for day in days)
 time_strs = (''.join((date_str, time_part)) for date_str in date_strs)
 
-#to_plot = []
 lsts = ('01', '04', '08')
 lst_dict = {lst: [] for lst in lsts}
+#lst_dict = {std_hour(lst): [] for lst in range(24)}
 for time_str in time_strs:
     year, month, day = time_str.split('T')[0].split('-')
     date = time_str.split('T')[0]
@@ -48,30 +58,21 @@ for time_str in time_strs:
     print(time_str)
     for num in range(24):
         num = (num - 2) % 24
-        lst = std_hour(get_LST(num, year, month, day))
-        my_rad = os.path.join(RM_dir, '{date}/IonRM{num}.txt'.format(date=date, num=std_hour(num)))
-        UT, TEC, B, RM, dRM = np.loadtxt(my_rad, unpack=True)
-        RM = RM[(RM >= 0) & (RM <= 2)]
+        LST = get_LST(num, year, month, day)
+        lst = std_hour(LST)
+        RM = get_RM(num, date, LST)
+        #RM = RM[(RM >= 0) & (RM <= 2)]
+        if not 0 <= RM <= 2:
+            continue
         if lst in lsts:
             lst_dict[lst].append(RM)
-        #to_plot.append(RM)
-        #print(lst)
-#plt.show()
-
-#plt.title("Gaussian Histogram")
-#plt.xlabel("Value")
-#plt.ylabel("Frequency")
 
 for lst, RMs in lst_dict.items():
-    all_RM = np.concatenate(RMs)
+    #all_RM = np.concatenate(RMs)
+    all_RM = RMs
     #print(list(all_RM))
     plt.figure(lst)
     plt.clf()
-    plt.hist(all_RM)
-
-#for i, t in enumerate(to_plot):
-#    plt.figure(i)
-#    plt.clf()
-#    plt.hist(t)
+    plt.hist(all_RM, bins=20, range=[0,2])
 
 plt.show()
