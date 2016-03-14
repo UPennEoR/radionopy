@@ -1,4 +1,4 @@
-import numpy as np, healpy as hp, os, sys, optparse
+import numpy as np, healpy as hp, os, sys, optparse, pyfits
 from matplotlib import pylab
 
 """
@@ -82,9 +82,9 @@ def mk_fg_cube(onescale=True,pfrac=0.002,flo=100.,fhi=200.,nbins=203,alo=-1.,ahi
     different "mk_map" cases. If onescale=True, diffuse emission is modelled using a single power law. Otherwise, we use the SCK model.
     
     I'm making the :
-        - MASSIVE assumption that Q and U trace the spectral distribution of 
+        - large assumption that Q and U trace the spectral distribution of 
           diffuse Stokes I power at a fixed polarization fraction.
-        - ~OK assumption that spectral indicies are randomly distributed on scales > 3deg
+        - assumption that spectral indicies are randomly distributed on scales > 3deg
         - small assumption that Stokes V power is vanishingly small.
     
     TODO:
@@ -138,7 +138,59 @@ def mk_fg_cube(onescale=True,pfrac=0.002,flo=100.,fhi=200.,nbins=203,alo=-1.,ahi
     
     return cube
 
-
+def propOpp(cube=None,flo=100.,fhi=200.,fromnpz=False,npznamelist=None):
+    """
+    Propogate the Q and U components of an IQUV cube through
+    the Oppermann et al. 2012 RM map.
+    
+    The cube must be 4 or 2 by npix by nfreq. If 4, the middle two arrays will be
+    assumed to be Q & U IN THAT ORDER. 
+    Or if fromnpz=True, then provide an array of npz names (cube length assumptionsremain)
+    """
+    ## load the maps
+    if fromnpz:
+        assert(npznamelist!=None)
+        nNpz = len(npznamelist)
+        assert(nNpz == 2 or nNpz == 4)
+        
+        if nNpz == 2:
+            Q = np.load(npznamelist[0])['maps']
+            U = np.load(npznamelist[1])['maps']
+        else:
+            Q = np.load(npznamelist[1])['maps']
+            U = np.load(npznamelist[2])['maps']
+    elif cube!=None:
+        Q = cube[1]
+        U = cube[2]
+    else:
+        raise ImplmentationError('No map information provided.')
+    
+    ##
+    nbins = Q.shape[1]
+    nu = np.linspace(flo,fhi,num=nbins)
+    lam = 3e8/(nu*1e6)
+    lam2 = np.power(lam,2)
+    
+    d = pyfits.open('opp2012.fits')
+    RM = d[3].data.field(0)
+    """
+    The RM map is nside=128. Everything else is nside=512.
+    We're smoothing on scales larger than the pixellization
+    this introduces, so no worries. 
+    """
+    RMmap=hp.ud_grade(RM,nside_out=512)
+    
+    phi = np.outer(RMmap,lam2)
+    fara_rot = (Q + 1.j*U)*np.exp(-2.j*phi) #Eq. 9 of Moore et al. 2013
+    Qmaps_rot = fara_rot.real
+    Umaps_rot = fara_rot.imag
+    
+    QU = [Qmaps_rot,Umaps_rot]
+    
+    np.savez('cube_Qrot_%s-%sMHz.npz'%(str(flo),str(fhi)),maps=Qmaps_rot)
+    np.savez('cube_Urot_%s-%sMHz.npz'%(str(flo),str(fhi)),maps=Umaps_rot)
+    
+    return QU
 
 def plot_maps(maps,titles=None):
     s = int(np.ceil(np.sqrt(float(len(maps)))))
