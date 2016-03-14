@@ -62,10 +62,82 @@ def mk_map_GSM(f=150.,frange=None,nbins=None,write2fits=True):
             print 'Did you provide "nbins"?'
             return None
         map_cube = gsm.generate(freqs)
-        if write2fits: map_cube.write_fits("gsm_cube_%s-%sMHz"%(str(int(flo)), str(int(fhi))))
-        M = map_cube
+        #if write2fits: map_cube.write_fits("gsm_cube_%s-%sMHz"%(str(int(flo)), str(int(fhi))))
+        M = np.swapaxes(map_cube,0,1) #conform to other map making routines
     return M
     
+
+def mk_fg_cube(onescale=True,pfrac=0.002,flo=100.,fhi=200.,nbins=203,alo=-1.,ahi=-0.6):
+    """
+    Make a Stokes IQUV cube.
+    
+    pfrac: fraction Q,U/I
+    flo: lowest frequency
+    fhi: highest frequenct
+    nbins: number of frequency bins
+    alo: lowest spectral index
+    ahi: highest spectral index
+    
+    onescale: I'm not feeling smart enough to make an argument interpreter for 
+    different "mk_map" cases. If onescale=True, diffuse emission is modelled using a single power law. Otherwise, we use the SCK model.
+    
+    I'm making the :
+        - MASSIVE assumption that Q and U trace the spectral distribution of 
+          diffuse Stokes I power at a fixed polarization fraction.
+        - ~OK assumption that spectral indicies are randomly distributed on scales > 3deg
+        - small assumption that Stokes V power is vanishingly small.
+    
+    TODO:
+        - map Q<->U using polarization angle map
+        - maybe move away from assumption that Galactic Sync. is dominant source of polarization?
+        - could use a "correlation length" ala Shaw et al. 2014 to get more realistic spectral index distribution
+        
+    """
+    nu = np.linspace(flo,fhi,num=nbins)
+    nside=512 #to match GSM nside
+    npix = hp.nside2npix(nside) 
+    ipix = np.arange(npix)
+    
+    alpha = np.random.uniform(low=alo,high=ahi,size=npix)
+    alpha = hp.smoothing(alpha,fwhm=np.radians(3.))
+    
+    I = mk_map_GSM(frange=[flo,fhi],nbins=nbins) #use GSM for Stokes I
+    #^this call is gonna be a doozy with 203 frequency bins
+    
+    if onescale:
+        Q0 = mk_map_onescale(512) 
+        U0 = mk_map_onescale(512) #different realizations of same scaling
+        #XXX with a polarization angle map, I could link Q,U instead of having them independent
+    else:
+        Q0 = mk_map_SCK(512,flo,700,2.4,2.80)
+        U0 = mk_map_SCK(512,fhi,700,2.4,2.80)
+        #XXX as above wrt pol angle, but also this currently assumes we are dominated by Galactic Synchrotron
+    
+    _Q0,_U0 = Q0 - Q0.min(),U0 - U0.min()
+    Q0 = (2*_Q0/_Q0.max()) - 1 #scale to be -1 to 1 
+    U0 = (2*_U0/_U0.max()) - 1 #scale to be -1 to 1
+    
+    Qmaps,Umaps,Vmaps = np.zeros((npix,len(nu))),np.zeros((npix,len(nu))),np.zeros((npix,len(nu)))
+    
+    #If only I could take the log! Then this would be linearizable
+    #stoopid Q and U with their non +ve definition
+    for i in ipix:
+        Qmaps[i,:] = Q0[i] * np.power(nu/(np.mean([flo,fhi])),alpha[i])
+        Umaps[i,:] = U0[i] * np.power(nu/(np.mean([flo,fhi])),alpha[i])
+    
+    #impose polarization fraction as fraction of sky-average Stokes I power per frequency
+    Qmaps *= np.nanmean(I,axis=0)*pfrac
+    Umaps *= np.nanmean(I,axis=0)*pfrac
+    
+    spols = ['I','Q','U','V']
+    cube = [I,Qmaps,Umaps,Vmaps]
+    for i,m in enumerate(cube):
+        N = 'cube_%s_%s-%sMHz.npz'%(spols[i],str(flo),str(fhi))
+        print '    Saving %s'%N
+        np.savez(N, maps=m)
+    
+    return cube
+
 
 
 def plot_maps(maps,titles=None):

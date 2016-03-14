@@ -17,4 +17,10 @@ Requirements:
 * `Python <http://www.python.org/>`
 * `Numpy <http://scipy.org/>`
 * `Astropy <http://www.astropy.org/>`
+* `healpy <http://healpy.readthedocs.org/>`
+
+Optional:
+---------
+* `PyGSM <https://github.com/telegraphic/PyGSM>`
+* `pyephem <https://github.com/brandon-rhodes/pyephem/>`
 
