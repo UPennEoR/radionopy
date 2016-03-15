@@ -1,6 +1,6 @@
 import numpy as np, healpy as hp, os, sys, optparse, pyfits
 from matplotlib import pylab
-
+from datetime import datetime as datetime
 """
 Making maps from angular power spectra
 """
@@ -67,7 +67,7 @@ def mk_map_GSM(f=150.,frange=None,nbins=None,write2fits=True):
     return M
     
 
-def mk_fg_cube(onescale=True,pfrac=0.002,flo=100.,fhi=200.,nbins=203,alo=-1.,ahi=-0.6):
+def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-1., ahi=-0.6, intermediates=True):
     """
     Make a Stokes IQUV cube.
     
@@ -117,13 +117,17 @@ def mk_fg_cube(onescale=True,pfrac=0.002,flo=100.,fhi=200.,nbins=203,alo=-1.,ahi
     Q0 = (2*_Q0/_Q0.max()) - 1 #scale to be -1 to 1 
     U0 = (2*_U0/_U0.max()) - 1 #scale to be -1 to 1
     
+    if intermediates: np.savez('rawcube_%sMHz.npz'%str(flo),maps=[I[:,0],Q0,U0])
+    
     Qmaps,Umaps,Vmaps = np.zeros((npix,len(nu))),np.zeros((npix,len(nu))),np.zeros((npix,len(nu)))
     
-    #If only I could take the log! Then this would be linearizable
+    #If only I could take the log! Then this would be vectorizable
     #stoopid Q and U with their non +ve definition
     for i in ipix:
         Qmaps[i,:] = Q0[i] * np.power(nu/(np.mean([flo,fhi])),alpha[i])
         Umaps[i,:] = U0[i] * np.power(nu/(np.mean([flo,fhi])),alpha[i])
+    date = datetime.now().timetuple()
+    if intermediates: np.savez('alpha_%i-%i-%i.npz'%(date[0],date[1],date[2]),maps=alpha)
     
     #impose polarization fraction as fraction of sky-average Stokes I power per frequency
     Qmaps *= np.nanmean(I,axis=0)*pfrac
@@ -136,9 +140,9 @@ def mk_fg_cube(onescale=True,pfrac=0.002,flo=100.,fhi=200.,nbins=203,alo=-1.,ahi
         print '    Saving %s'%N
         np.savez(N, maps=m)
     
-    return cube
+    return np.array(cube)
 
-def propOpp(cube=None,flo=100.,fhi=200.,fromnpz=False,npznamelist=None):
+def propOpp(cube=None,flo=100.,fhi=200.,npznamelist=None):
     """
     Propogate the Q and U components of an IQUV cube through
     the Oppermann et al. 2012 RM map.
@@ -148,8 +152,8 @@ def propOpp(cube=None,flo=100.,fhi=200.,fromnpz=False,npznamelist=None):
     Or if fromnpz=True, then provide an array of npz names (cube length assumptionsremain)
     """
     ## load the maps
-    if fromnpz:
-        assert(npznamelist!=None)
+    if npznamelist!=None:
+        assert(cube==None)
         nNpz = len(npznamelist)
         assert(nNpz == 2 or nNpz == 4)
         
@@ -190,9 +194,12 @@ def propOpp(cube=None,flo=100.,fhi=200.,fromnpz=False,npznamelist=None):
     np.savez('cube_Qrot_%s-%sMHz.npz'%(str(flo),str(fhi)),maps=Qmaps_rot)
     np.savez('cube_Urot_%s-%sMHz.npz'%(str(flo),str(fhi)),maps=Umaps_rot)
     
-    return QU
+    return np.array(QU)
 
 def plot_maps(maps,titles=None):
+    """
+    Plots a list of healpix maps in mollweide projection
+    """
     s = int(np.ceil(np.sqrt(float(len(maps)))))
     for i,m in enumerate(maps):
         if titles is not None: hp.mollview(m,title=titles[i],sub=(s,s,i+1))
