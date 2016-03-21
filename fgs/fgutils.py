@@ -98,7 +98,7 @@ def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-2
     npix = hp.nside2npix(nside) 
     ipix = np.arange(npix)
     
-    #Spectral indices -2.7 to -2.3 are the 2sigma range of Rogers & Bowman '08
+    #Spectral indices -2.7 to -2.3 are the 2sigma range of Rogers & Bowman '08 (in K)
     alpha = np.random.uniform(low=alo,high=ahi,size=npix)
     alpha = hp.smoothing(alpha,fwhm=np.radians(3.))
     
@@ -184,7 +184,7 @@ def propOpp(cube=None,flo=100.,fhi=200.,npznamelist=None):
     The RM map is nside=128. Everything else is nside=512.
     We're smoothing on scales larger than the pixellization
     this introduces, so no worries. 
-    """
+    
     RMmap=hp.ud_grade(RM,nside_out=512)
     hp.mollview(RMmap,title='Oppermann map')
     
@@ -192,6 +192,11 @@ def propOpp(cube=None,flo=100.,fhi=200.,npznamelist=None):
     
     hp.mollview(RMmap,title='Oppermann map smoothed')
     pylab.show()
+    """
+    #Downsample RM variance in alm space
+    #Upsample it in pixellization
+    #Is this kosher?   
+    RMmap = hp.alm2map(hp.map2alm(RM,lmax=50),nside=512)
     
     phi = np.outer(RMmap,lam2)
     fara_rot = (Q + 1.j*U)*np.exp(-2.j*phi) #Eq. 9 of Moore et al. 2013
