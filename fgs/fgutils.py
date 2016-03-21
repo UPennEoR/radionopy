@@ -67,7 +67,7 @@ def mk_map_GSM(f=150.,frange=None,nbins=None,write2fits=True):
     return M
     
 
-def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-1., ahi=-0.6, intermediates=True):
+def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-2.7, ahi=-2.3, intermediates=True):
     """
     Make a Stokes IQUV cube.
     
@@ -98,6 +98,7 @@ def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-1
     npix = hp.nside2npix(nside) 
     ipix = np.arange(npix)
     
+    #Spectral indices -2.7 to -2.3 are the 2sigma range of Rogers & Bowman '08
     alpha = np.random.uniform(low=alo,high=ahi,size=npix)
     alpha = hp.smoothing(alpha,fwhm=np.radians(3.))
     
@@ -110,14 +111,16 @@ def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-1
         #XXX with a polarization angle map, I could link Q,U instead of having them independent
     else:
         Q0 = mk_map_SCK(512,flo,700,2.4,2.80)
-        U0 = mk_map_SCK(512,fhi,700,2.4,2.80)
+        U0 = mk_map_SCK(512,flo,700,2.4,2.80)
         #XXX as above wrt pol angle, but also this currently assumes we are dominated by Galactic Synchrotron
     
     _Q0,_U0 = Q0 - Q0.min(),U0 - U0.min()
     Q0 = (2*_Q0/_Q0.max()) - 1 #scale to be -1 to 1 
     U0 = (2*_U0/_U0.max()) - 1 #scale to be -1 to 1
     
-    if intermediates: np.savez('rawcube_%sMHz.npz'%str(flo),maps=[I[:,0],Q0,U0])
+    if intermediates:
+        plot_maps([Q0,U0],titles=['raw Q','raw U'])
+        np.savez('rawcube_%sMHz.npz'%str(flo),maps=[I[:,0],Q0,U0])
     
     Qmaps,Umaps,Vmaps = np.zeros((npix,len(nu))),np.zeros((npix,len(nu))),np.zeros((npix,len(nu)))
     
@@ -183,6 +186,12 @@ def propOpp(cube=None,flo=100.,fhi=200.,npznamelist=None):
     this introduces, so no worries. 
     """
     RMmap=hp.ud_grade(RM,nside_out=512)
+    hp.mollview(RMmap,title='Oppermann map')
+    
+    RMmap=hp.smoothing(RMmap,fwhm=np.radians(1.))
+    
+    hp.mollview(RMmap,title='Oppermann map smoothed')
+    pylab.show()
     
     phi = np.outer(RMmap,lam2)
     fara_rot = (Q + 1.j*U)*np.exp(-2.j*phi) #Eq. 9 of Moore et al. 2013
