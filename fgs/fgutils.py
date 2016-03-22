@@ -67,19 +67,25 @@ def mk_map_GSM(f=150.,frange=None,nbins=None,write2fits=True):
     return M
     
 
-def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-2.7, ahi=-2.3, intermediates=True):
+def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-2.7, ahi=-2.3, alpha_map=None, raw_map=None, intermediates=True, verbose=False):
     """
     Make a Stokes IQUV cube.
     
     pfrac: fraction Q,U/I
     flo: lowest frequency
-    fhi: highest frequenct
+    fhi: highest frequency
     nbins: number of frequency bins
     alo: lowest spectral index
     ahi: highest spectral index
     
+    alpha_map: a healpix map of spectral indices. Useful if splitting-up frequency runs to avoid memory errors
+    
     onescale: I'm not feeling smart enough to make an argument interpreter for 
-    different "mk_map" cases. If onescale=True, diffuse emission is modelled using a single power law. Otherwise, we use the SCK model.
+    different "mk_map" cases. If onescale=True, diffuse emission is modelled using a single power law. Otherwise, we use the SCK model. XXX currently only Galactic Synchrotron
+    
+    intermediates: Save Q and U realizations @ flo MHz, and spectral index maps 
+    
+    
     
     I'm making the :
         - large assumption that Q and U trace the spectral distribution of 
@@ -99,38 +105,56 @@ def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-2
     ipix = np.arange(npix)
     
     #Spectral indices -2.7 to -2.3 are the 2sigma range of Rogers & Bowman '08 (in K)
-    alpha = np.random.uniform(low=alo,high=ahi,size=npix)
-    alpha = hp.smoothing(alpha,fwhm=np.radians(3.))
-    
-    I = mk_map_GSM(frange=[flo,fhi],nbins=nbins) #use GSM for Stokes I
-    #^this call is gonna be a doozy with 203 frequency bins
-    
-    if onescale:
-        Q0 = mk_map_onescale(512) 
-        U0 = mk_map_onescale(512) #different realizations of same scaling
-        #XXX with a polarization angle map, I could link Q,U instead of having them independent
+    if alpha_map==None:
+        alpha = np.random.uniform(low=alo,high=ahi,size=npix)
+        alpha = hp.smoothing(alpha,fwhm=np.radians(3.))
+        if intermediates:
+            np.savez('alpha_%i-%i-%i.npz'%(date[0],date[1],date[2]),maps=alpha)
     else:
-        Q0 = mk_map_SCK(512,flo,700,2.4,2.80)
-        U0 = mk_map_SCK(512,flo,700,2.4,2.80)
-        #XXX as above wrt pol angle, but also this currently assumes we are dominated by Galactic Synchrotron
+        if verbose: '    Loading %s'%alpha_map
+        alpha = np.load(alpha_map)['maps']
     
-    _Q0,_U0 = Q0 - Q0.min(),U0 - U0.min()
-    Q0 = (2*_Q0/_Q0.max()) - 1 #scale to be -1 to 1 
-    U0 = (2*_U0/_U0.max()) - 1 #scale to be -1 to 1
+    if verbose: print 'Creating Stokes I spectral cube with PyGSM...'
+    I = mk_map_GSM(frange=[flo,fhi],nbins=nbins) #use GSM for Stokes I
+    if verbose: print 'Stokes I done'
     
-    if intermediates:
-        plot_maps([Q0,U0],titles=['raw Q','raw U'])
-        np.savez('rawcube_%sMHz.npz'%str(flo),maps=[I[:,0],Q0,U0])
+    if raw_map==None:
+        if onescale:
+            Q0 = mk_map_onescale(512) 
+            U0 = mk_map_onescale(512) #different realizations of same scaling
+            #XXX with a polarization angle map, I could link Q,U instead of having them independent
+        else:
+            Q0 = mk_map_SCK(512,flo,700,2.4,2.80)
+            U0 = mk_map_SCK(512,flo,700,2.4,2.80)
+            #XXX as above wrt pol angle, but also this currently assumes we are dominated by Galactic Synchrotron
+    
+        _Q0,_U0 = Q0 - Q0.min(),U0 - U0.min()
+        Q0 = (2*_Q0/_Q0.max()) - 1 #scale to be -1 to 1 
+        U0 = (2*_U0/_U0.max()) - 1 #scale to be -1 to 1
+    
+        if intermediates:
+            if verbose: plot_maps([Q0,U0],titles=['raw Q','raw U'])
+            np.savez('rawcube_%sMHz.npz'%str(flo),maps=[I[:,0],Q0,U0])
+    
+    else:
+        if verbose: print '    Loading %s'%raw_map
+        raw = np.load(raw_map)['maps']
+        #Stokes I is deterministic, Q and U are not
+        Q0 = raw[1]
+        U0 = raw[2]
     
     Qmaps,Umaps,Vmaps = np.zeros((npix,len(nu))),np.zeros((npix,len(nu))),np.zeros((npix,len(nu)))
     
     #If only I could take the log! Then this would be vectorizable
     #stoopid Q and U with their non +ve definition
+    if verbose: print 'Begin loop over spectral index for frequency scaling'
+    
     for i in ipix:
         Qmaps[i,:] = Q0[i] * np.power(nu/(np.mean([flo,fhi])),alpha[i])
         Umaps[i,:] = U0[i] * np.power(nu/(np.mean([flo,fhi])),alpha[i])
     date = datetime.now().timetuple()
-    if intermediates: np.savez('alpha_%i-%i-%i.npz'%(date[0],date[1],date[2]),maps=alpha)
+    
+    if verbose: print 'Frequency scaling done'
     
     #impose polarization fraction as fraction of sky-average Stokes I power per frequency
     Qmaps *= np.nanmean(I,axis=0)*pfrac
