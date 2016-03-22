@@ -150,8 +150,8 @@ def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-2
     if verbose: print 'Begin loop over spectral index for frequency scaling'
     
     for i in ipix:
-        Qmaps[i,:] = Q0[i] * np.power(nu/(np.mean([flo,fhi])),alpha[i])
-        Umaps[i,:] = U0[i] * np.power(nu/(np.mean([flo,fhi])),alpha[i])
+        Qmaps[i,:] = Q0[i] * np.power(nu/130.,alpha[i]) #XXX BEWARE HARDCODED 130 MHz
+        Umaps[i,:] = U0[i] * np.power(nu/130.,alpha[i])
     date = datetime.now().timetuple()
     
     if verbose: print 'Frequency scaling done'
@@ -169,7 +169,7 @@ def mk_fg_cube(onescale=True, pfrac=0.002, flo=100., fhi=200., nbins=203, alo=-2
     
     return np.array(cube)
 
-def propOpp(cube=None,flo=100.,fhi=200.,npznamelist=None):
+def propOpp(cube=None,flo=100.,fhi=200.,lmax=100,npznamelist=None):
     """
     Propogate the Q and U components of an IQUV cube through
     the Oppermann et al. 2012 RM map.
@@ -220,7 +220,7 @@ def propOpp(cube=None,flo=100.,fhi=200.,npznamelist=None):
     #Downsample RM variance in alm space
     #Upsample it in pixellization
     #Is this kosher?   
-    RMmap = hp.alm2map(hp.map2alm(RM,lmax=50),nside=512)
+    RMmap = hp.alm2map(hp.map2alm(RM,lmax=lmax),nside=512)
     
     phi = np.outer(RMmap,lam2)
     fara_rot = (Q + 1.j*U)*np.exp(-2.j*phi) #Eq. 9 of Moore et al. 2013
@@ -229,10 +229,27 @@ def propOpp(cube=None,flo=100.,fhi=200.,npznamelist=None):
     
     QU = [Qmaps_rot,Umaps_rot]
     
+    print 'Saving Q U rotated'
     np.savez('cube_Qrot_%s-%sMHz.npz'%(str(flo),str(fhi)),maps=Qmaps_rot)
     np.savez('cube_Urot_%s-%sMHz.npz'%(str(flo),str(fhi)),maps=Umaps_rot)
     
     return np.array(QU)
+"""
+#MEMORY ERRORS
+def concat_cube_npzs(Ilist,Qlist,Ulist): 
+    #V can just be an array of zeros like the concatenated others
+    mI,mQ,mU = [],[],[]
+    for i,a in enumerate(Ilist):
+        mI.append(np.load(a)['maps'])
+        mQ.append(np.load(Qlist[i])['maps'])
+        mU.append(np.load(Ulist[i])['maps'])
+    
+    Icube = np.concatenate(mI,axis=1)
+    Qcube = np.concatenate(mQ,axis=1)
+    Ucube = np.concatenate(mU,axis=1)
+    
+    return [Icube,Qcube,Ucube]
+"""
 
 def plot_maps(maps,titles=None):
     """

@@ -3,7 +3,7 @@ from matplotlib import pylab
 #c = fgu.mk_fg_cube(nbins=203,onescale=False)
 #qu= fgu.propOpp(npznamelist=['cube_Q_100.0-200.0MHz.npz','cube_U_100.0-200.0MHz.npz'])
 
-flo_fhi_pairs = [[100.,120.,41], [120.5,140.,40], [140.5,160.,41], [160.5,180.,40], [180.5,200.,41]]
+flo_fhi_pairs = [[100.,120.,41], [120.5,140.,41], [140.5,160.,41], [160.5,180.,41], [180.5,200.,41]]
 
 for t in flo_fhi_pairs:
     fl,fh,nb = t[0],t[1],t[2]
