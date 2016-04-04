@@ -16,11 +16,12 @@ def std_hour(UT):
     return hour
 
 
-base_path = os.path.expanduser('~/radionopy')
+if __name__ == '__main__':
+    base_path = os.path.expanduser(os.getcwd())
 
-for num in range(22, 23):
-    my_rad = os.path.join(base_path, 'RM_files/IonRM{num}.txt'.format(num=std_hour(num)))
-    UT, TEC, B, RM, dRM = np.loadtxt(my_rad, unpack=True)
-    print(RM.shape)
-    hp.orthview(RM, rot=[0, 90], min=0, max=2, title='SAST 00:00 2012-02-13', half_sky=True)
-plt.show()
+    for num in range(22, 23):
+        my_rad = os.path.join(base_path, 'RM_files/IonRM{num}.txt'.format(num=std_hour(num)))
+        UT, TEC, B, RM, dRM = np.loadtxt(my_rad, unpack=True)
+        print(RM.shape)
+        hp.orthview(RM, rot=[0, 90], min=0, max=2, title='SAST 00:00 2012-02-13', half_sky=True)
+    plt.show()
