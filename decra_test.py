@@ -1,24 +1,17 @@
 from __future__ import print_function
 import os
 import sys
-import datetime
-import ftplib
-import shutil
 import subprocess
 import numpy as np
-import pylab as plt
 import healpy as hp
 from astropy import units as u
 from astropy import constants as c
-from astropy.io import fits
-from astropy.wcs import WCS
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude, Longitude
 import rad
 
 # Defining some variables for further use
-### Make the base path settable
-base_path = os.path.expanduser('~/radionopy')
+base_path = os.path.expanduser(os.getcwd())
 TECU = 1e16
 TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
@@ -82,7 +75,6 @@ def get_results(hour, TEC_path, RMS_TEC_path, B_para):
                                        IFR=IFR,
                                        RMS_IFR=RMS_IFR))
 
-
 if __name__ == '__main__':
     # PAPER INFO
     nside = 16
@@ -90,20 +82,12 @@ if __name__ == '__main__':
     ipix = np.arange(npix)
     theta, phi = hp.pix2ang(nside, ipix)
 
-    #alt_src = 90. - np.degrees(np.array(theta))
-    #az_src = np.degrees(np.array(phi))
-    #zen_src = np.degrees(np.array(theta))
-
     ra_str = '16h50m04.0s'
     dec_str = '+79d11m25.0s'
     lat_str = '52d54m54.64sn'
     lon_str = '6d36m16.04se'
-    time_str = '2004-05-19T00:00:00' # This will actually work as input to the astropy Time function
-    #lat_str = '30d43m17.5ss'
-    #lon_str = '21d25m41.9se'
-    #time_str = '2012-02-13T00:00:00'
-    #IONEX_file = 'CODG0440.12I'
-    height = 0 #1000
+    time_str = '2004-05-19T00:00:00'
+    height = 0
 
     #
 
@@ -125,32 +109,28 @@ if __name__ == '__main__':
     tec_hp = rad.interp_time(a, TEC['lat'], TEC['lon'])
     rms_hp = rad.interp_time(rms_a, TEC['lat'], TEC['lon'])
 
-    #off_lat, off_lon, az_punct, zen_punct = punct_ion_offset(lat_obs.radian,
-    #                                                         np.radians(az_src),
-    #                                                         np.radians(zen_src),
-    #                                                         ion_height)
-    #coord_lat, coord_lon = get_coords(lat_str, lon_str,
-    #                                  lat_obs, lon_obs,
-    #                                  np.degrees(off_lat), np.degrees(off_lon))
-
-    #B_para = B_IGRF(year, month, day,
-    #                coord_lat, coord_lon,
-    #                ion_height, az_punct, zen_punct)
-
     # predict the ionospheric RM for every hour within a day 
     UTs = np.linspace(0, 23, num=24)
 
     for UT in UTs:
         hour = rad.std_hour(UT)
-        ra_dec = SkyCoord(ra=ra_str, dec=dec_str, location=location, obstime=start_time + UT * u.hr)
+        ra_dec = SkyCoord(ra=ra_str, dec=dec_str,
+                          location=location, obstime=start_time + UT * u.hr)
         altaz = ra_dec.altaz
 
         alt_src = altaz.alt
         az_src = altaz.az
         zen_src = altaz.zen
 
-        off_lat, off_lon, az_punct, zen_punct = rad.punct_ion_offset(lat_obs.radian, az_src.radian, zen_src.to(u.radian).value, ion_height)
-        coord_lat, coord_lon = rad.get_coords(lat_str, lon_str, lat_obs, lon_obs, np.degrees(off_lat), np.degrees(off_lon))
+        off_lat, off_lon,\
+        az_punct, zen_punct = rad.punct_ion_offset(lat_obs.radian,
+                                                   az_src.radian,
+                                                   zen_src.to(u.radian).value,
+                                                   ion_height)
+        coord_lat, coord_lon = rad.get_coords(lat_str, lon_str,
+                                              lat_obs, lon_obs,
+                                              np.degrees(off_lat),
+                                              np.degrees(off_lon))
         B_para = B_IGRF(year, month, day,
                         coord_lat, coord_lon,
                         ion_height, az_punct, zen_punct)
@@ -159,7 +139,4 @@ if __name__ == '__main__':
                                                   coord_lat, coord_lon,
                                                   zen_punct)
 
-        #results = {'TEC': TEC, 'RMS_TEC': RMS_TEC,
-        #           'IFR': IFR, 'RMS_IFR': RMS_IFR,
-        #           'B_para': B_para}
         get_results(hour, TEC_path, RMS_TEC_path, B_para)

@@ -3,15 +3,11 @@ import os
 import sys
 import datetime
 import ftplib
-import shutil
 import subprocess
 import numpy as np
-import pylab as plt
 import healpy as hp
 from astropy import units as u
 from astropy import constants as c
-from astropy.io import fits
-from astropy.wcs import WCS
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude, Longitude
 
