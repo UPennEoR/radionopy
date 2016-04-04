@@ -8,7 +8,7 @@ from astropy import units as u
 from astropy import constants as c
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude, Longitude
-import rad
+import radiono as rad
 
 # Defining some variables for further use
 base_path = os.path.expanduser(os.getcwd())
