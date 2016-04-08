@@ -237,7 +237,7 @@ def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
 
     return TEC_path, RMS_TEC_path
     
-def healpixellize(f_in, theta_in, phi_in, nside, fancy=True, verbose=True):
+def healpixellize(f_in, theta_in, phi_in, nside, verbose=True):
     '''
     A dumb method for converting data f sampled at points theta and phi
     (not on a healpix grid)
