@@ -38,7 +38,9 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
     tec_hp, rms_hp, ion_height = rad.IONEX_data(year, month, day, verbose=verbose)
 
     zen_src = 90. - alt_src
-    coord_lat, coord_lon, az_punct, zen_punct = rad.ipp(lat_str, lon_str, az_src, zen_src, ion_height)
+    coord_lat, coord_lon, az_punct, zen_punct = rad.ipp(lat_str, lon_str,
+                                                        az_src, zen_src,
+                                                        ion_height)
 
     B_para = rad.B_IGRF(year, month, day,
                         coord_lat, coord_lon,
