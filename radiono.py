@@ -356,7 +356,7 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     coord_lat = lat_val * (lat_obs.value + off_lat)
     coord_lon = lon_val * (lon_obs.value + off_lon)
 
-    return np.array(coord_lat), np.array(coord_lon)
+    return coord_lat, coord_lon
 
 def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
     lat_obs = Latitude(Angle(lat_str[:-1]))
@@ -428,7 +428,6 @@ def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path):
                                            B_para=tf,
                                            IFR=ifr,
                                            RMS_IFR=rms_ifr))
-
 
 if __name__ == '__main__':
     print('This is not a script anymore')

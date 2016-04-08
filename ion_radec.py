@@ -25,6 +25,9 @@ if __name__ == '__main__':
     height = 0
 
     #
+    lat_obs = Latitude(Angle(lat_str[:-1]))
+    lon_obs = Longitude(Angle(lon_str[:-1]))
+    location = EarthLocation(lat=lat_obs, lon=lon_obs, height=height * u.m)
 
     for time_str in time_strs:
         for ra_str, dec_str in zip(ra_strs, dec_strs):
@@ -36,12 +39,7 @@ if __name__ == '__main__':
             IONEX_file = rad.IONEX_file_needed(year, month, day)
             IONEX_name = os.path.join(rad.base_path, IONEX_file)
 
-            lat_obs = Latitude(Angle(lat_str[:-1]))
-            lon_obs = Longitude(Angle(lon_str[:-1]))
-
             start_time = Time(time_str)
-
-            location = EarthLocation(lat=lat_obs, lon=lon_obs, height=height * u.m)
 
             TEC, _, all_info = rad.read_IONEX_TEC(IONEX_name)
 
@@ -63,15 +61,10 @@ if __name__ == '__main__':
                 az_src = altaz.az
                 zen_src = altaz.zen
 
-                off_lat, off_lon,\
-                az_punct, zen_punct = rad.punct_ion_offset(lat_obs.radian,
-                                                           az_src.radian,
-                                                           zen_src.to(u.radian).value,
-                                                           ion_height)
-                coord_lat, coord_lon = rad.get_coords(lat_str, lon_str,
-                                                      lat_obs, lon_obs,
-                                                      np.degrees(off_lat),
-                                                      np.degrees(off_lon))
+                coord_lat, coord_lon,\
+                az_punct, zen_punct = rad.ipp(lat_str, lon_str,
+                                              [az_src], [zen_src], ion_height)
+
                 B_para = rad.B_IGRF(year, month, day,
                                     coord_lat, coord_lon,
                                     ion_height, az_punct, zen_punct)
