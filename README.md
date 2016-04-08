@@ -12,6 +12,12 @@ In order to execute this successfully, one must compile the geomagnetic field C 
 
 gcc geomag70.c -o geomag70
 
+Main Scripts:
+-------------
+* `radiono.py` -- main module
+* `ion_altaz.py` -- uses altitudes, azimuths to find RM
+* `ion_radec.py` -- uses right ascensions, declinations to find RM
+
 Requirements:
 -------------
 * `Python <http://www.python.org/>`
