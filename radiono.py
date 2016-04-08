@@ -356,7 +356,7 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     coord_lat = lat_val * (lat_obs.value + off_lat)
     coord_lon = lon_val * (lon_obs.value + off_lon)
 
-    return coord_lat, coord_lon
+    return np.array(coord_lat), np.array(coord_lon)
 
 def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
     lat_obs = Latitude(Angle(lat_str[:-1]))
@@ -412,6 +412,22 @@ def std_hour(UT, verbose=True):
         hour = '{hour}'.format(hour=int(UT))
 
     return hour
+
+def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path):
+    # Saving the Ionosheric RM and its corresponding
+    # rms value to a file for the given 'hour' value
+    IFR = 2.6e-17 * B_para * TEC_path
+    RMS_IFR = 2.6e-17 * B_para * RMS_TEC_path
+
+    with open(new_file, 'w') as f:
+        for tp, tf, ifr, rms_ifr in zip(TEC_path, B_para, IFR, RMS_IFR):
+            f.write(('{hour} {TEC_path} '
+                     '{B_para} {IFR} '
+                     '{RMS_IFR}\n').format(hour=hour,
+                                           TEC_path=tp,
+                                           B_para=tf,
+                                           IFR=ifr,
+                                           RMS_IFR=rms_ifr))
 
 
 if __name__ == '__main__':

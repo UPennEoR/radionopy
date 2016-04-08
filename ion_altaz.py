@@ -13,22 +13,6 @@ import radiono as rad
 ### EXECUTION AND HELPER FUNCTIONS ###
 ######################################
 
-def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path):
-    # Saving the Ionosheric RM and its corresponding
-    # rms value to a file for the given 'hour' value
-    IFR = 2.6e-17 * B_para * TEC_path
-    RMS_IFR = 2.6e-17 * B_para * RMS_TEC_path
-
-    with open(new_file, 'w') as f:
-        for tp, tf, ifr, rms_ifr in zip(TEC_path, B_para, IFR, RMS_IFR):
-            f.write(('{hour} {TEC_path} '
-                     '{B_para} {IFR} '
-                     '{RMS_IFR}\n').format(hour=hour,
-                                           TEC_path=tp,
-                                           B_para=tf,
-                                           IFR=ifr,
-                                           RMS_IFR=rms_ifr))
-
 def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, height=1051, verbose=True):
     hour = rad.std_hour(UT, verbose=False)
 
@@ -74,7 +58,7 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
         TEC_path, RMS_TEC_path = rad.interp_space(tec_hp[UT], rms_hp[UT], coord_lat, coord_lon, zen_punct)
 
         new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
-        get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
+        rad.get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
 
         _, _, _, RM_add, dRM_add = np.loadtxt(new_file, unpack=True)
         RMs.append(RM_add)
@@ -96,7 +80,7 @@ def maps2npz(time_str, npix, loc_str='PAPER', verbose=True):
         radec_file = os.path.join(RM_dir, 'radec{num}.txt'.format(num=rad.std_hour(UT, verbose=verbose)))
         
         _, TEC, B, RM, dRM = np.loadtxt(rm_file, unpack=True)
-        RA, DEC = np.loadtxt(radec_file,unpack=True)
+        RA, DEC = np.loadtxt(radec_file, unpack=True)
         
         final_TEC[UT, :] = TEC
         final_rm[UT, :] = RM
