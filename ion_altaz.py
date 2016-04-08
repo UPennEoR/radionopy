@@ -23,7 +23,9 @@ def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, hei
 
     location = EarthLocation(lat=lat_obs, lon=lon_obs, height=height * u.m)
 
-    altaz = SkyCoord(alt=alt_src * u.deg, az=az_src * u.deg, location=location, obstime=start_time + UT * u.hr, frame='altaz')
+    altaz = SkyCoord(alt=alt_src * u.deg, az=az_src * u.deg,
+                     location=location, obstime=start_time + UT * u.hr,
+                     frame='altaz')
     ra = altaz.icrs.ra
     dec = altaz.icrs.dec
 
@@ -55,7 +57,9 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
         radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
         write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str)
 
-        TEC_path, RMS_TEC_path = rad.interp_space(tec_hp[UT], rms_hp[UT], coord_lat, coord_lon, zen_punct)
+        TEC_path, RMS_TEC_path = rad.interp_space(tec_hp[UT], rms_hp[UT],
+                                                  coord_lat, coord_lon,
+                                                  zen_punct)
 
         new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
         rad.get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)

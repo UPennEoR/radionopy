@@ -211,7 +211,8 @@ def interp_time(maps, lat, lon, verbose=True):
 
     map_len = (len(maps) - 1) * 2
     hp_maps = []
-    even_maps = [healpixellize(sq_map, lat_rad, lon_rad, nside, verbose=verbose) for sq_map in maps]
+    even_maps = [healpixellize(sq_map, lat_rad, lon_rad, nside, verbose=verbose)\
+                 for sq_map in maps]
 
     for i, even_map in enumerate(even_maps[:-1]):
         hp_maps.append(even_map)
@@ -310,7 +311,11 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
         all_data = g.readlines()
 
         for i, data in enumerate(all_data[1:]):
-            x_field, y_field, z_field = [abs(float(field_data)) * 1e-9 * tesla_to_gauss for field_data in data.split()[10:13]]
+            x_field,\
+            y_field,\
+            z_field = [abs(float(field_data)) * 1e-9 * tesla_to_gauss\
+                       for field_data in data.split()[10:13]]
+
             B_paras = z_field * np.cos(zen_punct[i]) +\
                       y_field * np.sin(zen_punct[i]) * np.sin(az_punct[i]) +\
                       x_field * np.sin(zen_punct[i]) * np.cos(az_punct[i])
@@ -324,14 +329,17 @@ def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
 
     # The 2-D sine rule gives the zenith angle at the
     # Ionospheric piercing point
-    zen_punct = np.arcsin((earth_radius * np.sin(zen_src)) / (earth_radius + ion_height))
+    zen_punct = np.arcsin((earth_radius * np.sin(zen_src)) /\
+                          (earth_radius + ion_height))
 
     # Use the sum of the internal angles of a triange to determine theta
     theta = zen_src - zen_punct
 
     # The cosine rule for spherical triangles gives us the latitude
     # at the IPP
-    lat_ion = np.arcsin(np.sin(lat_obs) * np.cos(theta) + np.cos(lat_obs) * np.sin(theta) * np.cos(az_src))
+    lat_ion = np.arcsin(np.sin(lat_obs) *\
+                        np.cos(theta) + np.cos(lat_obs) *\
+                        np.sin(theta) * np.cos(az_src))
     off_lat = lat_ion - lat_obs # latitude difference
 
     # Longitude difference using the 3-D sine rule (or for spherical triangles)
