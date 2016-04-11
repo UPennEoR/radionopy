@@ -1,3 +1,27 @@
+'''
+radiono
+
+authors | James Aguirre, Immanuel Washington, Saul Kohn
+
+Functions
+---------
+IONEX_file_needed | finds correct IONEX file and uncompresses it if necessary
+get_IONEX_file | downloads IONEX file from ftp server if not on local machine
+gen_IOMEX_list | pulls specific info from parsed IONEX file
+read_IONEX_TEC | parses  IONEX file
+IONEX_data | gathers all relevant info from IONEX file for specific date
+interp_hp_time | interpolates healpix map in time
+interp_time | converts square map into healpix map and interpolates in time
+interp_space | interpolates healpix map in space
+healpixellize | convert square map into healpix map
+B_IGRF | uses C script to acquire the B field for specific day
+punct_ion_offset | finds ionosphere offsets and puncture points
+get_coords | converts coordinates to degrees and includes offsets
+ipp | acquires correct coordinates and puncture points
+rotate_healpix_map | rotates healpix map
+std_hour | converts hour into consistent string representation
+get_results | writes ionospheric RM to files for future use
+'''
 from __future__ import print_function
 import os
 import sys
@@ -14,6 +38,7 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude,
 # Defining some variables for further use
 ### Make the base path settable
 base_path = os.path.expanduser(os.getcwd()) #XXX makes (fair) assumption that you're executing this in the radionopy directory
+tec_dir = os.path.join(base_path, 'TEC')
 TECU = 1e16
 TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
@@ -24,6 +49,20 @@ tesla_to_gauss = 1e4
 #######################
 
 def IONEX_file_needed(year, month, day):
+    '''
+    pulls correct IONEX file for date input
+    decompresses if necessary
+
+    Parameters
+    ----------
+    year | int: year
+    month | int: numbered month of the year
+    day | int: numbered day of the month
+
+    Returns
+    -------
+    str: name of IONEX file requested
+    '''
     time_str = '{year} {month} {day}'.format(year=year, month=month, day=day)
     day_of_year = datetime.datetime.strptime(time_str, '%Y %m %d').timetuple().tm_yday
 
@@ -33,16 +72,33 @@ def IONEX_file_needed(year, month, day):
         day_of_year = '0{day_of_year}'.format(day_of_year=day_of_year)
 
     # Outputing the name of the IONEX file you require
-    ionex_file = 'TEC/CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
+    ionex_file = 'CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
     ionex_file_z = ''.join((ionex_file, '.Z'))
 
-    if not os.path.exists(ionex_file) and not os.path.exists(ionex_file_z):
+    if not os.path.exists(os.path.join(tec_dir, ionex_file))\
+    and not os.path.exists(os.path.join(tec_dir, ionex_file_z)):
         ionex_file_z = get_IONEX_file(ionex_file, year, month, day)
         subprocess.call(['uncompress', ionex_file_z])
 
-    return ionex_file
+    #sys.exit()
+    return os.path.join(tec_dir, ionex_file)
 
 def get_IONEX_file(IONEX_file, year, month, day):
+    '''
+    downloads IONEX file from ftp server
+
+    Parameters
+    ----------
+    IONEX_file | str: name of IONEX file to be downloaded
+    year | int: year
+    month | int: numbered month of the year
+    day | int: numbered day of the month
+
+    Returns
+    -------
+    str: name of IONEX file pulled from ftp server
+
+    '''
     server = 'ftp.unibe.ch'
 
     ftp_dir = os.path.join('aiub/CODE/', year)
@@ -50,24 +106,45 @@ def get_IONEX_file(IONEX_file, year, month, day):
 
     if not os.path.exists(tec_dir):
         os.mkdir(tec_dir)
-    tec_dir = os.path.join(base_path, 'TEC')
 
-    IONEX_file_Z = os.path.join(tec_dir, IONEX_file_Z)
+    IONEX_file_X = os.path.join(tec_dir, IONEX_file_Z)
 
-    getting_file_str = 'Retrieving {IONEX_file_Z} for {day} {month} {year}'.format(IONEX_file_Z=IONEX_file_Z, day=day, month=month, year=year)
+    getting_file_str = 'Retrieving {IONEX_file_X} for {day} {month} {year}'.format(IONEX_file_X=IONEX_file_X, day=day, month=month, year=year)
     print(getting_file_str)
 
     try:
         ftp = ftplib.FTP(server, 'anonymous', 'jaguirre@sas.upenn.edu')
         ftp.cwd(ftp_dir)
-        ftp.retrbinary(' '.join(('RETR', IONEX_file_Z)), open(IONEX_file_Z, 'wb').write)
+        ftp.retrbinary(' '.join(('RETR', IONEX_file_Z)), open(IONEX_file_X, 'wb').write)
         ftp.quit()
     except:
-        os.remove(IONEX_file_Z)
+        print('No file exists?')
+        os.remove(IONEX_file_X)
 
-    return IONEX_file_Z
+    return IONEX_file_X
 
 def gen_IONEX_list(IONEX_list):
+    '''
+    pulls information from parsed IONEX file
+
+    Parameters
+    ----------
+    IONEX_list | list[str]: parsed list of IONEX file data
+
+    Returns
+    -------
+    tuple:
+        list[str]: IONEX file data without header
+        list: RMS IONEX file data without header
+        int: number of maps
+        float: ionospheric height
+        float: first latitude
+        float: last latitude
+        float: latitude step
+        float: first longitude
+        float: last longitude
+        float: step longitude
+    '''
     add = False
     rms_add = False
     base_IONEX_list = []
@@ -99,6 +176,30 @@ def gen_IONEX_list(IONEX_list):
     return base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h, start_lat, end_lat, step_lat, start_lon, end_lon, step_lon
 
 def read_IONEX_TEC(filename, verbose=True):
+    '''
+
+    Parameters
+    ----------
+    filename | str: name of IONEX file
+    verbose | Optional[bool]: whether to print values or not
+
+    Returns
+    -------
+    tuple:
+        dict: TEC values
+        dict: RMS TEC values
+        tuple:
+            float: first latitude
+            float: last latitude
+            int: amount of latitude points
+            float: first longitude
+            float: last longitude
+            int: amount of longitude points
+            int: number of maps
+            array: TEC array
+            array: RMS TEC array
+            float: ionosphere height in meters
+    '''
     # Reading and storing only the TEC values of 1 day
     # (13 maps) into a 3D array
 
@@ -170,6 +271,23 @@ def read_IONEX_TEC(filename, verbose=True):
                           number_of_maps, tec_a, rms_a, ion_h * 1000.0)
 
 def IONEX_data(year, month, day, verbose=True):
+    '''
+    gathers all relevant IONEX info from file for specific date
+
+    Parameters
+    ----------
+    year | int: year
+    month | int: numbered month of the year
+    day | int: numbered day of the month
+    verbose | Optional[bool]: whether to print values or not
+
+    Returns
+    -------
+    tuple:
+        array: tec healpix map
+        array: rms tec healpix map
+        float: ionosphere height in meters
+    '''
     IONEX_file = IONEX_file_needed(year, month, day)
     IONEX_name = os.path.join(base_path, IONEX_file)
     TEC, _, all_info = read_IONEX_TEC(IONEX_name, verbose=verbose)
@@ -186,6 +304,21 @@ def IONEX_data(year, month, day, verbose=True):
 ###############################
 
 def interp_hp_time(map_i, map_j, t_i, t_j, t):
+    '''
+    interpolated healpix map in time
+
+    Parameters
+    ----------
+    map_i | array: healpix map
+    map_j | array: healpix map with different time than map_i
+    t_i | float: time at which map_i is at
+    t_j | float: time at which map_j is at
+    t | time to interpolate map to which is between t_i and t_j
+
+    Returns
+    -------
+    array: interpolated healpix map
+    '''
     # Need to check that
     if not (t_i <= t <= t_j):
         print(t_i, t, t_j)
@@ -203,6 +336,21 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
     return interp_map
 
 def interp_time(maps, lat, lon, verbose=True):
+    '''
+    convert square map into healpix map
+    interpolate healpix map in time
+
+    Parameters
+    ----------
+    maps | array: square TEC maps
+    lat | array[float]: array of latitudes
+    lon | array[float]: array of longitudes
+    verbose | Optional[bool]: whether to print values or not
+
+    Returns
+    -------
+    array: time interpolated healpix map
+    '''
     nlat = len(lat)
     nlon = len(lon)
     lat_rad = np.outer(np.radians(90. - lat), np.ones(nlon))
@@ -228,6 +376,12 @@ def interp_time(maps, lat, lon, verbose=True):
     return np.array(hp_maps)
 
 def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
+    '''
+    Parameters
+    ----------
+    Returns
+    -------
+    '''
     lat_rad = np.radians(90. - coord_lat)
     lon_rad = np.radians(coord_lon % 360)
     VTEC = hp.get_interp_val(tec_hp, lat_rad, lon_rad)
