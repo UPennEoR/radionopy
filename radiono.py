@@ -377,10 +377,21 @@ def interp_time(maps, lat, lon, verbose=True):
 
 def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     '''
+    interpolates healpix maps in space
+
     Parameters
     ----------
+    tec_hp | array: tec healpix map
+    rms_hp | array: rms tec healpix map
+    coord_lat | array[float]: array of latitudes
+    coord_lon | array[float]: array of longitudes
+    zen_punct | array: array of zenith puncture points
+
     Returns
     -------
+    tuple:
+        array: space interpolated TEC map
+        array: space interpolated RMS TEC map
     '''
     lat_rad = np.radians(90. - coord_lat)
     lon_rad = np.radians(coord_lon % 360)
@@ -397,6 +408,18 @@ def healpixellize(f_in, theta_in, phi_in, nside, verbose=True):
     A dumb method for converting data f sampled at points theta and phi
     (not on a healpix grid)
     into a healpix at resolution nside
+
+    Parameters
+    ----------
+    f_in | array: square map
+    theta_in | array: latitude to grid to
+    phi_in | array in: longitude to grid to
+    nside | int: healpix value
+    verbose | Optional[bool]: whether to print values or not
+
+    Returns
+    -------
+    array: healpixellized version of square map input
     '''
     # Input arrays are likely to be rectangular, but this is inconvenient
     f = f_in.flatten()
@@ -434,6 +457,24 @@ def healpixellize(f_in, theta_in, phi_in, nside, verbose=True):
 ####################################
 
 def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct):
+    '''
+    calculates the B field for a particular date at particular coordinates
+
+    Parameters
+    ----------
+    year | int: year
+    month | int: numbered month of the year
+    day | int: numbered day of the month
+    coord_lat | array[float]: array of latitudes
+    coord_lon | array[float]: array of longitudes
+    ion_height | float: ionosphere height
+    az_punct | array: array of azimuth puncture points
+    zen_punct | array: array of zenith puncture points
+
+    Returns
+    -------
+    array: B field at each coordinate
+    '''
     # Calculation of TEC path value for the indicated 'hour' and therefore 
     # at the IPP
 
@@ -479,6 +520,24 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     return np.array(B_para)
 
 def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
+    '''
+    calculates offsets and puncture points
+
+    Parameters
+    ----------
+    lat_obs | object: latitude
+    az_src | array: array of azimuths
+    zen_src | array: array of zeniths
+    ion_height | float: ionosphere height
+
+    Returns
+    -------
+    tuple:
+        array: offset latitude
+        array: offset longitude
+        array: azimuth puncture array
+        array: zenith puncture array
+    '''
     #earth_radius = 6371000.0 # in meters
 
     # The 2-D sine rule gives the zenith angle at the
@@ -506,6 +565,25 @@ def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     return off_lat, off_lon, az_punct, zen_punct
 
 def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
+    '''
+    converts coordinates into degrees
+    adjusts for the offset
+
+    Parameters
+    ----------
+    lat_str | str: latitude
+    lon_str | str: longitude
+    lat_obs | array: latitude objects
+    lon_obs | array: longitude objects
+    off_lat | array: offset latitude array
+    off_lon | array: offset longitude array
+
+    Returns
+    -------
+    tuple:
+        array: array of offset fixed latitudes
+        array: array of offset fixed longitudes
+    '''
     if lat_str[-1] == 's':
         lat_val = -1
     elif lat_str[-1] == 'n':
@@ -521,6 +599,25 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     return coord_lat, coord_lon
 
 def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
+    '''
+    acquires correct coordinates and puncture points
+
+    Parameters
+    ----------
+    lat_str | str: latitude
+    lon_str | str: longitude
+    az_src | array: array of azimuths
+    zen_src | array: array of zeniths
+    ion_height | float: ionosphere height
+
+    Returns
+    -------
+    tuple:
+        array: array of offset fixed latitudes
+        array: array of offset fixed longitudes
+        array: azimuth puncture array
+        array: zenith puncture array
+    '''
     lat_obs = Latitude(Angle(lat_str[:-1]))
     lon_obs = Longitude(Angle(lon_str[:-1]))
 
@@ -541,6 +638,15 @@ def rotate_healpix_map(map_in, rot):
     Not sure why this isn't implemented in healpy directly (maybe it is).
     In order to map each pixel exactly to a new one,
     the transform is only accurate to the pixel size.
+
+    Parameters
+    ----------
+    map_in | array: healpix map
+    rot | tuple[float, float]: rotation degrees
+
+    Returns
+    -------
+    array: rotated healpix map
     ''' 
     npix = len(map_in)
     nside = hp.npix2nside(npix)
@@ -566,6 +672,18 @@ def rotate_healpix_map(map_in, rot):
 ######################################
 
 def std_hour(UT, verbose=True):
+    '''
+    converts hour into standardized string
+
+    Parameters
+    ----------
+    UT | int: numbered hour of time
+    verbose | Optional[bool]: whether to print values or not
+
+    Returns
+    -------
+    str: standardized string hour
+    '''
     if verbose:
         print(int(UT))
     if UT < 10:
@@ -576,6 +694,17 @@ def std_hour(UT, verbose=True):
     return hour
 
 def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path):
+    '''
+    writes ionospheric RM to file
+
+    Parameters
+    ----------
+    hour | str: standardized hour
+    new_file | str: filename to write RM to
+    B_para | array: B field parallel to zenith
+    TEC_path | array: line of sight TEC
+    RMS_TEC_path | array: line of sight RMS TEC
+    '''
     # Saving the Ionosheric RM and its corresponding
     # rms value to a file for the given 'hour' value
     IFR = 2.6e-17 * B_para * TEC_path
