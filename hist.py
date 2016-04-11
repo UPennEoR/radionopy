@@ -1,3 +1,15 @@
+'''
+radionopy.hist
+
+authors | James Aguirre, Immanuel Washington, Saul Kohn
+
+purpose | script to plot RM data by LST over range of dates into histogram
+
+Functions
+---------
+get_LST | generates LST from date
+get_RM | finds RM data for particular date and LST
+'''
 from __future__ import print_function
 import os
 import sys
@@ -8,6 +20,20 @@ import jdcal
 import radiono as rad
 
 def get_LST(UT, year, month, day):
+    '''
+    gets LST for particular date and time
+
+    Parameters
+    ----------
+    UT | int: numbered hour of time
+    year | int: year
+    month | int: numbered month of the year
+    day | int: numbered day of the month
+
+    Returns
+    -------
+    int: local sidereal time by hour
+    '''
     JDtup = jdcal.gcal2jd(year, month, day)
     JD = JDtup[0] + JDtup[1] + 0.5
 
@@ -17,6 +43,15 @@ def get_LST(UT, year, month, day):
     return lst
 
 def get_RM(num, date, LST):
+    '''
+    gets RM data for particular date and LST
+
+    Parameters
+    ----------
+    num | int: integer value for hour
+    date | str: string representation of date
+    LST | int: local sidereal time by hour
+    '''
     rm_file = os.path.join(RM_dir, '{date}/IonRM{num}.txt'.format(date=date, num=rad.std_hour(num)))
     _, _, _, RM, dRM = np.loadtxt(rm_file, unpack=True)
 

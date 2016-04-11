@@ -1,3 +1,10 @@
+'''
+radionopy.orth
+
+authors | James Aguirre, Immanuel Washington, Saul Kohn
+
+purpose | script to plot RM data into healpix orthview
+'''
 from __future__ import print_function
 import os
 import sys
