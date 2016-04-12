@@ -1,3 +1,16 @@
+'''
+radionopy.ion_altaz
+
+authors | James Aguirre, Immanuel Washington, Saul Kohn
+
+purpose | script to generate RM data from IONEX file using AZs and ALTs
+
+Functions
+---------
+write_radec | writes RAs and DECs to file
+ion_RM | generates RM data for specific location and time
+maps2npz | writes maps to npz files
+'''
 from __future__ import print_function
 import os
 import sys
@@ -14,6 +27,20 @@ import radiono as rad
 ######################################
 
 def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, height=1051, verbose=True):
+    '''
+    writes ra, dec to file
+
+    Parameters
+    ----------
+    UT | int: numbered hour of time
+    radec_file | str: name of file to write ra, dec to
+    alt_src | array: array of altitudes
+    az_src | array: array of azimuths
+    lat_str | str: latitude
+    lon_str | str: longitude
+    height | Optional[float]: height observation taken at
+    verbose | Optional[bool]: whether to print values or not
+    '''
     hour = rad.std_hour(UT, verbose=False)
 
     lat_obs = Latitude(Angle(lat_str[:-1]))
@@ -34,6 +61,26 @@ def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, hei
             f.write('{ra} {dec}\n'.format(ra=r.value, dec=d.value))
 
 def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
+    '''
+    generates RMs and error values for particular location
+    uses arrays of altitudes and azimuths for entire sky
+
+    Parameters
+    ----------
+    date_str | str: date in string representation
+    lat_str | str: latitude
+    lon_str | str: longitude
+    alt_src | array: array of altitudes
+    az_src | array: array of azimuths
+    verbose | Optional[bool]: whether to print values or not
+
+    Returns
+    -------
+    tuple:
+        array: parallel B fields
+        array: RMs
+        array: dRMs
+    '''
     year, month, day = date_str.split('T')[0].split('-')
     tec_hp, rms_hp, ion_height = rad.IONEX_data(year, month, day, verbose=verbose)
 
@@ -73,6 +120,16 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
     return B_para, np.array(RMs), np.array(dRMs)
 
 def maps2npz(time_str, npix, loc_str='PAPER', verbose=True):
+    '''
+    writes maps to npz files
+
+    Parameters
+    ----------
+    time_str | str: time in string representation
+    npix | int: number of pixels for healpix map
+    loc_str | str: name of location to incorporate into filename output
+    verbose | Optional[bool]: whether to print values or not
+    '''
     #I could fish around in the file read to get npix and then re-loop, but why not just be lazy sometimes
     rng = np.arange(24)
     final_TEC, final_rm, final_drm, ra, dec = np.zeros((rng.shape[0], npix)),\

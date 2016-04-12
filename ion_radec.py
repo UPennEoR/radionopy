@@ -1,3 +1,10 @@
+'''
+radionopy.ion_radec
+
+authors | James Aguirre, Immanuel Washington, Saul Kohn
+
+purpose | script to generate RM data from IONEX file using RAs and DECs
+'''
 from __future__ import print_function
 import os
 import sys
