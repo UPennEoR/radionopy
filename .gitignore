@@ -1,3 +1,6 @@
 *.pyc
 IGRF/*
 legacy/*
+npz/*
+RM_files/*
+TEC/*
