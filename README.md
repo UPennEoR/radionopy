@@ -10,7 +10,7 @@ The current usage is to edit the executable within rad.py with your latitude and
 
 In order to execute this successfully, one must compile the geomagnetic field C code (within the IGRF folder) on their own machine:
 
-gcc geomag70.c -o geomag70
+`gcc geomag70.c -o geomag70`
 
 Main Scripts:
 -------------
