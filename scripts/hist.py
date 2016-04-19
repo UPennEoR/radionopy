@@ -66,8 +66,7 @@ def get_RM(num, date, LST):
 if __name__ == '__main__':
     dec = -30.76528
 
-    base_path = os.path.expanduser(os.getcwd())
-    RM_dir = os.path.join(base_path, 'RM_files')
+    RM_dir = os.path.join(rad.base_path, 'RM_files')
 
     time_part = 'T00:00:00'
     # 7 Dec 2011 to 27 Feb 2012
