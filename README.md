@@ -9,12 +9,13 @@ and flexible.
 The current usage is to edit the executable within rad.py with your latitude and longitude, and the date/time-string. This will generate a folder called "RM files" with text files of RM healpix maps (hourly) and an npz file containing 24 hours of TEC, RM and uRM data. IONEX files required for the date will be obtained automatically via the date/time-string.
 
 In order to execute this successfully, one must run the setup.py script:
-    python setup.py install
-    OR
-    python setup.py develop -- if changing package code
-    It compiles the geomagnetic field C code (within the radiono/IGRF folder) on the user's machine:
-        `gcc geomag70.c -o geomag70`
 
+    `python setup.py install`
+    OR
+    `python setup.py develop` -- if changing package code
+
+    It compiles the geomagnetic field C code (within the radiono/IGRF folder) on the user's machine:
+    `gcc geomag70.c -o geomag70`
     and sets up the radiono package
 
 * `radiono` -- main package
