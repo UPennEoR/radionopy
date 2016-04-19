@@ -15,7 +15,7 @@ In order to execute this successfully, one must run the setup.py script:
     `python setup.py develop` -- if changing package code
 
     It compiles the geomagnetic field C code (within the radiono/IGRF folder) on the user's machine:
-        `gcc geomag70.c -o geomag70`
+        `gcc geomag70.c -o geomag70` -- inside the setup.py script
     and sets up the radiono package
 
 * `radiono` -- main package

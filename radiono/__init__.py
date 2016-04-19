@@ -39,7 +39,8 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude,
 
 # Defining some variables for further use
 ### Make the base path settable
-base_path = os.path.expanduser(os.getcwd()) #XXX makes (fair) assumption that you're executing this in the radionopy directory
+rad_path = os.path.dirname(os.path.realpath(__file__)) #XXX makes (fair) assumption that you're executing this in the radionopy directory
+base_path = os.path.abspath(os.path.join(rad_path, '..'))
 tec_dir = os.path.join(base_path, 'TEC')
 TECU = 1e16
 TEC2m2 = 0.1 * TECU
