@@ -15,36 +15,34 @@ from astropy.coordinates import SkyCoord, EarthLocation, Angle, Latitude, Longit
 import radiono as rad
 from radiono import physics as phys, interp as itp, ionex_file as inx
 
-if __name__ == '__main__':
-    nside = 16
-    npix = hp.nside2npix(nside)
-    ipix = np.arange(npix)
-    theta, phi = hp.pix2ang(nside, ipix)
-
-    ra_strs = ('16h50m04.0s',)
-    dec_strs = ('+79d11m25.0s',)
-    lat_str = '52d54m54.64sn'
-    lon_str = '6d36m16.04se'
-    time_strs = ('2004-05-19T00:00:00',)
-    height = 0
-
+def ion_RM(ra_strs, dec_strs, lat_str, lon_str, time_strs, height=0, ionex_dir=None, rm_dir=None):
+    '''
+    Parameters
+    ----------
+    ra_strs | list[str]: list of RAs for observation, corresponds by element to dec_strs
+    dec_strs | list[str]: list of DECs for observation, corresponds by element for ra_strs
+    lat_str | str: latitude that the observation was taken at
+    lon_str | str: longitude that the observation was taken at
+    time_strs | list[str]: list of dates for observation
+    height | Optional[float]: height observation taken at in meters
+    ionex_dir | str: directory in which ionex files are / will be located
+    rm_dir | str: directory in which RM data files are / will be located
+    '''
     lat_obs = Latitude(Angle(lat_str[:-1]))
     lon_obs = Longitude(Angle(lon_str[:-1]))
     location = EarthLocation(lat=lat_obs, lon=lon_obs, height=height * u.m)
 
     for time_str in time_strs:
+        start_time = Time(time_str)
         for ra_str, dec_str in zip(ra_strs, dec_strs):
-            RM_dir = os.path.join(rad.base_path, 'RM_files/{date}'.format(date=time_str.split('T')[0]))
+            RM_dir = os.path.join(outer_RM_dir, '{date}'.format(date=time_str.split('T')[0]))
             if not os.path.exists(RM_dir):
                 os.makedirs(RM_dir)
 
             year, month, day = time_str.split('T')[0].split('-')
             IONEX_file = inx.IONEX_file_needed(year, month, day)
-            IONEX_name = os.path.join(rad.base_path, IONEX_file)
 
-            start_time = Time(time_str)
-
-            TEC, _, all_info = inx.read_IONEX_TEC(IONEX_name)
+            TEC, _, all_info = inx.read_IONEX_TEC(IONEX_file)
 
             a, rms_a, ion_height = all_info[7:]
 
@@ -78,3 +76,14 @@ if __name__ == '__main__':
 
                 new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
                 rad.get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
+
+if __name__ == '__main__':
+    ra_strs = ('16h50m04.0s',)
+    dec_strs = ('+79d11m25.0s',)
+    lat_str = '52d54m54.64sn'
+    lon_str = '6d36m16.04se'
+    time_strs = ('2004-05-19T00:00:00',)
+    height = 0
+    outer_RM_dir = os.path.join(rad.base_path, 'RM_files')
+
+    ion_RM(ra_strs, dec_strs, lat_str, lon_str, time_strs, height=height, ionex_dir=None, rm_dir=outer_RM_dir)

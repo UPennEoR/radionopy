@@ -22,7 +22,7 @@ import numpy as np
 import radiono as rad
 from radiono import interp as itp
 
-def IONEX_file_needed(year, month, day):
+def IONEX_file_needed(year, month, day, ionex_dir=rad.ionex_dir):
     '''
     pulls correct IONEX file for date input
     decompresses if necessary
@@ -32,6 +32,7 @@ def IONEX_file_needed(year, month, day):
     year | int: year
     month | int: numbered month of the year
     day | int: numbered day of the month
+    ionex_dir | Optional[str]: directory in which ionex files are / will be located
 
     Returns
     -------
@@ -49,23 +50,24 @@ def IONEX_file_needed(year, month, day):
     ionex_file = 'CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
     ionex_file_z = ''.join((ionex_file, '.Z'))
 
-    if not os.path.exists(os.path.join(rad.tec_dir, ionex_file))\
-    and not os.path.exists(os.path.join(rad.tec_dir, ionex_file_z)):
-        ionex_file_z = get_IONEX_file(ionex_file, year, month, day)
+    if not os.path.exists(os.path.join(ionex_dir, ionex_file))\
+    and not os.path.exists(os.path.join(ionex_dir, ionex_file_z)):
+        ionex_file_z = get_IONEX_file(year, month, day, ionex_file)
         subprocess.call(['uncompress', ionex_file_z])
 
-    return os.path.join(rad.tec_dir, ionex_file)
+    return os.path.join(ionex_dir, ionex_file)
 
-def get_IONEX_file(IONEX_file, year, month, day):
+def get_IONEX_file(year, month, day, IONEX_file, ionex_dir=rad.ionex_dir):
     '''
     downloads IONEX file from ftp server
 
     Parameters
     ----------
-    IONEX_file | str: name of IONEX file to be downloaded
     year | int: year
     month | int: numbered month of the year
     day | int: numbered day of the month
+    IONEX_file | str: name of IONEX file to be downloaded
+    ionex_dir | Optional[str]: directory in which ionex files are / will be located
 
     Returns
     -------
@@ -75,14 +77,14 @@ def get_IONEX_file(IONEX_file, year, month, day):
     server = 'ftp.unibe.ch'
 
     ftp_dir = os.path.join('aiub/CODE/', year)
-    IONEX_file_Z = ''.join((IONEX_file, '.Z'))
+    IONEX_file_Z = ''.join((os.path.basename(IONEX_file), '.Z'))
 
-    if not os.path.exists(rad.tec_dir):
-        os.mkdir(rad.tec_dir)
+    if not os.path.exists(ionex_dir):
+        os.mkdir(ionex_dir)
 
-    IONEX_file_X = os.path.join(rad.tec_dir, IONEX_file_Z)
+    IONEX_file_X = os.path.join(rad.ionex_dir, os.path.basename(IONEX_file_Z))
 
-    getting_file_str = 'Retrieving {IONEX_file_X} for {day} {month} {year}'.format(IONEX_file_X=IONEX_file_X, day=day, month=month, year=year)
+    getting_file_str = 'Retrieving {IONEX_file_Z} for {day} {month} {year}'.format(IONEX_file_Z=IONEX_file_Z, day=day, month=month, year=year)
     print(getting_file_str)
 
     try:
@@ -243,7 +245,7 @@ def read_IONEX_TEC(filename, verbose=True):
                           start_lon, step_lon, points_lon,\
                           number_of_maps, tec_a, rms_a, ion_h * 1000.0)
 
-def IONEX_data(year, month, day, verbose=True):
+def IONEX_data(year, month, day, ionex_dir=rad.ionex_dir, verbose=True):
     '''
     gathers all relevant IONEX info from file for specific date
 
@@ -252,6 +254,7 @@ def IONEX_data(year, month, day, verbose=True):
     year | int: year
     month | int: numbered month of the year
     day | int: numbered day of the month
+    ionex_dir | Optional[str]: directory in which ionex files are / will be located
     verbose | Optional[bool]: whether to print values or not
 
     Returns
@@ -262,8 +265,7 @@ def IONEX_data(year, month, day, verbose=True):
         float: ionosphere height in meters
     '''
     IONEX_file = IONEX_file_needed(year, month, day)
-    IONEX_name = os.path.join(rad.base_path, IONEX_file)
-    TEC, _, all_info = read_IONEX_TEC(IONEX_name, verbose=verbose)
+    TEC, _, all_info = read_IONEX_TEC(IONEX_file, verbose=verbose)
 
     tec_a, rms_a, ion_height = all_info[7:]
 
