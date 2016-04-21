@@ -8,14 +8,14 @@ purpose | Module used to gather information from IONEX files
 Functions
 ---------
 std_hour | converts hour into consistent string representation
-get_results | writes ionospheric RM to files for future use
+ion_RM | writes ionospheric RM to files for future use
 '''
 from __future__ import print_function
 import os
 import healpy as hp
 import numpy as np
 from astropy import constants as c
-from radiono.scripts import ion_altaz as ia
+from radiono.scripts import ion_altaz as ia, ion_radec as ir
 
 rad_path = os.path.dirname(os.path.realpath(__file__))
 base_path = os.path.abspath(os.path.join(rad_path, '..'))
@@ -48,7 +48,7 @@ def std_hour(UT, verbose=True):
 
     return hour
 
-def get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True):
+def ion_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True):
     '''
     writes ionospheric RM to file
 
@@ -107,7 +107,7 @@ class RM(object):
         self.rm_dir = rm_dir
         self.nside = 16
 
-    def _radec(self, ra_strs, dec_strs):
+    def _radec(self, ra_strs, dec_strs, UTs):
         '''
         outputs RM data from radec calculation
 
@@ -115,11 +115,32 @@ class RM(object):
         ----------
         ra_strs | list[str]: list of RAs for observation, corresponds by element to dec_strs
         dec_strs | list[str]: list of DECs for observation, corresponds by element for ra_strs
+        UTs | array[int]: hours to cycle through
+
+        Returns
+        -------
+        tuple:
+            array[float]: parallel B field array
+            array[float]: RM data
+            array[float]: RM error data
         '''
-        #self.ra_strs = ra_strs
-        #self.dec_strs = dec_strs
-        #B_para, RMs, dRMs = 
-        pass
+        ir.ion_RM(ra_strs, dec_strs,
+                  self.lat_str, self.lon_str,
+                  self.time_strs, self.height,
+                  self.ionex_dir, self.rm_dir)
+
+        rm_s = []
+        drm_s = []
+        for UT in UTs:
+            data_file = os.path.join(self.rm_dir, 'IonRM{hour}.txt'.format(hour=std_hour(UT, verbose=False))
+            _, _, B_para, RM_add, dRM_add = np.loadtxt(data_file, unpack=True)
+            rm_s.append(RM_add)
+            drm_s.append(dRM_add)
+
+        RMs = np.array(rm_s)
+        dRMs = np.array(drm_s)
+
+        return B_para, RMs, dRMs
 
     def _hp_arr(self):
         '''

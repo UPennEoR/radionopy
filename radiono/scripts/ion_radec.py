@@ -34,11 +34,10 @@ def ion_RM(ra_strs, dec_strs, lat_str, lon_str, time_strs, height=0, ionex_dir=N
 
     for time_str in time_strs:
         start_time = Time(time_str)
+        RM_dir = os.path.join(rm_dir, '{date}'.format(date=time_str.split('T')[0]))
+        if not os.path.exists(RM_dir):
+            os.makedirs(RM_dir)
         for ra_str, dec_str in zip(ra_strs, dec_strs):
-            RM_dir = os.path.join(outer_RM_dir, '{date}'.format(date=time_str.split('T')[0]))
-            if not os.path.exists(RM_dir):
-                os.makedirs(RM_dir)
-
             year, month, day = time_str.split('T')[0].split('-')
             IONEX_file = inx.IONEX_file_needed(year, month, day)
 
@@ -75,7 +74,7 @@ def ion_RM(ra_strs, dec_strs, lat_str, lon_str, time_strs, height=0, ionex_dir=N
                                                           zen_punct)
 
                 new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
-                rad.get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
+                rad.ion_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path)
 
 if __name__ == '__main__':
     ra_strs = ('16h50m04.0s',)
@@ -84,6 +83,6 @@ if __name__ == '__main__':
     lon_str = '6d36m16.04se'
     time_strs = ('2004-05-19T00:00:00',)
     height = 0
-    outer_RM_dir = os.path.join(rad.base_path, 'RM_files')
+    rm_dir = os.path.join(rad.base_path, 'RM_files')
 
-    ion_RM(ra_strs, dec_strs, lat_str, lon_str, time_strs, height=height, ionex_dir=None, rm_dir=outer_RM_dir)
+    ion_RM(ra_strs, dec_strs, lat_str, lon_str, time_strs, height=height, ionex_dir=rad.ionex_dir, rm_dir=rm_dir)

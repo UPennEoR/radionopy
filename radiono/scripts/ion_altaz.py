@@ -106,7 +106,7 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
                                                   zen_punct)
 
         new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
-        rad.get_results(hour, new_file, B_para, TEC_path, RMS_TEC_path)
+        rad.ion_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path)
 
         _, _, _, RM_add, dRM_add = np.loadtxt(new_file, unpack=True)
         RMs.append(RM_add)
