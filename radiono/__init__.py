@@ -177,9 +177,20 @@ class RM(object):
             array[float]: RM error data
         '''
         alt_src, az_src = self._hp_arr()
-        B_para, RMs, dRMs = ia.ion_RM(time_str, self.lat_str, self.lon_str, alt_src, az_src, verbose=False)
+        rm_s = []
+        drm_s = []
+        b_para_s = []
+        for time_str in self.time_strs:
+            B_para, RM_add, dRM_add = ia.ion_RM(time_str, self.lat_str, self.lon_str, alt_src, az_src, verbose=False)
+            rm_s.append(RM_add)
+            drm_s.append(dRM_add)
+            b_para_s.append(B_para)
 
-        return B_para, RMs, dRMs
+        RMs = np.array(rm_s)
+        dRMs = np.array(drm_s)
+        B_paras = np.array(b_para_s)
+
+        return B_paras, RMs, dRMs
 
 if __name__ == '__main__':
     print('This is not a script anymore')
