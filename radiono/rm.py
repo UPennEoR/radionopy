@@ -23,6 +23,9 @@ class RM(object):
 
     Methods
     -------
+    _radec | gets B_para, RM, and dRM arrays by using ra and dec
+    _hp_arr | gets altitude and azimuth arrays for healpix map
+    _altaz | gets B_para, RM, and dRM by using alt and az
     '''
     def __init__(self, lat_str, lon_str, time_strs, height=0, ionex_dir=rad.ionex_dir, rm_dir=rad.rm_dir):
         '''
