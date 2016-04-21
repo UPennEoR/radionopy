@@ -39,17 +39,17 @@ if __name__ == '__main__':
                 os.makedirs(RM_dir)
 
             year, month, day = time_str.split('T')[0].split('-')
-            IONEX_file = rad.IONEX_file_needed(year, month, day)
+            IONEX_file = inx.IONEX_file_needed(year, month, day)
             IONEX_name = os.path.join(rad.base_path, IONEX_file)
 
             start_time = Time(time_str)
 
-            TEC, _, all_info = rad.read_IONEX_TEC(IONEX_name)
+            TEC, _, all_info = inx.read_IONEX_TEC(IONEX_name)
 
             a, rms_a, ion_height = all_info[7:]
 
-            tec_hp = rad.interp_time(a, TEC['lat'], TEC['lon'])
-            rms_hp = rad.interp_time(rms_a, TEC['lat'], TEC['lon'])
+            tec_hp = itp.interp_time(a, TEC['lat'], TEC['lon'])
+            rms_hp = itp.interp_time(rms_a, TEC['lat'], TEC['lon'])
 
             # predict the ionospheric RM for every hour within a day 
             UTs = np.linspace(0, 23, num=24)
@@ -65,14 +65,14 @@ if __name__ == '__main__':
                 zen_src = altaz.zen
 
                 coord_lat, coord_lon,\
-                az_punct, zen_punct = rad.ipp(lat_str, lon_str,
-                                              [az_src], [zen_src], ion_height)
+                az_punct, zen_punct = phys.ipp(lat_str, lon_str,
+                                               [az_src], [zen_src], ion_height)
 
-                B_para = rad.B_IGRF(year, month, day,
-                                    coord_lat, coord_lon,
-                                    ion_height, az_punct, zen_punct)
+                B_para = phys.B_IGRF(year, month, day,
+                                     coord_lat, coord_lon,
+                                     ion_height, az_punct, zen_punct)
 
-                TEC_path, RMS_TEC_path = rad.interp_space(tec_hp[UT], rms_hp[UT],
+                TEC_path, RMS_TEC_path = itp.interp_space(tec_hp[UT], rms_hp[UT],
                                                           coord_lat, coord_lon,
                                                           zen_punct)
 
