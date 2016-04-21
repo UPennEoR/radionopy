@@ -20,7 +20,7 @@ import ftplib
 import subprocess
 import numpy as np
 import radiono as rad
-from radiono import interp
+from radiono import interp as itp
 
 def IONEX_file_needed(year, month, day):
     '''
@@ -267,8 +267,8 @@ def IONEX_data(year, month, day, verbose=True):
 
     tec_a, rms_a, ion_height = all_info[7:]
 
-    tec_hp = interp.interp_time(tec_a, TEC['lat'], TEC['lon'], verbose=verbose)
-    rms_hp = interp.interp_time(rms_a, TEC['lat'], TEC['lon'], verbose=verbose)
+    tec_hp = itp.interp_time(tec_a, TEC['lat'], TEC['lon'], verbose=verbose)
+    rms_hp = itp.interp_time(rms_a, TEC['lat'], TEC['lon'], verbose=verbose)
 
     return tec_hp, rms_hp, ion_height
 
