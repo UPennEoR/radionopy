@@ -1,5 +1,5 @@
 '''
-radionopy.ion_radec
+radiono.scripts.ion_radec
 
 authors | James Aguirre, Immanuel Washington, Saul Kohn
 
@@ -7,18 +7,15 @@ purpose | script to generate RM data from IONEX file using RAs and DECs
 '''
 from __future__ import print_function
 import os
-import sys
-import subprocess
 import numpy as np
 import healpy as hp
 from astropy import units as u
-from astropy import constants as c
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude, Longitude
+from astropy.coordinates import SkyCoord, EarthLocation, Angle, Latitude, Longitude
 import radiono as rad
+from radiono import physics as phys, interp as itp, ionex_file as inx
 
 if __name__ == '__main__':
-    # PAPER INFO
     nside = 16
     npix = hp.nside2npix(nside)
     ipix = np.arange(npix)
@@ -31,7 +28,6 @@ if __name__ == '__main__':
     time_strs = ('2004-05-19T00:00:00',)
     height = 0
 
-    #
     lat_obs = Latitude(Angle(lat_str[:-1]))
     lon_obs = Longitude(Angle(lon_str[:-1]))
     location = EarthLocation(lat=lat_obs, lon=lon_obs, height=height * u.m)

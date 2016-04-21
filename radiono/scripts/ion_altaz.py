@@ -1,5 +1,5 @@
 '''
-radionopy.ion_altaz
+radiono.scripts.ion_altaz
 
 authors | James Aguirre, Immanuel Washington, Saul Kohn
 
@@ -13,18 +13,13 @@ maps2npz | writes maps to npz files
 '''
 from __future__ import print_function
 import os
-import sys
 import numpy as np
 import healpy as hp
 from astropy import units as u
-from astropy import constants as c
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz, Angle, Latitude, Longitude
+from astropy.coordinates import SkyCoord, EarthLocation, Angle, Latitude, Longitude
 import radiono as rad
-
-######################################
-### EXECUTION AND HELPER FUNCTIONS ###
-######################################
+from radiono import physics as phys, interp as itp, ionex_file as inx
 
 def write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str, height=1051, verbose=True):
     '''
@@ -82,16 +77,16 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
         array: dRMs
     '''
     year, month, day = date_str.split('T')[0].split('-')
-    tec_hp, rms_hp, ion_height = rad.IONEX_data(year, month, day, verbose=verbose)
+    tec_hp, rms_hp, ion_height = inx.IONEX_data(year, month, day, verbose=verbose)
 
     zen_src = 90. - alt_src
-    coord_lat, coord_lon, az_punct, zen_punct = rad.ipp(lat_str, lon_str,
-                                                        az_src, zen_src,
-                                                        ion_height)
+    coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(lat_str, lon_str,
+                                                         az_src, zen_src,
+                                                         ion_height)
 
-    B_para = rad.B_IGRF(year, month, day,
-                        coord_lat, coord_lon,
-                        ion_height, az_punct, zen_punct)
+    B_para = phys.B_IGRF(year, month, day,
+                         coord_lat, coord_lon,
+                         ion_height, az_punct, zen_punct)
 
     UTs = np.linspace(0, 23, num=24)
 
@@ -106,7 +101,7 @@ def ion_RM(date_str, lat_str, lon_str, alt_src, az_src, verbose=True):
         radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
         write_radec(UT, radec_file, alt_src, az_src, date_str, lat_str, lon_str)
 
-        TEC_path, RMS_TEC_path = rad.interp_space(tec_hp[UT], rms_hp[UT],
+        TEC_path, RMS_TEC_path = itp.interp_space(tec_hp[UT], rms_hp[UT],
                                                   coord_lat, coord_lon,
                                                   zen_punct)
 

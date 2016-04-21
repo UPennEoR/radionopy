@@ -1,5 +1,5 @@
 '''
-radionopy.orth
+radiono.scripts.orth
 
 authors | James Aguirre, Immanuel Washington, Saul Kohn
 
@@ -7,12 +7,9 @@ purpose | script to plot RM data into healpix orthview
 '''
 from __future__ import print_function
 import os
-import sys
-import time
 import numpy as np
 import pylab as plt
 import healpy as hp
-from astropy import units as u
 import radiono as rad
 
 if __name__ == '__main__':

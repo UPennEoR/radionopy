@@ -1,5 +1,5 @@
 '''
-radionopy.hist
+radiono.scripts.hist
 
 authors | James Aguirre, Immanuel Washington, Saul Kohn
 
