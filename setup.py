@@ -34,4 +34,5 @@ if __name__ == '__main__':
     script_data = os.path.join(rad_path, 'IGRF/geomag70_linux/geomag70.c')
     script_name = os.path.join(rad_path, 'IGRF/geomag70_linux/geomag70')
     script_option = '-o'
-    subprocess.call([script_program, script_data, script_option, script_name])
+    script_fix = '-lm'
+    subprocess.call([script_program, script_data, script_option, script_name, script_fix])

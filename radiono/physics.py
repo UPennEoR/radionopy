@@ -44,8 +44,8 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     # Calculation of TEC path value for the indicated 'hour' and therefore 
     # at the IPP
 
-    input_file = os.path.join(rad.base_path, 'IGRF/geomag70_linux/input.txt')
-    output_file = os.path.join(rad.base_path, 'IGRF/geomag70_linux/output.txt')
+    input_file = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/input.txt')
+    output_file = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/output.txt')
 
     #uses lat_val, lon_val from above
     # Calculation of the total magnetic field along the line of sight at the IPP
@@ -62,8 +62,8 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
                                                      ipp_lon=co_lon))
 
     #XXX runs the geomag exe script
-    script_name = os.path.join('./', rad.base_path, 'IGRF/geomag70_linux/geomag70')
-    script_data = os.path.join(rad.base_path, 'IGRF/geomag70_linux/IGRF11.COF')
+    script_name = os.path.join('./', rad.base_path, 'radiono/IGRF/geomag70_linux/geomag70')
+    script_data = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/IGRF11.COF')
     script_option = 'f'
     subprocess.call([script_name, script_data, script_option, input_file, output_file])
 
