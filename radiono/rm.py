@@ -152,7 +152,7 @@ class RM(object):
 
     def to_alm(self, map_file, alm_file):
         '''
-        writes alm from RM data
+        writes alm from map file
 
         Parameters
         ----------
