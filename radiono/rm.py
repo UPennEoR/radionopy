@@ -47,6 +47,9 @@ class RM(object):
         self.ionex_dir = ionex_dir
         self.rm_dir = rm_dir
         self.nside = 16
+        self.B_para = None
+        self.RMs = None
+        self.dRMs = None
 
     def _radec(self, ra_strs, dec_strs, UTs):
         '''
@@ -78,10 +81,11 @@ class RM(object):
             rm_s.append(RM_add)
             drm_s.append(dRM_add)
 
-        RMs = np.array(rm_s)
-        dRMs = np.array(drm_s)
+        self.B_para = B_para
+        self.RMs = np.array(rm_s)
+        self.dRMs = np.array(drm_s)
 
-        return B_para, RMs, dRMs
+        return self.B_para, self.RMs, self.dRMs
 
     def _hp_arr(self):
         '''
@@ -127,11 +131,37 @@ class RM(object):
             drm_s.append(dRM_add)
             b_para_s.append(B_para)
 
-        RMs = np.array(rm_s)
-        dRMs = np.array(drm_s)
-        B_paras = np.array(b_para_s)
+        self.RMs = np.array(rm_s)
+        self.dRMs = np.array(drm_s)
+        self.B_paras = np.array(b_para_s)
 
-        return B_paras, RMs, dRMs
+        return self.B_paras, self.RMs, self.dRMs
+
+    def to_map(self, filename):
+        '''
+        writes map from RM data
+
+        Parameters
+        ----------
+        filename | str: path to file to write to
+        '''
+        if self.RMs is None:
+            raise Exception
+        hp.fitsfunc.write_map(filename, self.RMs)
+
+
+    def to_alm(self, map_file, alm_file):
+        '''
+        writes alm from RM data
+
+        Parameters
+        ----------
+        map_file | str: map file path
+        alm_file | str: path to file to write to
+        '''
+        alms = hp.sphtfunc.map2alm(map_file)
+        hp.fitsfunc.write_alm(alm_file, alms)
+        
 
 if __name__ == '__main__':
     print('This is not a script anymore')
