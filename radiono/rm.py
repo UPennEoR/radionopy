@@ -13,6 +13,7 @@ from __future__ import print_function
 import os
 import healpy as hp
 import numpy as np
+from astropy.time import Time
 import radiono as rad
 from radiono.scripts import ion_altaz as ia, ion_radec as ir
 
@@ -75,9 +76,16 @@ class RM(object):
 
         rm_s = []
         drm_s = []
-        for UT in UTs:
-            data_file = os.path.join(self.rm_dir, 'IonRM{hour}.txt'.format(hour=std_hour(UT, verbose=False)))
-            _, _, B_para, RM_add, dRM_add = np.loadtxt(data_file, unpack=True)
+        for time_str in self.time_strs:
+            RM_add = []
+            dRM_add = []
+            start_time = Time(time_str)
+            RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
+            for UT in UTs:
+                data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=rad.std_hour(UT, verbose=False)))
+                _, _, B_para, RM_ut, dRM_ut = np.loadtxt(data_file, unpack=True)
+                RM_add.append(RM_ut)
+                dRM_add.append(dRM_ut)
             rm_s.append(RM_add)
             drm_s.append(dRM_add)
 
