@@ -61,9 +61,14 @@ def ion_RM(ra_strs, dec_strs, lat_str, lon_str, time_strs, height=0, ionex_dir=N
                 az_src = altaz.az
                 zen_src = altaz.zen
 
+                if len(alt_src.shape) == 0:
+                    alt_src = np.array([alt_src.item().degree])
+                    az_src = np.array([az_src.item().degree])
+                    zen_src = np.array([zen_src.value])
+
                 coord_lat, coord_lon,\
                 az_punct, zen_punct = phys.ipp(lat_str, lon_str,
-                                               [az_src], [zen_src], ion_height)
+                                               az_src, zen_src, ion_height)
 
                 B_para = phys.B_IGRF(year, month, day,
                                      coord_lat, coord_lon,
