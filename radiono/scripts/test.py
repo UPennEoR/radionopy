@@ -12,6 +12,6 @@ time_strs = ('2004-05-19T00:00:00',)
 UTs = np.linspace(0, 23, num=24)
 
 test = rm.RM(lat_str, lon_str, time_strs)
-#test._radec(ra_strs, dec_strs, UTs)
-test._altaz()
+test.radec(ra_strs, dec_strs, UTs)
+#test.altaz()
 print(test.RMs)
