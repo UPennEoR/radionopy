@@ -106,13 +106,9 @@ class RM(object):
 
         return alt_src, az_src
 
-    def _altaz(self, time_str):
+    def _altaz(self):
         '''
         outputs RM data from altaz calculation
-
-        Parameters
-        ----------
-        time_str | str: string representation of date and time
 
         Returns
         -------
