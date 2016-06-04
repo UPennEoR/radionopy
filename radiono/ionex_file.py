@@ -9,7 +9,7 @@ Functions
 ---------
 IONEX_file_needed | finds correct IONEX file and uncompresses it if necessary
 get_IONEX_file | downloads IONEX file from ftp server if not on local machine
-gen_IOMEX_list | pulls specific info from parsed IONEX file
+gen_IONEX_list | pulls specific info from parsed IONEX file
 read_IONEX_TEC | parses  IONEX file
 IONEX_data | gathers all relevant info from IONEX file for specific date
 '''
@@ -196,7 +196,7 @@ def read_IONEX_TEC(filename, verbose=True):
         print(start_lat, end_lat, step_lat)
         print(start_lon, end_lon, step_lon)
         print(points_lat, points_lon)
-    
+
     # What are the Lat/Lon coords?
     latitude = np.linspace(start_lat, end_lat, num=points_lat)
     longitude = np.linspace(start_lon, end_lon, num=points_lon)
@@ -240,7 +240,7 @@ def read_IONEX_TEC(filename, verbose=True):
     rms_a = TEC_list[1]['a']
     TEC =  {'TEC': TEC_list[0]['TEC'], 'lat': latitude, 'lon': longitude}
     RMS_TEC =  {'TEC': TEC_list[1]['TEC'], 'lat': latitude, 'lon': longitude}
-    
+
     return TEC, RMS_TEC, (start_lat, step_lat, points_lat,\
                           start_lon, step_lon, points_lon,\
                           number_of_maps, tec_a, rms_a, ion_h * 1000.0)
