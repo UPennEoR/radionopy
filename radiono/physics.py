@@ -41,7 +41,7 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     -------
     array: B field at each coordinate
     '''
-    # Calculation of TEC path value for the indicated 'hour' and therefore 
+    # Calculation of TEC path value for the indicated 'hour' and therefore
     # at the IPP
 
     input_file = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/input.txt')
@@ -62,10 +62,12 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
                                                      ipp_lon=co_lon))
 
     #XXX runs the geomag exe script
-    script_name = os.path.join('./', rad.base_path, 'radiono/IGRF/geomag70_linux/geomag70')
-    script_data = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/IGRF11.COF')
-    script_option = 'f'
-    subprocess.call([script_name, script_data, script_option, input_file, output_file])
+    script_dir = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/')
+    working_dir = os.getcwd()
+    os.chdir(script_dir)
+    cmd = r"./geomag70 IGRF11.COF f input.txt output.txt"
+    subprocess.call(cmd, shell=True)
+    os.chdir(working_dir)
 
     B_para = []
     with open(output_file, 'r') as g:
@@ -196,6 +198,6 @@ def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
                                       np.degrees(off_lat), np.degrees(off_lon))
 
     return coord_lat, coord_lon, az_punct, zen_punct
-    
+
 if __name__ == '__main__':
     print('This is not a script anymore')
