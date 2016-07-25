@@ -76,9 +76,9 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
         for i, data in enumerate(all_data[1:]):
             x_field,\
             y_field,\
-            z_field = [abs(float(field_data)) * 1e-9 * rad.tesla_to_gauss\
+            z_field = [float(field_data) * 1e-9 * rad.tesla_to_gauss\
                        for field_data in data.split()[10:13]]
-
+            #ABOVE CHANGE: abs(float(field_data)) -> float(field_data)
             B_paras = z_field * np.cos(zen_punct[i]) +\
                       y_field * np.sin(zen_punct[i]) * np.sin(az_punct[i]) +\
                       x_field * np.sin(zen_punct[i]) * np.cos(az_punct[i])
