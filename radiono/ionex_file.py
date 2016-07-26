@@ -245,7 +245,7 @@ def read_IONEX_TEC(filename, verbose=False):
                           start_lon, step_lon, points_lon,\
                           number_of_maps, tec_a, rms_a, ion_h * 1000.0)
 
-def IONEX_data(year, month, day, ionex_dir=rad.ionex_dir, verbose=True):
+def IONEX_data(year, month, day, ntimes=24 ionex_dir=rad.ionex_dir, verbose=False):
     '''
     gathers all relevant IONEX info from file for specific date
 
@@ -271,6 +271,11 @@ def IONEX_data(year, month, day, ionex_dir=rad.ionex_dir, verbose=True):
 
     tec_hp = itp.interp_time(tec_a, TEC['lat'], TEC['lon'], verbose=verbose)
     rms_hp = itp.interp_time(rms_a, TEC['lat'], TEC['lon'], verbose=verbose)
+
+    ## an idea, to have interp_time give maps at an arbitrary number of times throughout the day.
+    ## Not yet developed.
+    # tec_hp = itp._interp_time(tec_a, TEC['lat'], TEC['lon'], ntimes=ntimes, verbose=verbose)
+    # rms_hp = itp._interp_time(rms_a, TEC['lat'], TEC['lon'], ntimes=ntimes, verbose=verbose)
 
     return tec_hp, rms_hp, ion_height
 

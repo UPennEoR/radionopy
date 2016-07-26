@@ -50,7 +50,7 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
 
     return interp_map
 
-def interp_time(maps, lat, lon, verbose=True):
+def interp_time(maps, lat, lon, verbose=False):
     '''
     convert square map into healpix map
     interpolate healpix map in time
@@ -117,7 +117,7 @@ def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     RMS_TEC_path = np.array(VRMS_TEC) * rad.TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
-
+    
 def healpixellize(f_in, theta_in, phi_in, nside, verbose=False):
     '''
     A dumb method for converting data f sampled at points theta and phi
