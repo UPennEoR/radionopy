@@ -245,7 +245,7 @@ def read_IONEX_TEC(filename, verbose=False):
                           start_lon, step_lon, points_lon,\
                           number_of_maps, tec_a, rms_a, ion_h * 1000.0)
 
-def IONEX_data(year, month, day, ntimes=24 ionex_dir=rad.ionex_dir, verbose=False):
+def IONEX_data(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
     '''
     gathers all relevant IONEX info from file for specific date
 
