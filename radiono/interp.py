@@ -117,8 +117,8 @@ def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     RMS_TEC_path = np.array(VRMS_TEC) * rad.TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
-    
-def healpixellize(f_in, theta_in, phi_in, nside, verbose=True):
+
+def healpixellize(f_in, theta_in, phi_in, nside, verbose=False):
     '''
     A dumb method for converting data f sampled at points theta and phi
     (not on a healpix grid)
@@ -145,7 +145,7 @@ def healpixellize(f_in, theta_in, phi_in, nside, verbose=True):
 
     hp_map = np.zeros(hp.nside2npix(nside))
     hits = np.zeros(hp.nside2npix(nside))
-    
+
     for i, v in enumerate(f):
         # Find the nearest pixels to the pixel in question
         neighbours, weights = hp.get_interp_weights(nside, theta[i], phi[i])
@@ -183,23 +183,23 @@ def rotate_healpix_map(map_in, rot):
     Returns
     -------
     array: rotated healpix map
-    ''' 
+    '''
     npix = len(map_in)
     nside = hp.npix2nside(npix)
-    
+
     rot_map = np.zeros(npix)
     ipix = np.arange(npix)
     theta, phi = hp.pix2ang(nside, ipix)
 
     rotator = hp.Rotator(rot=rot)
-    
-    # For each pixel in the new map, find where it would have come 
-    # from in the old    
+
+    # For each pixel in the new map, find where it would have come
+    # from in the old
     theta_rot, phi_rot = rotator(theta, phi)
     ipix_rot = hp.ang2pix(nside, theta_rot, phi_rot)
-    
+
     rot_map = map_in[ipix_rot]
-    
+
     return rot_map
 
 if __name__ == '__main__':

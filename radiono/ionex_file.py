@@ -150,7 +150,7 @@ def gen_IONEX_list(IONEX_list):
 
     return base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h, start_lat, end_lat, step_lat, start_lon, end_lon, step_lon
 
-def read_IONEX_TEC(filename, verbose=True):
+def read_IONEX_TEC(filename, verbose=False):
     '''
 
     Parameters
