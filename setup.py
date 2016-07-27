@@ -3,14 +3,14 @@ import os
 import subprocess
 
 __version__ = '1.0.0-dev'
+authors = 'James Aguirre, Immanuel Washington Saul Kohn, Zachary Martino'
 
 setup_args = {
     'name': 'radionopy',
-    'author': 'Immanuel Washington',
-    'author_email': 'immwa at sas.upenn.edu',
+    'author': authors,
     'description': 'package for ionosphere RM',
     'url': 'https://github.com/jaguirre/radionopy.git',
-    'license': '?',
+    'license': 'GPL',
     'package_dir' : {'radionopy': ''},
     'packages' : find_packages(),
     'version': __version__,

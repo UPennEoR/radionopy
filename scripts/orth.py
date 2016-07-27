@@ -1,7 +1,5 @@
 '''
-radiono.scripts.orth
-
-authors | James Aguirre, Immanuel Washington, Saul Kohn
+scripts.orth
 
 purpose | script to plot RM data into healpix orthview
 '''

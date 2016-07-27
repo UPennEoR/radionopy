@@ -1,8 +1,6 @@
 '''
 radiono
 
-authors | James Aguirre, Immanuel Washington, Saul Kohn
-
 purpose | Module used to gather information from IONEX files
 
 Functions
@@ -14,6 +12,7 @@ from __future__ import print_function
 import os
 from astropy import constants as c
 
+<<<<<<< Updated upstream
 import astropy.coordinates as coord
 from astropy import units
 from astropy.time import Time
@@ -22,6 +21,12 @@ rad_path = os.path.dirname(os.path.realpath(__file__))
 base_path = os.path.abspath(os.path.join(rad_path, '..'))
 rm_dir = os.path.join(base_path, 'RM_files')
 ionex_dir = os.path.join(base_path, 'TEC')
+=======
+rad_dir = os.path.dirname(os.path.realpath(__file__))
+root_dir = os.path.abspath(os.path.join(rad_path, '..'))
+rm_dir = os.path.join(root_dir, 'RM_files')
+ionex_dir = os.path.join(root_dir, 'TEC')
+>>>>>>> Stashed changes
 TECU = 1e16
 TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters

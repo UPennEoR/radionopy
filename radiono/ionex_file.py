@@ -1,8 +1,6 @@
 '''
 radiono.ionex_file
 
-authors | James Aguirre, Immanuel Washington, Saul Kohn
-
 purpose | Module used to gather information from IONEX files
 
 Functions

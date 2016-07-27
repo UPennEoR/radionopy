@@ -1,8 +1,6 @@
 '''
 radiono.physics
 
-authors | James Aguirre, Immanuel Washington, Saul Kohn
-
 purpose | Module used to gather information from IONEX files
 
 Functions
@@ -22,7 +20,7 @@ import healpy as hp
 from astropy.coordinates import Angle, Latitude, Longitude
 import radiono as rad
 
-def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct):
+def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct, mag_dir='radiono/IGRF/geomag70_linux', mag_file='IGRF11.COF'):
     '''
     calculates the B field for a particular date at particular coordinates
 
@@ -44,8 +42,8 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     # Calculation of TEC path value for the indicated 'hour' and therefore
     # at the IPP
 
-    input_file = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/input.txt')
-    output_file = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/output.txt')
+    input_file = os.path.join(rad.root_dir, mag_dir, 'input.txt')
+    output_file = os.path.join(rad.root_dir, mag_dir, 'output.txt')
 
     #uses lat_val, lon_val from above
     # Calculation of the total magnetic field along the line of sight at the IPP
@@ -62,12 +60,20 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
                                                      ipp_lon=co_lon))
 
     #XXX runs the geomag exe script
+<<<<<<< Updated upstream
     script_dir = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/')
     working_dir = os.getcwd()
     os.chdir(script_dir)
     cmd = r"./geomag70 IGRF11.COF f input.txt output.txt"
     subprocess.call(cmd, shell=True)
     os.chdir(working_dir)
+=======
+    script_name = os.path.join('./', rad.root_dir, mag_dir, 'geomag70')
+    script_data = os.path.join(rad.root_dir, mag_dir, mag_file)
+    print(script_data)
+    script_option = 'f'
+    subprocess.call([script_name, script_data, script_option, input_file, output_file])
+>>>>>>> Stashed changes
 
     B_para = []
     with open(output_file, 'r') as g:

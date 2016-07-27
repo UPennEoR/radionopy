@@ -1,8 +1,6 @@
 '''
 radiono.rm
 
-authors | James Aguirre, Immanuel Washington, Saul Kohn
-
 purpose | Module used to create RM object
 
 Classes

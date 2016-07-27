@@ -1612,7 +1612,7 @@ void print_result_file(FILE *outf, double d, double i, double h, double x, doubl
 /*  Input: n - Integer number of chars                                      */
 /*         *buffer - Character array ptr which can contain n+1 characters   */
 /*                                                                          */
-/*  Output: size - integer size of sting in buffer                          */
+/*  Output: size - integer size of string in buffer                          */
 /*                                                                          */
 /*  Note: All strings will be null terminated.                              */
 /*                                                                          */

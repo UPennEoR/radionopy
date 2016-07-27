@@ -1,7 +1,5 @@
 '''
-radiono.scripts.hist
-
-authors | James Aguirre, Immanuel Washington, Saul Kohn
+scripts.hist
 
 purpose | script to plot RM data by LST over range of dates into histogram
 
