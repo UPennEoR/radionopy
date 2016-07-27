@@ -6,20 +6,19 @@ purpose | Module used to gather information from IONEX files
 Functions
 ---------
 std_hour | converts hour into consistent string representation
-ion_RM | writes ionospheric RM to files for future use
+write_RM | writes ionospheric RM to files for future use
+write_radec | writes RAs and DECs to file
+maps_to_npz | writes maps to npz files
 '''
 from __future__ import print_function
 import os
-import healpy as hp
 import numpy as np
-from astropy import constants as c
-import astropy.coordinates as coord
-from astropy import units
+from astropy import constants as c, units as u
 from astropy.time import Time
-from radiono import physics as phys, interp as itp, ionex_file as inx
+from astropy.coordinates import SkyCoord
 
-rad_dir = os.path.dirname(os.path.realpath(__file__))
-root_dir = os.path.abspath(os.path.join(rad_path, '..'))
+rad_dir = os.path.dirname(__file__)
+root_dir = os.path.abspath(os.path.join(rad_dir, '..'))
 rm_dir = os.path.join(root_dir, 'RM_files')
 ionex_dir = os.path.join(root_dir, 'TEC')
 TECU = 1e16
@@ -49,7 +48,7 @@ def std_hour(UT, verbose=True):
 
     return hour
 
-def ion_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True):
+def write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True):
     '''
     writes ionospheric RM to file
 
@@ -79,79 +78,75 @@ def ion_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True):
                                                RMS_IFR=rms_ifr))
     return B_para, IFR, RMS_IFR
 
-def get_rm_map(date_str, verbose=False):
-    """
-    Returns the healpix RM map at resolution nside=16 in coordinates of RA/dec
-    for the specified date at the HERA/PAPER site:
-    (lat='-30d43m17.5s', lon='21d25m41.9s')
+def write_radec(UT, radec_file, alt_src, az_src, date_str, location, height=1051, verbose=False):
+    '''
+    writes ra, dec to file
 
-    Parameters:
-        date_str: string denoting the date, order year-month-day e.g. date_str = '2012-06-01'
+    Parameters
+    ----------
+    UT | int: numbered hour of time
+    radec_file | str: name of file to write ra, dec to
+    alt_src | array: array of altitudes
+    az_src | array: array of azimuths
+    location | object: location object
+    height | Optional[float]: height observation taken at
+    verbose | Optional[bool]: whether to print values or not
+    '''
+    hour = std_hour(UT, verbose=False)
 
-    Returns:
-        RM_map: numpy array with RM_map.shape = (24, 3072), where each RM_map[i,:]
-            is a healpix map of RMs as at the HERA/PAPER site, in J2000 RA/DEC coordinates.
-    """
+    start_time = Time(date_str)
 
-    def RM(B_para, TEC_path):
-        IFR = 2.6e-17 * B_para * TEC_path
-        return IFR
+    altaz = SkyCoord(alt=alt_src * u.deg, az=az_src * u.deg,
+                     location=location, obstime=start_time + UT * u.hr,
+                     frame='altaz')
+    ra = altaz.icrs.ra
+    dec = altaz.icrs.dec
 
-    filedir = os.path.join(base_path, 'RM_maps')
-    filepath = os.path.join(filedir, date_str + '.npz')
+    with open(radec_file, 'w') as f:
+        for r, d in zip(ra, dec):
+            f.write('{ra} {dec}\n'.format(ra=r.value, dec=d.value))
 
-    if os.path.exists(filepath):
-        if verbose:
-            print('Restoring ' + date_str + ' from save file.')
-        RM_map = np.load(filepath)['RM_map']
-        return RM_map
+def maps_to_npz(time_str, npix, loc_str='PAPER', verbose=True):
+    '''
+    writes maps to npz files
 
-    year, month, day = date_str.split('-')
+    Parameters
+    ----------
+    time_str | str: time in string representation
+    npix | int: number of pixels for healpix map
+    loc_str | str: name of location to incorporate into filename output
+    verbose | Optional[bool]: whether to print values or not
+    '''
+    #I could fish around in the file read to get npix and then re-loop, but why not just be lazy sometimes
+    rng = np.arange(24)
+    final_TEC, final_rm, final_drm, ra, dec = np.zeros((rng.shape[0], npix)),\
+                                              np.zeros((rng.shape[0], npix)),\
+                                              np.zeros((rng.shape[0], npix)),\
+                                              np.zeros((rng.shape[0], npix)),\
+                                              np.zeros((rng.shape[0], npix))
+    RM_dir = os.path.join(rm_dir, '{date}'.format(date=time_str.split('T')[0]))
+    for UT in rng:
+        rm_file = os.path.join(RM_dir, 'IonRM{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
+        radec_file = os.path.join(RM_dir, 'radec{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
+        
+        _, TEC, B, RM, dRM = np.loadtxt(rm_file, unpack=True)
+        RA, DEC = np.loadtxt(radec_file, unpack=True)
+        
+        final_TEC[UT, :] = TEC
+        final_rm[UT, :] = RM
+        final_drm[UT, :] = dRM
+        ra[UT,:] = RA
+        dec[UT,:] = DEC
 
-    tec_hp, rms_hp, ion_height = inx.IONEX_data(year, month, day, verbose=False)
-
-    nside = 2**4
-    npix = hp.nside2npix(nside)
-    hpxidx = np.arange(npix)
-
-    cza, ra = hp.pix2ang(nside, hpxidx)
-    dec = np.pi/2. - cza
-
-    c_icrs = coord.SkyCoord(ra=ra * units.radian, dec=dec * units.radian, frame='icrs')
-    c_icrs.location = coord.EarthLocation(lat='-30d43m17.5s', lon='21d25m41.9s') # Location of HERA/PAPER
-    c_icrs.obstime = Time(date_str + 'T12:00:00') # use the middle of the day as the local coordinates for all 24 hours. Close enough?
-    c_altaz = c_icrs.transform_to('altaz')
-
-    az = np.array(np.radians(c_altaz.az))
-    alt = np.array(np.radians(c_altaz.alt))
-    za = np.pi/2. - alt
-
-    lat_str = str(c_icrs.location.latitude)[1:] + 's'
-    lon_str = str(c_icrs.location.longitude) + 'e'
-
-    lat, lon, az_p, za_p = phys.ipp(lat_str, lon_str,
-                                np.degrees(az), np.degrees(za),
-                                ion_height)
-
-    B_para = phys.B_IGRF(year, month, day,
-                    lat, lon,
-                    ion_height,
-                    az_p, za_p)
-
-    TEC_path = np.zeros((24,npix))
-    # RMS_TEC_path = np.zeros((24,npix)) # just the TEC for now
-    for t in range(0,24):
-        hour = std_hour(t, verbose=False)
-
-        TEC_path[t], _ = itp.interp_space(tec_hp[t], rms_hp[t], lat, lon, za_p)
-
-    RM_map = RM(B_para, TEC_path)
-
+    f_name = ''.join((time_str.split('T')[0], '_', loc_str, '.npz'))
+    npz_dir = os.path.join(root_dir, 'npz')
+    if not os.path.exists(npz_dir):
+        os.mkdir(npz_dir)
+    npz_file = os.path.join(npz_dir, f_name)
     if verbose:
-        print('Saving ' + date_str + '.')
-    np.savez(filepath, RM_map=RM_map)
+        print('Saving TEC, RM +/- dRM data and RA/Dec mapping to {filename}'.format(filename=npz_file))
 
-    return RM_map
+    np.savez(npz_file, TEC=final_TEC, RM=final_rm, dRM=final_drm, RA=ra, DEC=dec)
 
 if __name__ == '__main__':
     print('This is not a script anymore')

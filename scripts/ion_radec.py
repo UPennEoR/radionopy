@@ -1,7 +1,5 @@
 '''
-radiono.scripts.ion_radec
-
-authors | James Aguirre, Immanuel Washington, Saul Kohn
+scripts.ion_radec
 
 purpose | script to generate RM data from IONEX file using RAs and DECs
 '''

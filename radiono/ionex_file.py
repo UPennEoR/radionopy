@@ -9,7 +9,6 @@ IONEX_file_needed | finds correct IONEX file and uncompresses it if necessary
 get_IONEX_file | downloads IONEX file from ftp server if not on local machine
 gen_IONEX_list | pulls specific info from parsed IONEX file
 read_IONEX_TEC | parses  IONEX file
-IONEX_data | gathers all relevant info from IONEX file for specific date
 '''
 from __future__ import print_function
 import os
@@ -18,7 +17,6 @@ import ftplib
 import subprocess
 import numpy as np
 import radiono as rad
-from radiono import interp as itp
 
 def IONEX_file_needed(year, month, day, ionex_dir=rad.ionex_dir):
     '''
@@ -242,40 +240,6 @@ def read_IONEX_TEC(filename, verbose=False):
     return TEC, RMS_TEC, (start_lat, step_lat, points_lat,\
                           start_lon, step_lon, points_lon,\
                           number_of_maps, tec_a, rms_a, ion_h * 1000.0)
-
-def IONEX_data(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
-    '''
-    gathers all relevant IONEX info from file for specific date
-
-    Parameters
-    ----------
-    year | int: year
-    month | int: numbered month of the year
-    day | int: numbered day of the month
-    ionex_dir | Optional[str]: directory in which ionex files are / will be located
-    verbose | Optional[bool]: whether to print values or not
-
-    Returns
-    -------
-    tuple:
-        array: tec healpix map
-        array: rms tec healpix map
-        float: ionosphere height in meters
-    '''
-    IONEX_file = IONEX_file_needed(year, month, day)
-    TEC, _, all_info = read_IONEX_TEC(IONEX_file, verbose=verbose)
-
-    tec_a, rms_a, ion_height = all_info[7:]
-
-    tec_hp = itp.interp_time(tec_a, TEC['lat'], TEC['lon'], verbose=verbose)
-    rms_hp = itp.interp_time(rms_a, TEC['lat'], TEC['lon'], verbose=verbose)
-
-    ## an idea, to have interp_time give maps at an arbitrary number of times throughout the day.
-    ## Not yet developed.
-    # tec_hp = itp._interp_time(tec_a, TEC['lat'], TEC['lon'], ntimes=ntimes, verbose=verbose)
-    # rms_hp = itp._interp_time(rms_a, TEC['lat'], TEC['lon'], ntimes=ntimes, verbose=verbose)
-
-    return tec_hp, rms_hp, ion_height
 
 if __name__ == '__main__':
     print('This is not a script anymore')

@@ -20,7 +20,7 @@ import healpy as hp
 from astropy.coordinates import Angle, Latitude, Longitude
 import radiono as rad
 
-def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct, mag_dir='radiono/IGRF/geomag70_linux', mag_file='IGRF11.COF'):
+def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct, mag_dir='IGRF/geomag70_linux', mag_file='IGRF11.COF'):
     '''
     calculates the B field for a particular date at particular coordinates
 
@@ -60,7 +60,7 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
                                                      ipp_lon=co_lon))
 
     #XXX runs the geomag exe script
-    script_dir = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/')
+    script_dir = os.path.join(rad.root_dir, 'IGRF/geomag70_linux/')
     working_dir = os.getcwd()
     os.chdir(script_dir)
     cmd = r"./geomag70 IGRF11.COF f input.txt output.txt"
