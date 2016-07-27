@@ -161,8 +161,14 @@ def get_coords(lat_str, lon_str, lat_obs, lon_obs, off_lat, off_lon):
     elif lon_str[-1] == 'w':
         lon_val = -1
 
-    coord_lat = lat_val * (lat_obs.value + off_lat)
-    coord_lon = lon_val * (lon_obs.value + off_lon)
+    try:
+        coord_lat = lat_val * (lat_obs.value + off_lat)
+    except ValueError:
+        print("The 'lat_str' variable is probably missing an 's' or 'n' suffix.")
+    try:
+        coord_lon = lon_val * (lon_obs.value + off_lon)
+    except ValueError:
+        print("Check strings.")
 
     return coord_lat, coord_lon
 
