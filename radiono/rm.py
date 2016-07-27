@@ -55,6 +55,8 @@ class RM(object):
         self.B_para = None
         self.RMs = None
         self.dRMs = None
+        self.UTs = np.linspace(0, 23, num=24)
+
 
     @property
     def lat(self):
@@ -119,7 +121,7 @@ class RM(object):
 
         return tec_hp, rms_hp, ion_height
 
-    def radec(self, ras, decs, UTs):
+    def radec(self, ras, decs):
         '''
         outputs RM data from radec calculation
 
@@ -127,7 +129,6 @@ class RM(object):
         ----------
         ras | array[float]: array of RAs for observation, corresponds by element to decs
         decs | array[float]: array of DECs for observation, corresponds by element for ras
-        UTs | array[int]: hours to cycle through
         '''
         for time in self.times:
             time_str = str(time)
@@ -137,11 +138,9 @@ class RM(object):
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
 
             # predict the ionospheric RM for every hour within a day 
-            UTs = np.linspace(0, 23, num=24)
-
-            for UT in UTs:
+            for UT in self.UTs:
                 hour = rad.std_hour(UT)
-                ra_dec = SkyCoord(ra=self.ras, dec=self.decs,
+                ra_dec = SkyCoord(ra=ras, dec=decs,
                                   location=self.location, obstime=time + UT * u.hr)
                 altaz = ra_dec.altaz
 
@@ -149,10 +148,13 @@ class RM(object):
                 az_src = altaz.az
                 zen_src = altaz.zen
 
-                if len(alt_src.shape) == 0:
-                    alt_src = np.array([alt_src.item().degree])
-                    az_src = np.array([az_src.item().degree])
-                    zen_src = np.array([zen_src.value])
+                if len(alt_src.shape) <= 1:
+                    #alt_src = np.array([alt_src.item().degree])
+                    #az_src = np.array([az_src.item().degree])
+                    #zen_src = np.array([zen_src.value])
+                    alt_src = alt_src.item().degree
+                    az_src = az_src.item().degree
+                    zen_src = zen_src.value
 
                 coord_lat, coord_lon,\
                 az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
@@ -181,21 +183,24 @@ class RM(object):
             array[float]: RM data
             array[float]: RM error data
         '''
+        b_para_s = []
         rm_s = []
         drm_s = []
         for time in self.times:
+            time_str = str(time)
             RM_add = []
             dRM_add = []
             RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
-            for UT in UTs:
+            for UT in self.UTs:
                 data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=rad.std_hour(UT, verbose=False)))
                 _, _, B_para, RM_ut, dRM_ut = np.loadtxt(data_file, unpack=True)
+                b_para_s.append(B_para)
                 RM_add.append(RM_ut)
                 dRM_add.append(dRM_ut)
             rm_s.append(RM_add)
             drm_s.append(dRM_add)
 
-        self.B_para = B_para
+        self.B_para = np.array(b_para_s)
         self.RMs = np.array(rm_s)
         self.dRMs = np.array(drm_s)
 
@@ -237,7 +242,6 @@ class RM(object):
 
         alt_src, az_src = self._hp_arr()
         zen_src = 90. - alt_src
-        UTs = np.linspace(0, 23, num=24)
 
         for date in self.times:
             date_str = str(date)
@@ -255,7 +259,7 @@ class RM(object):
 
             RMs = []
             dRMs = []
-            for UT in UTs:
+            for UT in self.UTs:
                 hour = rad.std_hour(UT)
                 radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
                 rad.write_radec(UT, radec_file, alt_src, az_src, date_str, self.location)
