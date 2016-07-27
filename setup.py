@@ -3,7 +3,7 @@ import os
 import subprocess
 
 __version__ = '1.0.0-dev'
-authors = 'James Aguirre, Immanuel Washington Saul Kohn, Zachary Martino'
+authors = 'James Aguirre, Immanuel Washington, Saul Kohn, Zachary Martino'
 
 setup_args = {
     'name': 'radionopy',
@@ -16,8 +16,8 @@ setup_args = {
     'version': __version__,
 }
 
-base_path = os.path.expanduser(os.getcwd())
-rad_path = os.path.join(base_path, 'radiono')
+root_dir = os.path.dirname(__file__)
+
 
 if __name__ == '__main__':
     try:

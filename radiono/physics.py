@@ -60,20 +60,18 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
                                                      ipp_lon=co_lon))
 
     #XXX runs the geomag exe script
-<<<<<<< Updated upstream
     script_dir = os.path.join(rad.base_path, 'radiono/IGRF/geomag70_linux/')
     working_dir = os.getcwd()
     os.chdir(script_dir)
     cmd = r"./geomag70 IGRF11.COF f input.txt output.txt"
     subprocess.call(cmd, shell=True)
     os.chdir(working_dir)
-=======
-    script_name = os.path.join('./', rad.root_dir, mag_dir, 'geomag70')
-    script_data = os.path.join(rad.root_dir, mag_dir, mag_file)
-    print(script_data)
-    script_option = 'f'
-    subprocess.call([script_name, script_data, script_option, input_file, output_file])
->>>>>>> Stashed changes
+
+    #script_name = os.path.join('./', rad.root_dir, mag_dir, 'geomag70')
+    #script_data = os.path.join(rad.root_dir, mag_dir, mag_file)
+    #print(script_data)
+    #script_option = 'f'
+    #subprocess.call([script_name, script_data, script_option, input_file, output_file])
 
     B_para = []
     with open(output_file, 'r') as g:

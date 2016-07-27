@@ -10,31 +10,22 @@ ion_RM | writes ionospheric RM to files for future use
 '''
 from __future__ import print_function
 import os
+import healpy as hp
+import numpy as np
 from astropy import constants as c
-
-<<<<<<< Updated upstream
 import astropy.coordinates as coord
 from astropy import units
 from astropy.time import Time
+from radiono import physics as phys, interp as itp, ionex_file as inx
 
-rad_path = os.path.dirname(os.path.realpath(__file__))
-base_path = os.path.abspath(os.path.join(rad_path, '..'))
-rm_dir = os.path.join(base_path, 'RM_files')
-ionex_dir = os.path.join(base_path, 'TEC')
-=======
 rad_dir = os.path.dirname(os.path.realpath(__file__))
 root_dir = os.path.abspath(os.path.join(rad_path, '..'))
 rm_dir = os.path.join(root_dir, 'RM_files')
 ionex_dir = os.path.join(root_dir, 'TEC')
->>>>>>> Stashed changes
 TECU = 1e16
 TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
 tesla_to_gauss = 1e4
-
-from radiono import physics as phys, interp as itp, ionex_file as inx
-import healpy as hp
-import numpy as np
 
 def std_hour(UT, verbose=True):
     '''
