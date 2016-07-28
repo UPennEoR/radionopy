@@ -57,7 +57,6 @@ class RM(object):
         self.dRMs = None
         self.UTs = np.linspace(0, 23, num=24)
 
-
     @property
     def lat(self):
         return Latitude(Angle(self.lat_str[:-1]))
