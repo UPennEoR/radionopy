@@ -170,9 +170,9 @@ class RM(object):
 
                 new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
                 rad.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True)
-        self.parse_RM()
+        self.parse_radec()
 
-    def parse_RM(self):
+    def parse_radec(self):
         '''
         parses ionospheric RM files and assigns values to object
 
@@ -271,17 +271,49 @@ class RM(object):
                 new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
                 rad.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path)
 
-                _, _, _, RM_add, dRM_add = np.loadtxt(new_file, unpack=True)
-                RMs.append(RM_add)
-                dRMs.append(dRM_add)
+                _, _, _, RM_ut, dRM_ut = np.loadtxt(new_file, unpack=True)
+                RMs.append(RM_ut)
+                dRMs.append(dRM_ut)
 
-            rm_s.append(RM_add)
-            drm_s.append(dRM_add)
+            rm_s.append(RMs)
+            drm_s.append(dRMs)
             b_para_s.append(B_para)
 
         self.RMs = np.array(rm_s)
         self.dRMs = np.array(drm_s)
         self.B_paras = np.array(b_para_s)
+
+    def parse_altaz(self):
+        '''
+        parses ionospheric RM files and assigns values to object
+
+        Returns
+        -------
+        tuple:
+            array[float]: parallel B field array
+            array[float]: RM data
+            array[float]: RM error data
+        '''
+        for date in self.times:
+            date_str = str(date)
+            RM_dir = self.make_rm_dir(date_str)
+            RMs = []
+            dRMs = []
+            for UT in self.UTs:
+                new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
+                _, _, _, RM_ut, dRM_ut = np.loadtxt(new_file, unpack=True)
+                RMs.append(RM_ut)
+                dRMs.append(dRM_ut)
+
+            rm_s.append(RMs)
+            drm_s.append(dRMs)
+            b_para_s.append(B_para)
+
+        self.RMs = np.array(rm_s)
+        self.dRMs = np.array(drm_s)
+        self.B_paras = np.array(b_para_s)
+
+        return self.B_para, self.RMs, self.dRMs
 
     def to_map(self, filename):
         '''
