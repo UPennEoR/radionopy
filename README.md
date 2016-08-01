@@ -23,6 +23,8 @@ Main Scripts:
 * `ion_altaz.py` -- uses altitudes, azimuths to find RM
 * `ion_radec.py` -- uses right ascensions, declinations to find RM
 
+	Look into these scripts to see an example of how to run package
+
 Requirements:
 -------------
 * `Python <http://www.python.org/>`
