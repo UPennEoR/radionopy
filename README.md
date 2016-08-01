@@ -10,9 +10,7 @@ The current usage is to edit the executable within rad.py with your latitude and
 
 In order to execute this successfully, one must run the setup.py script:
 
-    `python setup.py install`
-    OR
-    `python setup.py develop` -- if changing package code
+    `python setup.py develop` -- necessary due to path setup
 
     It compiles the geomagnetic field C code (within the radiono/IGRF folder) on the user's machine:
         `gcc geomag70.c -o geomag70 -lm` -- inside the setup.py script
