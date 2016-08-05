@@ -48,7 +48,7 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
 
     return interp_map
 
-def interp_time(maps, lat, lon, verbose=False):
+def interp_time(maps, lat, lon, nside, verbose=False):
     '''
     convert square map into healpix map
     interpolate healpix map in time
@@ -58,6 +58,7 @@ def interp_time(maps, lat, lon, verbose=False):
     maps | array: square TEC maps
     lat | array[float]: array of latitudes
     lon | array[float]: array of longitudes
+    nside | int: resolution of rm map
     verbose | Optional[bool]: whether to print values or not
 
     Returns
@@ -68,7 +69,6 @@ def interp_time(maps, lat, lon, verbose=False):
     nlon = len(lon)
     lat_rad = np.outer(np.radians(90. - lat), np.ones(nlon))
     lon_rad = np.outer(np.ones(nlat), np.radians(lon % 360))
-    nside = 16
 
     map_len = (len(maps) - 1) * 2
     hp_maps = []

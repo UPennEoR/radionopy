@@ -69,6 +69,10 @@ class RM(object):
     def location(self):
         return EarthLocation(lat=self.lat, lon=self.lon, height=self.height * u.m)
 
+    @property
+    def npix(self):
+        return hp.nside2npix(self.nside) 
+
     def make_rm_dir(self, time_str):
         '''
         creates directory to hold rm files for a particular date
@@ -110,8 +114,8 @@ class RM(object):
 
         tec_a, rms_a, ion_height = all_info[7:]
 
-        tec_hp = itp.interp_time(tec_a, TEC['lat'], TEC['lon'], verbose=verbose)
-        rms_hp = itp.interp_time(rms_a, TEC['lat'], TEC['lon'], verbose=verbose)
+        tec_hp = itp.interp_time(tec_a, TEC['lat'], TEC['lon'], self.nside, verbose=verbose)
+        rms_hp = itp.interp_time(rms_a, TEC['lat'], TEC['lon'], self.nside, verbose=verbose)
 
         ## an idea, to have interp_time give maps at an arbitrary number of times throughout the day.
         ## Not yet developed.
@@ -215,8 +219,7 @@ class RM(object):
             array[float]: array of altitudes
             array[float]: array of azimuths
         '''
-        npix = hp.nside2npix(self.nside)
-        ipix = np.arange(npix)
+        ipix = np.arange(self.npix)
         theta, phi = hp.pix2ang(self.nside, ipix)
 
         alt_src = 90. - np.degrees(np.array(theta))
