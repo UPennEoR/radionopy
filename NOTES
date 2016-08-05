@@ -1,0 +1,2 @@
+altaz gives different output than radec due to how the maps are parsed in each method -- how do we reconcile this?
+B_IGRF changes by hour or by day depending on altaz or radec, which one is the correct method?

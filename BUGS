@@ -1,0 +1,2 @@
+need to run setup.py develop due to how paths are defined within the package -- would need to rewrite if package is installed or separate development and release packages
+need to separate directories for altaz and radec files due to having different outputs -- possibly rename files as well

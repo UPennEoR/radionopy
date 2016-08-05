@@ -303,7 +303,8 @@ class RM(object):
             dRMs = []
             for UT in self.UTs:
                 new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
-                _, _, _, RM_ut, dRM_ut = np.loadtxt(new_file, unpack=True)
+                #B_para differs on a per day basis so any one including last one works
+                _, _, B_para, RM_ut, dRM_ut = np.loadtxt(new_file, unpack=True)
                 RMs.append(RM_ut)
                 dRMs.append(dRM_ut)
 

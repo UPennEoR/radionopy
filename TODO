@@ -1,0 +1,5 @@
+write better README
+write unittests for radec and altaz methods
+write example plotting scripts
+ipython/jupyter examples
+convert geomag70.c into python with numpy to allow for use within radionopy without compiling or outputting text files
