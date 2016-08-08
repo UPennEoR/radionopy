@@ -63,8 +63,8 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     script_dir = os.path.join(rad.root_dir, 'IGRF/geomag70_linux/')
     working_dir = os.getcwd()
     os.chdir(script_dir)
-    cmd = r"./geomag70 IGRF11.COF f input.txt output.txt"
-    subprocess.call(cmd, shell=True)
+    #cmd = r"./geomag70 IGRF11.COF f input.txt output.txt"
+    subprocess.Popen(['./geomag70','IGRF11.COF','f','input.txt','output.txt'])
     os.chdir(working_dir)
 
     #script_name = os.path.join('./', rad.root_dir, mag_dir, 'geomag70')
