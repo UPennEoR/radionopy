@@ -18,7 +18,7 @@ import subprocess
 import numpy as np
 import radiono as rad
 
-def IONEX_file_needed(year, month, day, ionex_dir=rad.ionex_dir):
+def IONEX_file_needed(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
     '''
     pulls correct IONEX file for date input
     decompresses if necessary
@@ -45,12 +45,15 @@ def IONEX_file_needed(year, month, day, ionex_dir=rad.ionex_dir):
     # Outputing the name of the IONEX file you require
     ionex_file = 'CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
     ionex_file_z = ''.join((ionex_file, '.Z'))
-
+    if verbose: print(ionex_file,ionex_file_z)
+    
     if not os.path.exists(os.path.join(ionex_dir, ionex_file))\
-    and not os.path.exists(os.path.join(ionex_dir, ionex_file_z)):
+    or not os.path.exists(os.path.join(ionex_dir, ionex_file_z)):
+        if verbose: print('Getting ionex file %s'%ionex_file_z)
         ionex_file_z = get_IONEX_file(year, month, day, ionex_file)
-        subprocess.call(['uncompress', ionex_file_z])
-
+        if verbose: print('Uncompressing ionex file %s -> %s'%(ionex_file_z,ionex_file))
+        subprocess.Popen(['gunzip', ionex_file_z])
+        if verbose: print('Done')
     return os.path.join(ionex_dir, ionex_file)
 
 def get_IONEX_file(year, month, day, IONEX_file, ionex_dir=rad.ionex_dir):
@@ -71,7 +74,7 @@ def get_IONEX_file(year, month, day, IONEX_file, ionex_dir=rad.ionex_dir):
 
     '''
     server = 'ftp.unibe.ch'
-
+    year = str(year)
     ftp_dir = os.path.join('aiub/CODE/', year)
     IONEX_file_Z = ''.join((os.path.basename(IONEX_file), '.Z'))
 
