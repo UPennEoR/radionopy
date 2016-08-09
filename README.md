@@ -18,7 +18,7 @@ In order to execute this successfully, one must run the setup.py script:
 
 * `radiono` -- main package
 
-Main Scripts:
+Example Scripts:
 -------------
 * `ion_altaz.py` -- uses altitudes, azimuths to find RM
 * `ion_radec.py` -- uses right ascensions, declinations to find RM
@@ -31,9 +31,4 @@ Requirements:
 * `Numpy <http://scipy.org/>`
 * `Astropy <http://www.astropy.org/>`
 * `healpy <http://healpy.readthedocs.org/>`
-
-Optional:
----------
-* `PyGSM <https://github.com/telegraphic/PyGSM>`
-* `pyephem <https://github.com/brandon-rhodes/pyephem/>`
 
