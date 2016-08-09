@@ -52,7 +52,7 @@ def IONEX_file_needed(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
         if verbose: print('Getting ionex file %s'%ionex_file_z)
         ionex_file_z = get_IONEX_file(year, month, day, ionex_file)
         if verbose: print('Uncompressing ionex file %s -> %s'%(ionex_file_z,ionex_file))
-        subprocess.Popen(['gunzip', ionex_file_z])
+        subprocess.Popen(['gunzip --quiet', ionex_file_z])
         if verbose: print('Done')
     return os.path.join(ionex_dir, ionex_file)
 

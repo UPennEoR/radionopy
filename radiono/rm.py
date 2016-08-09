@@ -59,11 +59,15 @@ class RM(object):
 
     @property
     def lat(self):
-        return Latitude(Angle(self.lat_str[:-1]))
+        if self.lat_str[-1]=='s': m=-1.
+        else: m=1.
+        return m*Latitude(Angle(self.lat_str[:-1]))
 
     @property
     def lon(self):
-        return Longitude(Angle(self.lon_str[:-1]))
+        if self.lon_str[-1]=='w': m=-1.
+        else: m=1.
+        return m*Longitude(Angle(self.lon_str[:-1]))
 
     @property
     def location(self):
@@ -73,7 +77,7 @@ class RM(object):
     def npix(self):
         return hp.nside2npix(self.nside) 
 
-    def make_rm_dir(self, time_str):
+    def make_rm_dir(self, time_str,verbose=False):
         '''
         creates directory to hold rm files for a particular date
 
@@ -87,6 +91,7 @@ class RM(object):
         '''
         RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
         if not os.path.exists(RM_dir):
+            if verbose: print('Creating directory %s'%RM_dir)
             os.makedirs(RM_dir)
         return RM_dir
 
