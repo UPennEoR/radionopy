@@ -16,10 +16,10 @@ from astropy import constants as c
 import astropy.coordinates as coord
 from astropy import units
 from astropy.time import Time
-from radiono import physics as phys, interp as itp, ionex_file as inx
-
+from radiono import rm, physics as phys, interp as itp, ionex_file as inx
+import radiono
 rad_dir = os.path.dirname(os.path.realpath(__file__))
-root_dir = os.path.abspath(os.path.join(rad_path, '..'))
+root_dir = os.path.abspath(os.path.join(rad_dir, '..'))
 rm_dir = os.path.join(root_dir, 'RM_files')
 ionex_dir = os.path.join(root_dir, 'TEC')
 TECU = 1e16
@@ -45,7 +45,7 @@ def get_rm_map(date_str, verbose=False):
         IFR = 2.6e-17 * B_para * TEC_path
         return IFR
 
-    filedir = os.path.join(base_path, 'RM_maps')
+    filedir = os.path.join(root_dir, 'RM_maps')
     filepath = os.path.join(filedir, date_str + '.npz')
 
     if os.path.exists(filepath):
@@ -55,8 +55,10 @@ def get_rm_map(date_str, verbose=False):
         return RM_map
 
     year, month, day = date_str.split('-')
+    
+    rmobj = rm.RM(lat_str='30d43m17.5ss',lon_str='21d25m41.9se',time_strs=[date_str+'T00:00:00'],height=1000.)
 
-    tec_hp, rms_hp, ion_height = inx.IONEX_data(year, month, day, verbose=False)
+    tec_hp, rms_hp, ion_height = rmobj.ionex_data(year, month, day, verbose=False)
 
     nside = 2**4
     npix = hp.nside2npix(nside)
@@ -89,7 +91,7 @@ def get_rm_map(date_str, verbose=False):
     TEC_path = np.zeros((24,npix))
     # RMS_TEC_path = np.zeros((24,npix)) # just the TEC for now
     for t in range(0,24):
-        hour = rad.std_hour(t, verbose=False)
+        hour = radiono.std_hour(t, verbose=False)
 
         TEC_path[t], _ = itp.interp_space(tec_hp[t], rms_hp[t], lat, lon, za_p)
 
