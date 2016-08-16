@@ -5,10 +5,10 @@ purpose | Module used to gather information from IONEX files
 
 Functions
 ---------
-IONEX_file_needed | finds correct IONEX file and uncompresses it if necessary
-get_IONEX_file | downloads IONEX file from ftp server if not on local machine
-gen_IONEX_list | pulls specific info from parsed IONEX file
-read_IONEX_TEC | parses  IONEX file
+pull_IONEX_file | finds correct IONEX file and uncompresses it if necessary
+ftp_IONEX_file | downloads IONEX file from ftp server if not on local machine
+parse_IONEX_file | pulls specific info from IONEX file into a tuple of various data
+get_IONEX_data | Generate information from IONEX file to be used in further calculations
 '''
 from __future__ import print_function
 import os
@@ -18,7 +18,7 @@ import subprocess
 import numpy as np
 import radiono as rad
 
-def IONEX_file_needed(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
+def pull_IONEX_file(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
     '''
     pulls correct IONEX file for date input
     decompresses if necessary
@@ -50,14 +50,13 @@ def IONEX_file_needed(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
     if not os.path.exists(os.path.join(ionex_dir, ionex_file))\
     or not os.path.exists(os.path.join(ionex_dir, ionex_file_z)):
         if verbose: print('Getting ionex file %s'%ionex_file_z)
-        ionex_file_z = get_IONEX_file(year, month, day, ionex_file)
+        ionex_file_z = ftp_IONEX_file(year, month, day, ionex_file)
         if verbose: print('Uncompressing ionex file %s -> %s'%(ionex_file_z,ionex_file))
-        #subprocess.Popen(['gunzip --quiet', ionex_file_z])
         os.system('gunzip --quiet '+ionex_file_z)
         if verbose: print('Done')
     return os.path.join(ionex_dir, ionex_file)
 
-def get_IONEX_file(year, month, day, IONEX_file, ionex_dir=rad.ionex_dir):
+def ftp_IONEX_file(year, month, day, IONEX_file, ionex_dir=rad.ionex_dir):
     '''
     downloads IONEX file from ftp server
 
@@ -98,13 +97,13 @@ def get_IONEX_file(year, month, day, IONEX_file, ionex_dir=rad.ionex_dir):
 
     return IONEX_file_X
 
-def gen_IONEX_list(IONEX_list):
+def parse_IONEX_file(IONEX_file):
     '''
-    pulls information from parsed IONEX file
+    parse data from IONEX file
 
     Parameters
     ----------
-    IONEX_list | list[str]: parsed list of IONEX file data
+    IONEX_file | str: IONEX filename
 
     Returns
     -------
@@ -120,6 +119,11 @@ def gen_IONEX_list(IONEX_list):
         float: last longitude
         float: step longitude
     '''
+    # Opening and reading the IONEX file into memory
+    with open(filename, 'r') as read_file:
+        linestring = read_file.read()
+        IONEX_list = linestring.split('\n') #this is the IONEX file in a python list
+    
     add = False
     rms_add = False
     base_IONEX_list = []
@@ -150,9 +154,11 @@ def gen_IONEX_list(IONEX_list):
 
     return base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h, start_lat, end_lat, step_lat, start_lon, end_lon, step_lon
 
-def read_IONEX_TEC(filename, verbose=False):
+def get_IONEX_data(filename, verbose=False):
     '''
-
+    
+    Generate information from IONEX file to be used in further calculations
+    
     Parameters
     ----------
     filename | str: name of IONEX file
@@ -177,12 +183,9 @@ def read_IONEX_TEC(filename, verbose=False):
     '''
     # Reading and storing only the TEC values of 1 day
     # (13 maps) into a 3D array
-
-    # Opening and reading the IONEX file into memory
-    with open(filename, 'r') as read_file:
-        linestring = read_file.read()
-        IONEX_list = linestring.split('\n')
-
+    
+    IONEX_list = parse_IONEX_file(filename)
+    
     # creating a new array without the header and only
     # with the TEC maps
     base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h,\
@@ -245,5 +248,3 @@ def read_IONEX_TEC(filename, verbose=False):
                           start_lon, step_lon, points_lon,\
                           number_of_maps, tec_a, rms_a, ion_h * 1000.0)
 
-if __name__ == '__main__':
-    print('This is not a script anymore')

@@ -5,11 +5,10 @@ purpose | Module used to gather information from IONEX files
 
 Functions
 ---------
-B_IGRF | uses C script to acquire the B field for specific day
+B_IGRF | uses geomag.c script to acquire the B field for specific day
 punct_ion_offset | finds ionosphere offsets and puncture points
 get_coords | converts coordinates to degrees and includes offsets
 ipp | acquires correct coordinates and puncture points
-rotate_healpix_map | rotates healpix map
 '''
 from __future__ import print_function
 import os
@@ -39,13 +38,9 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     -------
     array: B field at each coordinate
     '''
-    # Calculation of TEC path value for the indicated 'hour' and therefore
-    # at the IPP
-
     input_file = os.path.join(rad.root_dir, mag_dir, 'input.txt')
     output_file = os.path.join(rad.root_dir, mag_dir, 'output.txt')
 
-    #uses lat_val, lon_val from above
     # Calculation of the total magnetic field along the line of sight at the IPP
     sky_rad = (rad.earth_radius + ion_height) / 1000.0
     with open(input_file, 'w') as f:
@@ -59,21 +54,14 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
                                                      ipp_lat=co_lat,
                                                      ipp_lon=co_lon))
 
-    #XXX runs the geomag exe script
+    #runs the geomag exe script
     script_dir = os.path.join(rad.root_dir, 'IGRF/geomag70_linux/')
     working_dir = os.getcwd()
     os.chdir(script_dir)
-    #cmd = r"./geomag70 IGRF11.COF f input.txt output.txt"
-    #subprocess.Popen(['./geomag70','IGRF11.COF','f','input.txt','output.txt'])
     os.system('./geomag70 IGRF11.COF f input.txt output.txt')
     os.chdir(working_dir)
-
-    #script_name = os.path.join('./', rad.root_dir, mag_dir, 'geomag70')
-    #script_data = os.path.join(rad.root_dir, mag_dir, mag_file)
-    #print(script_data)
-    #script_option = 'f'
-    #subprocess.call([script_name, script_data, script_option, input_file, output_file])
-
+    
+    #record B_parallel field in numpy array 
     B_para = []
     with open(output_file, 'r') as g:
         all_data = g.readlines()
@@ -210,5 +198,3 @@ def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
 
     return coord_lat, coord_lon, az_punct, zen_punct
 
-if __name__ == '__main__':
-    print('This is not a script anymore')

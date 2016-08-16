@@ -5,9 +5,9 @@ purpose | Module used to gather information from IONEX files
 
 Functions
 ---------
-interp_hp_time | interpolates healpix map in time
-interp_time | converts square map into healpix map and interpolates in time
-interp_space | interpolates healpix map in space
+interp_hp_time | interpolates healpix maps between times
+ionex2healpix | converts square map into healpix map and interpolates in time to get ionosphere maps in healpix form and 1-hour time intervals
+get_los_tec | finds the LoS TEC on a given healpix map
 healpixellize | convert square map into healpix map
 rotate_healpix_map | rotates healpix map
 '''
@@ -18,7 +18,7 @@ import radiono as rad
 
 def interp_hp_time(map_i, map_j, t_i, t_j, t):
     '''
-    interpolated healpix map in time
+    interpolates healpix map between times
 
     Parameters
     ----------
@@ -48,7 +48,7 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
 
     return interp_map
 
-def interp_time(maps, lat, lon, nside, verbose=False):
+def ionex2healpix(maps, lat, lon, nside, verbose=False):
     '''
     convert square map into healpix map
     interpolate healpix map in time
@@ -88,9 +88,9 @@ def interp_time(maps, lat, lon, nside, verbose=False):
 
     return np.array(hp_maps)
 
-def interp_space(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
+def get_los_tec(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     '''
-    interpolates healpix maps in space
+    finds the LoS TEC on a given healpix map
 
     Parameters
     ----------
@@ -200,5 +200,3 @@ def rotate_healpix_map(map_in, rot):
 
     return rot_map
 
-if __name__ == '__main__':
-    print('This is not a script anymore')

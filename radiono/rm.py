@@ -114,13 +114,13 @@ class RM(object):
             array: rms tec healpix map
             float: ionosphere height in meters
         '''
-        IONEX_file = inx.IONEX_file_needed(year, month, day)
-        TEC, _, all_info = inx.read_IONEX_TEC(IONEX_file, verbose=verbose)
+        IONEX_file = inx.pull_IONEX_file(year, month, day)
+        TEC, _, all_info = inx.get_IONEX_data(IONEX_file, verbose=verbose)
 
         tec_a, rms_a, ion_height = all_info[7:]
 
-        tec_hp = itp.interp_time(tec_a, TEC['lat'], TEC['lon'], self.nside, verbose=verbose)
-        rms_hp = itp.interp_time(rms_a, TEC['lat'], TEC['lon'], self.nside, verbose=verbose)
+        tec_hp = itp.ionex2healpix(tec_a, TEC['lat'], TEC['lon'], self.nside, verbose=verbose)
+        rms_hp = itp.ionex2healpix(rms_a, TEC['lat'], TEC['lon'], self.nside, verbose=verbose)
 
         ## an idea, to have interp_time give maps at an arbitrary number of times throughout the day.
         ## Not yet developed.
@@ -172,7 +172,7 @@ class RM(object):
                                      coord_lat, coord_lon,
                                      ion_height, az_punct, zen_punct)
 
-                TEC_path, RMS_TEC_path = itp.interp_space(tec_hp[UT], rms_hp[UT],
+                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[UT], rms_hp[UT],
                                                           coord_lat, coord_lon,
                                                           zen_punct)
 
@@ -271,7 +271,7 @@ class RM(object):
                 radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
                 rad.write_radec(UT, radec_file, alt_src, az_src, date_str, self.location)
 
-                TEC_path, RMS_TEC_path = itp.interp_space(tec_hp[UT], rms_hp[UT],
+                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[UT], rms_hp[UT],
                                                           coord_lat, coord_lon,
                                                           zen_punct)
 
