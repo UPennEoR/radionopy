@@ -55,7 +55,7 @@ def get_rm_map(date_str, verbose=False):
         return RM_map
 
     year, month, day = date_str.split('-')
-    
+
     rmobj = rm.RM(lat_str='30d43m17.5ss',lon_str='21d25m41.9se',time_strs=[date_str+'T00:00:00'],height=1000.)
 
     tec_hp, rms_hp, ion_height = rmobj.ionex_data(year, month, day, verbose=False)
@@ -69,7 +69,9 @@ def get_rm_map(date_str, verbose=False):
 
     c_icrs = coord.SkyCoord(ra=ra * units.radian, dec=dec * units.radian, frame='icrs')
     c_icrs.location = coord.EarthLocation(lat='-30d43m17.5s', lon='21d25m41.9s') # Location of HERA/PAPER
-    c_icrs.obstime = Time(date_str + 'T12:00:00') # use the middle of the day as the local coordinates for all 24 hours. Close enough?
+    c_icrs.obstime = Time(date_str + 'T12:00:00')
+    # use the middle of the day as the local coordinates for all 24 hours. Close enough?
+    # No moron, not close enough...
     c_altaz = c_icrs.transform_to('altaz')
 
     az = np.array(np.radians(c_altaz.az))

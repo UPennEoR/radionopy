@@ -46,7 +46,7 @@ def pull_IONEX_file(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
     ionex_file = 'CODG{day_of_year}0.{year_end}I'.format(day_of_year=day_of_year, year_end=str(year)[2:4])
     ionex_file_z = ''.join((ionex_file, '.Z'))
     if verbose: print(ionex_file,ionex_file_z)
-    
+
     if not os.path.exists(os.path.join(ionex_dir, ionex_file))\
     or not os.path.exists(os.path.join(ionex_dir, ionex_file_z)):
         if verbose: print('Getting ionex file %s'%ionex_file_z)
@@ -120,10 +120,10 @@ def parse_IONEX_file(IONEX_file):
         float: step longitude
     '''
     # Opening and reading the IONEX file into memory
-    with open(filename, 'r') as read_file:
+    with open(IONEX_file, 'r') as read_file:
         linestring = read_file.read()
         IONEX_list = linestring.split('\n') #this is the IONEX file in a python list
-    
+
     add = False
     rms_add = False
     base_IONEX_list = []
@@ -156,9 +156,9 @@ def parse_IONEX_file(IONEX_file):
 
 def get_IONEX_data(filename, verbose=False):
     '''
-    
+
     Generate information from IONEX file to be used in further calculations
-    
+
     Parameters
     ----------
     filename | str: name of IONEX file
@@ -183,14 +183,14 @@ def get_IONEX_data(filename, verbose=False):
     '''
     # Reading and storing only the TEC values of 1 day
     # (13 maps) into a 3D array
-    
-    IONEX_list = parse_IONEX_file(filename)
-    
+
+    # IONEX_list = pull_IONEX_file(filename)
+
     # creating a new array without the header and only
     # with the TEC maps
     base_IONEX_list, RMS_IONEX_list, number_of_maps, ion_h,\
     start_lat, end_lat, step_lat,\
-    start_lon, end_lon, step_lon = gen_IONEX_list(IONEX_list)
+    start_lon, end_lon, step_lon = parse_IONEX_file(filename)
 
     # Variables that indicate the number of points in Lat. and Lon.
     points_lat = ((end_lat - start_lat) / step_lat) + 1
@@ -247,4 +247,3 @@ def get_IONEX_data(filename, verbose=False):
     return TEC, RMS_TEC, (start_lat, step_lat, points_lat,\
                           start_lon, step_lon, points_lon,\
                           number_of_maps, tec_a, rms_a, ion_h * 1000.0)
-

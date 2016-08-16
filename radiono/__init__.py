@@ -26,6 +26,8 @@ TEC2m2 = 0.1 * TECU
 earth_radius = c.R_earth.value #6371000.0 # in meters
 tesla_to_gauss = 1e4
 
+from rm import RM
+
 def std_hour(UT, verbose=True):
     '''
     converts hour into standardized string
@@ -128,10 +130,10 @@ def maps_to_npz(time_str, npix, loc_str='PAPER', verbose=True):
     for UT in rng:
         rm_file = os.path.join(RM_dir, 'IonRM{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
         radec_file = os.path.join(RM_dir, 'radec{num}.txt'.format(num=std_hour(UT, verbose=verbose)))
-        
+
         _, TEC, B, RM, dRM = np.loadtxt(rm_file, unpack=True)
         RA, DEC = np.loadtxt(radec_file, unpack=True)
-        
+
         final_TEC[UT, :] = TEC
         final_rm[UT, :] = RM
         final_drm[UT, :] = dRM

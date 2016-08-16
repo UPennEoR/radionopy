@@ -75,7 +75,7 @@ class RM(object):
 
     @property
     def npix(self):
-        return hp.nside2npix(self.nside) 
+        return hp.nside2npix(self.nside)
 
     def make_rm_dir(self, time_str,verbose=False):
         '''
@@ -145,24 +145,33 @@ class RM(object):
             year, month, day = time_str.split('T')[0].split('-')
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
 
-            # predict the ionospheric RM for every hour within a day 
+            # predict the ionospheric RM for every hour within a day
             for UT in self.UTs:
                 hour = rad.std_hour(UT)
-                ra_dec = SkyCoord(ra=ras, dec=decs,
-                                  location=self.location, obstime=time + UT * u.hr)
-                altaz = ra_dec.altaz
+                # ra_dec = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
+                #                   location=self.location, obstime=time + UT * u.hr)
+                # altaz = ra_dec.altaz
+                #
+                # alt_src = altaz.alt
+                # az_src = altaz.az
+                # zen_src = altaz.zen
+                #
+                # if len(alt_src.shape) <= 1:
+                #     #alt_src = np.array([alt_src.item().degree])
+                #     #az_src = np.array([az_src.item().degree])
+                #     #zen_src = np.array([zen_src.value])
+                #     alt_src = alt_src.item().degree
+                #     az_src = az_src.item().degree
+                #     zen_src = zen_src.value
 
-                alt_src = altaz.alt
-                az_src = altaz.az
-                zen_src = altaz.zen
+                c_icrs = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
+                                        location=self.location, obstime=time + UT * u.hr, frame='icrs')
 
-                if len(alt_src.shape) <= 1:
-                    #alt_src = np.array([alt_src.item().degree])
-                    #az_src = np.array([az_src.item().degree])
-                    #zen_src = np.array([zen_src.value])
-                    alt_src = alt_src.item().degree
-                    az_src = az_src.item().degree
-                    zen_src = zen_src.value
+                c_altaz = c_icrs.transform_to('altaz')
+
+                alt_src = np.array(c_altaz.alt.degree)
+                az_src = np.array(c_altaz.alt.degree)
+                zen_src = np.array(Angle(c_altaz.zen).degree) # AltAz.zen doesn't have a method to return the angle data...
 
                 coord_lat, coord_lon,\
                 az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
@@ -369,10 +378,10 @@ class RM(object):
         for UT in rng:
             rm_file = os.path.join(RM_dir, 'IonRM{num}.txt'.format(num=rad.std_hour(UT, verbose=verbose)))
             radec_file = os.path.join(RM_dir, 'radec{num}.txt'.format(num=rad.std_hour(UT, verbose=verbose)))
-            
+
             _, TEC, B, RM, dRM = np.loadtxt(rm_file, unpack=True)
             RA, DEC = np.loadtxt(radec_file, unpack=True)
-            
+
             final_TEC[UT, :] = TEC
             final_rm[UT, :] = RM
             final_drm[UT, :] = dRM
