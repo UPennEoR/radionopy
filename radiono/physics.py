@@ -62,7 +62,7 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     script_dir = os.path.join(rad.root_dir, 'IGRF/geomag70_linux/')
     working_dir = os.getcwd()
     os.chdir(script_dir)
-    os.system('./geomag70 IGRF11.COF f input.txt output.txt')
+    os.system('./geomag70 IGRF11.COF f input.txt output.txt '+'> /dev/null 2>&1')
     os.chdir(working_dir)
     
     #record B_parallel field in numpy array 

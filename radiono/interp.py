@@ -38,18 +38,16 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
     '''
     # Need to check that
     if not (t_i <= t <= t_j):
-        print(t_i, t, t_j)
-        print('Times will not work')
-        return None
-
+        raise ValueError('Time %f cannot be interpolated between %f and %f'%(t,t_i,t_j))
+     
     w_i = float(t_j - t) / (t_j - t_i)
     w_j = float(t - t_i) / (t_j - t_i)
     dt_i_deg = -np.abs((t - t_i) * 360. / 24.)
     dt_j_deg = np.abs((t - t_j) * 360. / 24.)
-
+    
     interp_map = w_i * rotate_healpix_map(map_i, [dt_i_deg, 0]) +\
                  w_j * rotate_healpix_map(map_j, [dt_j_deg, 0])
-
+    
     return interp_map
 
 def ionex2healpix(maps, lat, lon, nside, verbose=False):

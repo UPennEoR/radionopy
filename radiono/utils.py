@@ -14,7 +14,7 @@ from astropy import constants as c, units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord
 
-def std_hour(UT, verbose=True):
+def std_hour(UT, verbose=False):
     '''
     converts hour into standardized string
 

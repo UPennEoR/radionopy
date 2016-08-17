@@ -341,14 +341,14 @@ class RM(object):
         alms = hp.sphtfunc.map2alm(map_file)
         hp.fitsfunc.write_alm(alm_file, alms)
 
-    def map_to_npz(self, time_str, loc_str='PAPER', verbose=True):
+    def map_to_npz(self, time_str, loc_str='PAPER', verbose=False):
         '''
         writes map of particular time to npz file
 
         Parameters
         ----------
         time_str | str: time and date of map
-        loc_str | str: name of location to incorporate into filename output
+        loc_str | str: name of obs location to incorporate into filename output
         verbose | Optional[bool]: whether to print values or not
         '''
         #I could fish around in the file read to get npix and then re-loop, but why not just be lazy sometimes
@@ -382,10 +382,3 @@ class RM(object):
 
         np.savez(npz_file, TEC=final_TEC, RM=final_rm, dRM=final_drm, RA=ra, DEC=dec)
 
-    def maps_to_npz(self):
-        '''
-        writes all maps to npz files
-        '''
-        for time in self.times:
-            time_str = str(time)
-            self.map_to_npz(time_str)
