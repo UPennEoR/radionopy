@@ -15,6 +15,10 @@ from __future__ import print_function
 import numpy as np
 import healpy as hp
 import radiono as rad
+import utils
+
+TECU = 1e16
+TEC2m2 = 0.1 * TECU
 
 def interp_hp_time(map_i, map_j, t_i, t_j, t):
     '''
@@ -111,8 +115,8 @@ def get_los_tec(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     VTEC = hp.get_interp_val(tec_hp, lat_rad, lon_rad)
     VRMS_TEC = hp.get_interp_val(rms_hp, lat_rad, lon_rad)
 
-    TEC_path = np.array(VTEC) * rad.TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
-    RMS_TEC_path = np.array(VRMS_TEC) * rad.TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
+    TEC_path = np.array(VTEC) * TEC2m2 / np.cos(zen_punct) # from vertical TEC to line of sight TEC
+    RMS_TEC_path = np.array(VRMS_TEC) * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
     

@@ -17,7 +17,11 @@ import subprocess
 import numpy as np
 import healpy as hp
 from astropy.coordinates import Angle, Latitude, Longitude
+from astropy import constants as c
 import radiono as rad
+
+earth_radius = c.R_earth.value #6371000.0 # in meters
+tesla_to_gauss = 1e4
 
 def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct, mag_dir='IGRF/geomag70_linux', mag_file='IGRF11.COF'):
     '''
@@ -42,7 +46,7 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     output_file = os.path.join(rad.root_dir, mag_dir, 'output.txt')
 
     # Calculation of the total magnetic field along the line of sight at the IPP
-    sky_rad = (rad.earth_radius + ion_height) / 1000.0
+    sky_rad = (earth_radius + ion_height) / 1000.0
     with open(input_file, 'w') as f:
         for co_lat, co_lon in zip(coord_lat, coord_lon):
             f.write(('{year},{month},{day} '
@@ -69,7 +73,7 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
         for i, data in enumerate(all_data[1:]):
             x_field,\
             y_field,\
-            z_field = [float(field_data) * 1e-9 * rad.tesla_to_gauss\
+            z_field = [float(field_data) * 1e-9 * tesla_to_gauss\
                        for field_data in data.split()[10:13]]
             #ABOVE CHANGE: abs(float(field_data)) -> float(field_data)
             B_paras = z_field * np.cos(zen_punct[i]) +\
@@ -103,8 +107,8 @@ def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
 
     # The 2-D sine rule gives the zenith angle at the
     # Ionospheric piercing point
-    zen_punct = np.arcsin((rad.earth_radius * np.sin(zen_src)) /\
-                          (rad.earth_radius + ion_height))
+    zen_punct = np.arcsin((earth_radius * np.sin(zen_src)) /\
+                          (earth_radius + ion_height))
 
     # Use the sum of the internal angles of a triange to determine theta
     theta = zen_src - zen_punct
