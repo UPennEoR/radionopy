@@ -16,7 +16,7 @@ from astropy import units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, Angle, Latitude, Longitude
 import radiono as rad
-from radiono import physics as phys, interp as itp, ionex_file as inx
+from radiono import physics as phys, interp as itp, ionex_file as inx, utils
 
 class RM(object):
     '''
@@ -147,23 +147,7 @@ class RM(object):
 
             # predict the ionospheric RM for every hour within a day
             for UT in self.UTs:
-                hour = rad.std_hour(UT)
-                # ra_dec = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
-                #                   location=self.location, obstime=time + UT * u.hr)
-                # altaz = ra_dec.altaz
-                #
-                # alt_src = altaz.alt
-                # az_src = altaz.az
-                # zen_src = altaz.zen
-                #
-                # if len(alt_src.shape) <= 1:
-                #     #alt_src = np.array([alt_src.item().degree])
-                #     #az_src = np.array([az_src.item().degree])
-                #     #zen_src = np.array([zen_src.value])
-                #     alt_src = alt_src.item().degree
-                #     az_src = az_src.item().degree
-                #     zen_src = zen_src.value
-
+                hour = utils.std_hour(UT)
                 c_icrs = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
                                         location=self.location, obstime=time + UT * u.hr, frame='icrs')
 
@@ -176,7 +160,7 @@ class RM(object):
                 coord_lat, coord_lon,\
                 az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
                                                az_src, zen_src, ion_height)
-
+                #XXX B_para calculated per UT
                 B_para = phys.B_IGRF(year, month, day,
                                      coord_lat, coord_lon,
                                      ion_height, az_punct, zen_punct)
@@ -186,7 +170,7 @@ class RM(object):
                                                           zen_punct)
 
                 new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
-                rad.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True)
+                utils.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True)
         self.parse_radec()
 
     def parse_radec(self):
@@ -209,7 +193,7 @@ class RM(object):
             dRM_add = []
             RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
             for UT in self.UTs:
-                data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=rad.std_hour(UT, verbose=False)))
+                data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=utils.std_hour(UT, verbose=False)))
                 _, _, B_para, RM_ut, dRM_ut = np.loadtxt(data_file, unpack=True)
                 b_para_s.append(B_para)
                 RM_add.append(RM_ut)
@@ -268,7 +252,7 @@ class RM(object):
             coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
                                                                  az_src, zen_src,
                                                                  ion_height)
-
+            #XXX B_para calculated per DAY
             B_para = phys.B_IGRF(year, month, day,
                                  coord_lat, coord_lon,
                                  ion_height, az_punct, zen_punct)
@@ -276,16 +260,16 @@ class RM(object):
             RMs = []
             dRMs = []
             for UT in self.UTs:
-                hour = rad.std_hour(UT)
+                hour = utils.std_hour(UT)
                 radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
-                rad.write_radec(UT, radec_file, alt_src, az_src, date_str, self.location)
+                utils.write_radec(UT, radec_file, alt_src, az_src, date_str, self.location)
 
                 TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[UT], rms_hp[UT],
                                                           coord_lat, coord_lon,
                                                           zen_punct)
 
                 new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
-                rad.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path)
+                utils.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path)
 
                 _, _, _, RM_ut, dRM_ut = np.loadtxt(new_file, unpack=True)
                 RMs.append(RM_ut)
@@ -376,8 +360,8 @@ class RM(object):
                                                   np.zeros((rng.shape[0], self.npix))
         RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
         for UT in rng:
-            rm_file = os.path.join(RM_dir, 'IonRM{num}.txt'.format(num=rad.std_hour(UT, verbose=verbose)))
-            radec_file = os.path.join(RM_dir, 'radec{num}.txt'.format(num=rad.std_hour(UT, verbose=verbose)))
+            rm_file = os.path.join(RM_dir, 'IonRM{num}.txt'.format(num=utils.std_hour(UT, verbose=verbose)))
+            radec_file = os.path.join(RM_dir, 'radec{num}.txt'.format(num=utils.std_hour(UT, verbose=verbose)))
 
             _, TEC, B, RM, dRM = np.loadtxt(rm_file, unpack=True)
             RA, DEC = np.loadtxt(radec_file, unpack=True)
@@ -405,6 +389,3 @@ class RM(object):
         for time in self.times:
             time_str = str(time)
             self.map_to_npz(time_str)
-
-if __name__ == '__main__':
-    print('This is not a script anymore')
