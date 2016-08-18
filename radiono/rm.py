@@ -150,13 +150,13 @@ class RM(object):
             # predict the ionospheric RM for every hour within a day
             for UT in self.UTs:
                 hour = utils.std_hour(UT)
+
                 c_icrs = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
                                         location=self.location, obstime=time + UT * u.hr, frame='icrs')
 
                 c_altaz = c_icrs.transform_to('altaz')
-
                 alt_src = np.array(c_altaz.alt.degree)
-                az_src = np.array(c_altaz.alt.degree)
+                az_src = np.array(c_altaz.az.degree)
                 zen_src = np.array(Angle(c_altaz.zen).degree) # AltAz.zen doesn't have a method to return the angle data...
 
                 coord_lat, coord_lon,\
