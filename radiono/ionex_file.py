@@ -47,8 +47,7 @@ def pull_IONEX_file(year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
     ionex_file_z = ''.join((ionex_file, '.Z'))
     if verbose: print(ionex_file,ionex_file_z)
 
-    if not os.path.exists(os.path.join(ionex_dir, ionex_file))\
-    or not os.path.exists(os.path.join(ionex_dir, ionex_file_z)):
+    if not os.path.exists(os.path.join(ionex_dir, ionex_file)): # or not os.path.exists(os.path.join(ionex_dir, ionex_file_z)):
         if verbose: print('Getting ionex file %s'%ionex_file_z)
         ionex_file_z = ftp_IONEX_file(year, month, day, ionex_file)
         if verbose: print('Uncompressing ionex file %s -> %s'%(ionex_file_z,ionex_file))
