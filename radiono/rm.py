@@ -131,9 +131,14 @@ class RM(object):
         return tec_hp, rms_hp, ion_height
 
     def get_radec_RM(self, ras, decs):
-
+        
+        if not all((i<=np.pi/2. and i>=-np.pi/2.) for i in ras):
+            raise ValueError('All RAs must be between -pi/2 and pi/2 radians')
+        if not all((i<=np.pi/2. and i>=-np.pi/2.) for i in decs):
+            raise ValueError('All Decs must be between -pi/2 and pi/2 radians')
+        
         self.coordinates_flag = 'J2000_RaDec'
-
+        
         for time in self.times:
             time_str,_,_ = str(time).partition('T')
             RM_dir = self.make_rm_dir(time_str)
