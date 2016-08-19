@@ -168,12 +168,13 @@ class RM(object):
         rm_s = []
         drm_s = []
         for time in self.times:
-            time_str = str(time)
+            time_str,_,_ = str(time).partition('T')
             RM_add = []
             dRM_add = []
             RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str))
+            
             for UT in self.UTs:
-                data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=utils.std_hour(UT, verbose=False)))
+                data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=utils.std_hour(UT)))
                 _, _, B_para, RM_ut, dRM_ut = np.loadtxt(data_file, unpack=True)
                 b_para_s.append(B_para)
                 RM_add.append(RM_ut)
@@ -392,4 +393,3 @@ def HERA_RM(date_strs, verbose=False):
     lon_str = '21d25m41.9se'
     height = 1073 # XXX 
     return RM(lat_str=lat_str, lon_str=lon_str, date_strs=date_strs, height=height, verbose=verbose)
-

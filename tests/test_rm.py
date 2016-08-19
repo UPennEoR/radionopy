@@ -20,8 +20,8 @@ testIonexDir = './localIonex'
 testRmDir = './localRM'
 testHeight = 1000
 testTime='2010-01-21'
-testRA = [np.random.uniform(-np.pi,np.pi)]
-testDec= [np.random.uniform(-np.pi,np.pi)]
+testRA = [np.random.uniform(-np.pi/2.,np.pi/2.)]
+testDec= [np.random.uniform(-np.pi/2.,np.pi/2.)]
 
 #testRAs,testDecs=np.random.uniform(-np.pi,np.pi,size=(hp.nside2npix(testNside))),np.random.uniform(-np.pi,np.pi,size=(hp.nside2npix(testNside)))
 
@@ -62,9 +62,9 @@ class TestRM(unittest.TestCase):
     #    rm_radec_map = self.rm_map.radec(testRAs,testDecs)
 
     def tearDown(self):
-        if os.path.exists(testRmDir): shutil.rmtree(testRmDir)
-        if os.path.exists(testIonexDir): shutil.rmtree(testIonexDir)
-        
+        #if os.path.exists(testRmDir): shutil.rmtree(testRmDir)
+        #if os.path.exists(testIonexDir): shutil.rmtree(testIonexDir)
+        return None 
 
 
 if __name__ == '__main__':
