@@ -19,17 +19,16 @@ paperLocStrings = ('30d43m17.5ss','21d25m41.9se')
 testIonexDir = './localIonex'
 testRmDir = './localRM'
 testHeight = 1000
-testNside=16
-testTime='2010-01-21T00:00:00'
+testTime='2010-01-21'
 testRA = [np.random.uniform(-np.pi,np.pi)]
 testDec= [np.random.uniform(-np.pi,np.pi)]
 
-testRAs,testDecs=np.random.uniform(-np.pi,np.pi,size=(hp.nside2npix(testNside))),np.random.uniform(-np.pi,np.pi,size=(hp.nside2npix(testNside)))
+#testRAs,testDecs=np.random.uniform(-np.pi,np.pi,size=(hp.nside2npix(testNside))),np.random.uniform(-np.pi,np.pi,size=(hp.nside2npix(testNside)))
 
 class TestRM(unittest.TestCase):
     def setUp(self):
         self.rm_map = rm.RM(paperLocStrings[0], paperLocStrings[1], [testTime], height=testHeight,\
-        nside=testNside, ionex_dir=testIonexDir, rm_dir=testRmDir)
+        ionex_dir=testIonexDir, rm_dir=testRmDir)
     def test_map_properties(self):
         self.assertEqual(self.rm_map.lat.value, -30.721527777777776)
         self.assertEqual(self.rm_map.lon.value, 21.428305555555557)
@@ -43,11 +42,11 @@ class TestRM(unittest.TestCase):
         self.assertEqual(self.rm_map.ionex_dir, testIonexDir)
     
     def test_make_rm_dir(self):
-        self.rm_map.make_rm_dir(testTime,verbose=True)
+        self.rm_map.make_rm_dir(testTime)
         assert(os.path.exists(testRmDir+'/2010-01-21'))
     
     def test_ionex_data(self):
-        tec_hp,rms_hp,ion_height = self.rm_map.ionex_data(2010,01,21,ionex_dir=testIonexDir,verbose=True)
+        tec_hp,rms_hp,ion_height = self.rm_map.ionex_data(2010,01,21,ionex_dir=testIonexDir)
         assert(tec_hp.shape == rms_hp.shape)
         assert(tec_hp.shape[0]==24)
         hp.npix2nside(tec_hp.shape[1])
@@ -57,10 +56,10 @@ class TestRM(unittest.TestCase):
         rm_altaz_map = self.rm_map.altaz()
     
     def test_radec_single(self):
-        rm_radec_map = self.rm_map.radec(testRA,testDec)           
+        rm_radec_map = self.rm_map.get_radec_RM(testRA,testDec)           
     
-    def test_radec_multip(self):
-        rm_radec_map = self.rm_map.radec(testRAs,testDecs)
+    #def test_radec_multip(self):
+    #    rm_radec_map = self.rm_map.radec(testRAs,testDecs)
 
     def tearDown(self):
         if os.path.exists(testRmDir): shutil.rmtree(testRmDir)

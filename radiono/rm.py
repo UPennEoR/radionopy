@@ -31,7 +31,7 @@ class RM(object):
     to_map | writes data to map
     to_alm | writes data to alm
     '''
-    def __init__(self, lat_str, lon_str, time_strs, height=0, ionex_dir=rad.ionex_dir, rm_dir=rad.rm_dir, verbose=False):
+    def __init__(self, lat_str, lon_str, date_strs, height=0, ionex_dir=rad.ionex_dir, rm_dir=rad.rm_dir):
         '''
         initalizes RM object
 
@@ -39,7 +39,7 @@ class RM(object):
         ----------
         lat_str | str: latitude that the observation was taken at
         lon_str | str: longitude that the observation was taken at
-        time_strs | list[str]: list of dates for observation in form "YYYY-MM-DD"
+        date_strs | list[str]: list of dates for observation in form "YYYY-MM-DD"
         height | Optional[float]: height observation taken at in meters
         nside | Optional[int]: resolution of rm map --defaults to 16
         ionex_dir | Optional[str]: directory in which ionex files are / will be located
@@ -51,7 +51,7 @@ class RM(object):
 
         self.lat_str = lat_str
         self.lon_str = lon_str
-        self.times = Time(time_strs, format='isot')
+        self.times = Time(date_strs, format='isot')
         self.height = height
         self.ionex_dir = ionex_dir
         self.rm_dir = rm_dir
@@ -61,7 +61,7 @@ class RM(object):
         self.dRMs = None
         self.UTs = np.linspace(0, 23, num=24)
         self.coordinates_flag = None
-        self.verbose = verbose
+        #self.verbose = verbose
 
     @property
     def lat(self):
@@ -101,7 +101,7 @@ class RM(object):
             os.makedirs(RM_dir)
         return RM_dir
 
-    def ionex_data(self, year, month, day, ionex_dir=rad.ionex_dir, verbose=False):
+    def ionex_data(self, year, month, day, ionex_dir=rad.ionex_dir, **kwargs):
         '''
         gathers all relevant IONEX info from file for specific date
 
@@ -121,12 +121,12 @@ class RM(object):
             float: ionosphere height in meters
         '''
         IONEX_file = inx.pull_IONEX_file(year, month, day)
-        TEC, _, all_info = inx.get_IONEX_data(IONEX_file, verbose=verbose)
+        TEC, _, all_info = inx.get_IONEX_data(IONEX_file, **kwargs)
 
         tec_a, rms_a, ion_height = all_info[7:]
 
-        tec_hp = itp.ionex2healpix(tec_a, TEC['lat'], TEC['lon'], self.nside, verbose=verbose)
-        rms_hp = itp.ionex2healpix(rms_a, TEC['lat'], TEC['lon'], self.nside, verbose=verbose)
+        tec_hp = itp.ionex2healpix(tec_a, TEC['lat'], TEC['lon'], **kwargs)
+        rms_hp = itp.ionex2healpix(rms_a, TEC['lat'], TEC['lon'], **kwargs)
 
         return tec_hp, rms_hp, ion_height
 
@@ -135,27 +135,23 @@ class RM(object):
         self.coordinates_flag = 'J2000_RaDec'
 
         for time in self.times:
-            time_str = str(time)
+            time_str,_,_ = str(time).partition('T')
             RM_dir = self.make_rm_dir(time_str)
-
-            year, month, day = time_str.split('-')
-            tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day, verbose=self.verbose)
+            year, month, day = map(int,time_str.split('-'))
+            tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
 
             # predict the ionospheric RM for every hour within a day
             for UT in self.UTs:
                 hour = utils.std_hour(UT)
-
                 c_icrs = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
                                         location=self.location, obstime=time + UT * u.hr, frame='icrs')
-
                 c_altaz = c_icrs.transform_to('altaz')
                 alt_src = np.array(c_altaz.alt.degree)
                 az_src = np.array(c_altaz.az.degree)
-                zen_src = np.array(Angle(c_altaz.zen).degree) # AltAz.zen doesn't have a method to return the angle data...
+                zen_src = np.array(Angle(c_altaz.zen).degree) # AltAz.zen doesn't have method to return angle data
 
-                coord_lat, coord_lon,\
-                az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
-                                               az_src, zen_src, ion_height)
+                coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str, 
+                                                                     az_src, zen_src, ion_height)
                 #XXX B_para calculated per UT
                 B_para = phys.B_IGRF(year, month, day,
                                      coord_lat, coord_lon,
@@ -168,7 +164,6 @@ class RM(object):
                 new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
                 utils.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True)
 
-        ## self.parse_radec() started here
         b_para_s = []
         rm_s = []
         drm_s = []
@@ -251,9 +246,9 @@ class RM(object):
         zen_src = 90. - alt_src
 
         for date in self.times:
-            date_str = str(date)
+            date_str,_,_ = str(date).partition('T')
             RM_dir = self.make_rm_dir(date_str)
-            year, month, day = date_str.split('-')
+            year, month, day = map(int,date_str.split('-'))
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
 
             coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
@@ -389,12 +384,12 @@ class RM(object):
 
         np.savez(npz_file, TEC=final_TEC, RM=final_rm, dRM=final_drm, RA=ra, DEC=dec)
 
-def HERA_RM(time_strs, verbose=False):
+def HERA_RM(date_strs, verbose=False):
     """
     For our convenience.
     """
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
-    height = 1073 # I remember this number from somewhere...
-    return RM(lat_str=lat_str, lon_str=lon_str, time_strs=time_strs, height=height, verbose=verbose)
+    height = 1073 # XXX 
+    return RM(lat_str=lat_str, lon_str=lon_str, date_strs=date_strs, height=height, verbose=verbose)
 
