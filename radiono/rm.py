@@ -18,10 +18,10 @@ from astropy.coordinates import SkyCoord, EarthLocation, Angle, Latitude, Longit
 import radiono as rad
 from radiono import physics as phys, interp as itp, ionex_file as inx, utils
 
-class RM(object):
+class IonoMap(object):
     '''
-    superobject to do altaz or radec RM value generation
-    gets the RM based on input
+    superobject to do altaz or radec RM map generation
+    gets the RM over the sphere given IONEX input
 
     Methods
     -------
@@ -45,10 +45,9 @@ class RM(object):
         ionex_dir | Optional[str]: directory in which ionex files are / will be located
         rm_dir | Optional[str]: directory in which RM data files are / will be located
         '''
-        # if (lat_str == 'HERA') or (lon_str == 'HERA'):
-        #     lat_str = '30d43m17.5ss'
-        #     lon_str = '21d25m41.9se'
-
+        if not isinstance(date_strs,(list,tuple)):
+            raise TypeError('date_strs must be a list') 
+        
         self.lat_str = lat_str
         self.lon_str = lon_str
         self.times = Time(date_strs, format='isot')
@@ -61,8 +60,8 @@ class RM(object):
         self.dRMs = None
         self.UTs = np.linspace(0, 23, num=24)
         self.coordinates_flag = None
-        #self.verbose = verbose
-
+         
+        
     @property
     def lat(self):
         if self.lat_str[-1]=='s': m=-1.
@@ -392,9 +391,9 @@ class RM(object):
 
 def HERA_RM(date_strs, verbose=False):
     """
-    For our convenience.
+    For our convenience: built-in generator for the PAPER/HERA site in the Karoo RQZ, South Africa
     """
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
     height = 1073 # XXX 
-    return RM(lat_str=lat_str, lon_str=lon_str, date_strs=date_strs, height=height, verbose=verbose)
+    return IonoMap(lat_str=lat_str, lon_str=lon_str, date_strs=date_strs, height=height, verbose=verbose)

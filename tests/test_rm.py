@@ -1,13 +1,9 @@
 '''
 radiono.tests.test_rm
 
-authors | James Aguirre, Immanuel Washington, Saul Kohn
+authors | Immanuel Washington, Saul Kohn
 
-purpose | Script used to test RM class
-
-Classes
--------
-TestRM | test RM class module
+purpose | Script used to test IonoMap class in rm.py
 '''
 from __future__ import print_function
 import unittest, os, shutil, random
@@ -23,11 +19,11 @@ testTime='2010-01-21'
 testRA = [np.random.uniform(-np.pi/2.,np.pi/2.)]
 testDec= [np.random.uniform(-np.pi/2.,np.pi/2.)]
 
-#testRAs,testDecs=np.random.uniform(-np.pi,np.pi,size=(hp.nside2npix(testNside))),np.random.uniform(-np.pi,np.pi,size=(hp.nside2npix(testNside)))
+testRAs,testDecs=np.random.uniform(-np.pi/2.,np.pi/2.,size=(hp.nside2npix(16))),np.random.uniform(-np.pi/2.,np.pi/2.,size=(hp.nside2npix(16)))
 
-class TestRM(unittest.TestCase):
+class TestIonoMap(unittest.TestCase):
     def setUp(self):
-        self.rm_map = rm.RM(paperLocStrings[0], paperLocStrings[1], [testTime], height=testHeight,\
+        self.rm_map = rm.IonoMap(paperLocStrings[0], paperLocStrings[1], [testTime], height=testHeight,\
         ionex_dir=testIonexDir, rm_dir=testRmDir)
     def test_map_properties(self):
         self.assertEqual(self.rm_map.lat.value, -30.721527777777776)
@@ -58,12 +54,12 @@ class TestRM(unittest.TestCase):
     def test_radec_single(self):
         rm_radec_map = self.rm_map.get_radec_RM(testRA,testDec)           
     
-    #def test_radec_multip(self):
-    #    rm_radec_map = self.rm_map.radec(testRAs,testDecs)
+    def test_radec_multip(self):
+        rm_radec_map = self.rm_map.get_radec_RM(testRAs,testDecs)
 
     def tearDown(self):
-        #if os.path.exists(testRmDir): shutil.rmtree(testRmDir)
-        #if os.path.exists(testIonexDir): shutil.rmtree(testIonexDir)
+        if os.path.exists(testRmDir): shutil.rmtree(testRmDir)
+        if os.path.exists(testIonexDir): shutil.rmtree(testIonexDir)
         return None 
 
 
