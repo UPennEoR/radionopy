@@ -50,7 +50,7 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
     
     return interp_map
 
-def ionex2healpix(maps, lat, lon, nside, verbose=False):
+def ionex2healpix(maps, lat, lon, verbose=False):
     '''
     convert square map into healpix map
     interpolate healpix map in time
@@ -60,7 +60,6 @@ def ionex2healpix(maps, lat, lon, nside, verbose=False):
     maps | array: square TEC maps
     lat | array[float]: array of latitudes
     lon | array[float]: array of longitudes
-    nside | int: resolution of rm map
     verbose | Optional[bool]: whether to print values or not
 
     Returns
@@ -74,7 +73,7 @@ def ionex2healpix(maps, lat, lon, nside, verbose=False):
 
     map_len = (len(maps) - 1) * 2
     hp_maps = []
-    even_maps = [healpixellize(sq_map, lat_rad, lon_rad, nside, verbose=verbose)\
+    even_maps = [healpixellize(sq_map, lat_rad, lon_rad, verbose=verbose)\
                  for sq_map in maps]
 
     for i, even_map in enumerate(even_maps[:-1]):
@@ -118,7 +117,7 @@ def get_los_tec(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
 
     return TEC_path, RMS_TEC_path
     
-def healpixellize(f_in, theta_in, phi_in, nside, verbose=False):
+def healpixellize(f_in, theta_in, phi_in, nside=16, verbose=False):
     '''
     A dumb method for converting data f sampled at points theta and phi
     (not on a healpix grid)
@@ -129,8 +128,8 @@ def healpixellize(f_in, theta_in, phi_in, nside, verbose=False):
     f_in | array: square map
     theta_in | array: latitude to grid to
     phi_in | array in: longitude to grid to
-    nside | int: healpix value
-    verbose | Optional[bool]: whether to print values or not
+    nside | Optional[int]: healpix value (IONEX maps give nside=16 natively)
+    verbose | Optional[bool]: whether to print values and info or not
 
     Returns
     -------
