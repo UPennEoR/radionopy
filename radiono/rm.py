@@ -39,7 +39,7 @@ class RM(object):
         ----------
         lat_str | str: latitude that the observation was taken at
         lon_str | str: longitude that the observation was taken at
-        time_strs | list[str]: list of dates for observation
+        time_strs | list[str]: list of dates for observation in form "YYYY-MM-DD"
         height | Optional[float]: height observation taken at in meters
         nside | Optional[int]: resolution of rm map --defaults to 16
         ionex_dir | Optional[str]: directory in which ionex files are / will be located
@@ -95,7 +95,7 @@ class RM(object):
         -------
         str: rm directory path
         '''
-        RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
+        RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str))
         if not os.path.exists(RM_dir):
             if verbose: print('Creating directory %s'%RM_dir)
             os.makedirs(RM_dir)
@@ -134,17 +134,11 @@ class RM(object):
 
         self.coordinates_flag = 'J2000_RaDec'
 
-        # nside = 16
-        # npix = hp.nside2npix(nside)
-        # hpxidx = np.arange(npix)
-        # cza, ra = hp.pix2ang(nside, hpxidx)
-        # dec = np.pi/2. - cza
-
         for time in self.times:
             time_str = str(time)
             RM_dir = self.make_rm_dir(time_str)
 
-            year, month, day = time_str.split('T')[0].split('-')
+            year, month, day = time_str.split('-')
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day, verbose=self.verbose)
 
             # predict the ionospheric RM for every hour within a day
@@ -182,7 +176,7 @@ class RM(object):
             time_str = str(time)
             RM_add = []
             dRM_add = []
-            RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
+            RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str))
             for UT in self.UTs:
                 data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=utils.std_hour(UT, verbose=False)))
                 _, _, B_para, RM_ut, dRM_ut = np.loadtxt(data_file, unpack=True)
@@ -259,7 +253,7 @@ class RM(object):
         for date in self.times:
             date_str = str(date)
             RM_dir = self.make_rm_dir(date_str)
-            year, month, day = date_str.split('T')[0].split('-')
+            year, month, day = date_str.split('-')
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
 
             coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
@@ -371,7 +365,7 @@ class RM(object):
                                                   np.zeros((rng.shape[0], self.npix)),\
                                                   np.zeros((rng.shape[0], self.npix)),\
                                                   np.zeros((rng.shape[0], self.npix))
-        RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
+        RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str))
         for UT in rng:
             rm_file = os.path.join(RM_dir, 'IonRM{num}.txt'.format(num=utils.std_hour(UT, verbose=verbose)))
             radec_file = os.path.join(RM_dir, 'radec{num}.txt'.format(num=utils.std_hour(UT, verbose=verbose)))
@@ -385,7 +379,7 @@ class RM(object):
             ra[UT,:] = RA
             dec[UT,:] = DEC
 
-        f_name = ''.join((time_str.split('T')[0], '_', loc_str, '.npz'))
+        f_name = ''.join((time_str, '_', loc_str, '.npz'))
         npz_dir = os.path.join(rad.root_dir, 'npz')
         if not os.path.exists(npz_dir):
             os.mkdir(npz_dir)
@@ -404,50 +398,3 @@ def HERA_RM(time_strs, verbose=False):
     height = 1073 # I remember this number from somewhere...
     return RM(lat_str=lat_str, lon_str=lon_str, time_strs=time_strs, height=height, verbose=verbose)
 
-
-    ## Dumb!
-    # def get_radec_RM(self, ras, decs):
-    #
-    #     if self.coordinates_flag != 'J2000_RaDec':
-    #         raise Exception('You have requested data in ra/dec coordinates from maps that are not in ra/dec coordinates. This should coded better, but for now its your problem')
-    #
-    #     czas = np.pi/2. - decs
-    #     pix_index = hp.ang2pix(nside, czas, ras)
-    #
-    #     RMs_out = (self.RMs)[:, pix_index]
-    #
-    #     return RMs_out
-
-    # def parse_radec(self):
-    #     '''
-    #     parses ionospheric RM files and assigns values to object
-    #
-    #     Returns
-    #     -------
-    #     tuple:
-    #         array[float]: parallel B field array
-    #         array[float]: RM data
-    #         array[float]: RM error data
-    #     '''
-    #     b_para_s = []
-    #     rm_s = []
-    #     drm_s = []
-    #     for time in self.times:
-    #         time_str = str(time)
-    #         RM_add = []
-    #         dRM_add = []
-    #         RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str.split('T')[0]))
-    #         for UT in self.UTs:
-    #             data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=utils.std_hour(UT, verbose=False)))
-    #             _, _, B_para, RM_ut, dRM_ut = np.loadtxt(data_file, unpack=True)
-    #             b_para_s.append(B_para)
-    #             RM_add.append(RM_ut)
-    #             dRM_add.append(dRM_ut)
-    #         rm_s.append(RM_add)
-    #         drm_s.append(dRM_add)
-    #
-    #     self.B_para = np.array(b_para_s)
-    #     self.RMs = np.array(rm_s)
-    #     self.dRMs = np.array(drm_s)
-    #
-    #     return self.B_para, self.RMs, self.dRMs
