@@ -46,8 +46,8 @@ class IonoMap(object):
         rm_dir | Optional[str]: directory in which RM data files are / will be located
         '''
         if not isinstance(date_strs,(list,tuple)):
-            raise TypeError('date_strs must be a list') 
-        
+            raise TypeError('date_strs must be a list')
+
         self.lat_str = lat_str
         self.lon_str = lon_str
         self.times = Time(date_strs, format='isot')
@@ -60,8 +60,8 @@ class IonoMap(object):
         self.dRMs = None
         self.UTs = np.linspace(0, 23, num=24)
         self.coordinates_flag = None
-         
-        
+
+
     @property
     def lat(self):
         if self.lat_str[-1]=='s': m=-1.
@@ -130,14 +130,14 @@ class IonoMap(object):
         return tec_hp, rms_hp, ion_height
 
     def get_radec_RM(self, ras, decs):
-        
-        if not all((i<=np.pi/2. and i>=-np.pi/2.) for i in ras):
-            raise ValueError('All RAs must be between -pi/2 and pi/2 radians')
+
+        if not all((i<=2. * np.pi and i>=0.) for i in ras):
+            raise ValueError('All RAs must be between 0 and 2*pi radians')
         if not all((i<=np.pi/2. and i>=-np.pi/2.) for i in decs):
             raise ValueError('All Decs must be between -pi/2 and pi/2 radians')
-        
+
         self.coordinates_flag = 'J2000_RaDec'
-        
+
         for time in self.times:
             time_str,_,_ = str(time).partition('T')
             RM_dir = self.make_rm_dir(time_str)
@@ -154,7 +154,7 @@ class IonoMap(object):
                 az_src = np.array(c_altaz.az.degree)
                 zen_src = np.array(Angle(c_altaz.zen).degree) # AltAz.zen doesn't have method to return angle data
 
-                coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str, 
+                coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
                                                                      az_src, zen_src, ion_height)
                 #XXX B_para calculated per UT
                 B_para = phys.B_IGRF(year, month, day,
@@ -176,7 +176,7 @@ class IonoMap(object):
             RM_add = []
             dRM_add = []
             RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str))
-            
+
             for UT in self.UTs:
                 data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=utils.std_hour(UT)))
                 _, _, B_para, RM_ut, dRM_ut = np.loadtxt(data_file, unpack=True)
@@ -389,11 +389,11 @@ class IonoMap(object):
 
         np.savez(npz_file, TEC=final_TEC, RM=final_rm, dRM=final_drm, RA=ra, DEC=dec)
 
-def HERA_RM(date_strs, verbose=False):
+def HERA_RM(date_strs):
     """
     For our convenience: built-in generator for the PAPER/HERA site in the Karoo RQZ, South Africa
     """
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
-    height = 1073 # XXX 
-    return IonoMap(lat_str=lat_str, lon_str=lon_str, date_strs=date_strs, height=height, verbose=verbose)
+    height = 1073 # XXX
+    return IonoMap(lat_str=lat_str, lon_str=lon_str, date_strs=date_strs, height=height)
