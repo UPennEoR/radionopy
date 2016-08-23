@@ -18,6 +18,7 @@ Example Scripts:
 -------------
 * `ion_altaz.py` -- uses altitudes, azimuths to find RM
 * `ion_radec.py` -- uses right ascensions, declinations to find RM
+* `earthPlot.py` -- makes a map of the TEC and RM over a python Basemap
 
 Requirements:
 -------------
@@ -25,4 +26,4 @@ Requirements:
 * [Numpy](http://scipy.org/)
 * [Astropy](http://www.astropy.org/)
 * [healpy](http://healpy.readthedocs.org/)
-
+* optional: [Basemap](http://matplotlib.org/basemap/users/index.html)
