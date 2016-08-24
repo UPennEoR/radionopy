@@ -4,4 +4,6 @@ legacy/*
 npz/*
 RM_files/*
 TEC/*
+RM_files
+TEC
 radionopy.egg-info/*
