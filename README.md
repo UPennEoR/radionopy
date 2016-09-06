@@ -26,4 +26,5 @@ Requirements:
 * [Numpy](http://scipy.org/)
 * [Astropy](http://www.astropy.org/)
 * [healpy](http://healpy.readthedocs.org/)
+* [pyEphem](https://pypi.python.org/pypi/ephem/)
 * optional: [Basemap](http://matplotlib.org/basemap/users/index.html)
