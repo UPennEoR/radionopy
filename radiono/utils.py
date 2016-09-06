@@ -94,6 +94,28 @@ def write_radec(UT, radec_file, alt_src, az_src, date_str, location, height=1051
         for r, d in zip(ra, dec):
             f.write('{ra} {dec}\n'.format(ra=r.value, dec=d.value))
 
+def eph2ionDate(date):
+    """
+    YYYY/MM/DD to YYYY-MM-DD
+    """
+    return '-'.join(date.split('/'))
+
+def ion2ephDate(date):
+    """
+    YYYY-MM-DD to YYYY/MM/DD
+    """
+    return '/'.join(date.split('-'))
+
+def ephemPAPER(date=None):
+    """
+    returns a ephem Observer object of the PAPER location
+    optionally supply a date in string form 'YYYY/MM/DD'
+    """
+    site = ephem.Observer()
+    site.lat,site.lon,site.elevation = -30.721527777777776,21.428305555555557,1000.
+    if date is not None: site.date = date
+    return site
+
 def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=1000.):
     """
     Construct observer object (default PAPER site) and ask when the
@@ -118,7 +140,7 @@ def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=
 
     return str(tp_transit)
 
-def parseTransitBasic(trans_str,SA=True):
+def parseTransitBasic(trans_str,SA=True,SunCheck=False):
     """
     This method can be used to find the location in the 
     radionopy output array for a transit of a given
@@ -128,6 +150,7 @@ def parseTransitBasic(trans_str,SA=True):
     ----------
     trans_str | str: output from nextTransit(...); string in form 'YYYY/MM/DD HH:MM:SS.ss'
     SA | bool: South Africa Standard Time? UT+2 is returned.
+    SunCheck | bool: should we check if the Sun is up? If so, the returned tuple contains 'True'
     """
     
     _date,_time_UTC = trans_str.split()
@@ -139,5 +162,11 @@ def parseTransitBasic(trans_str,SA=True):
     _hour = _time[0]
     if up: _hour+=1
     if SA: _hour+=2
-    return (_date,_hour)
-    
+    if not SunCheck: return (_date,_hour)
+    else:
+        p = ephemPAPER(trans_str)
+        S = ephem.Sun()
+        S.compute(p)
+        if S.alt >= 0.1: chk = True
+        else: chk = False
+        return (_date,_hour,chk)
