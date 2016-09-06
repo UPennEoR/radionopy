@@ -9,7 +9,7 @@ std_hour | converts hour into consistent string representation
 write_RM | writes ionospheric RM to file(s)
 write_radec | writes RAs and DECs to file
 '''
-
+import ephem
 from astropy import constants as c, units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord
@@ -93,3 +93,51 @@ def write_radec(UT, radec_file, alt_src, az_src, date_str, location, height=1051
     with open(radec_file, 'w') as f:
         for r, d in zip(ra, dec):
             f.write('{ra} {dec}\n'.format(ra=r.value, dec=d.value))
+
+def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=1000.):
+    """
+    Construct observer object (default PAPER site) and ask when the
+    next transit of a given RA/Dec is.
+    
+    Paramters
+    ---------
+    date | str: in form YYYY/MM/DD
+    ra, dec, lat and lon | float: in degrees
+    elevation | float: meters
+    """
+    #define where and when we are observing
+    site = ephem.Observer()
+    site.lat,site.lon,site.elevation = lat,lon,elev
+    site.date = date
+
+    tp = ephem.FixedBody() # this is the point we are asking about
+    tp._ra = ra
+    tp._dec = dec
+    tp.compute(site)
+    tp_transit = site.next_transit(tp)
+
+    return str(tp_transit)
+
+def parseTransitBasic(trans_str,SA=True):
+    """
+    This method can be used to find the location in the 
+    radionopy output array for a transit of a given
+    pointing.
+
+    Parameters
+    ----------
+    trans_str | str: output from nextTransit(...); string in form 'YYYY/MM/DD HH:MM:SS.ss'
+    SA | bool: South Africa Standard Time? UT+2 is returned.
+    """
+    
+    _date,_time_UTC = trans_str.split()
+    _date = '-'.join(_date.split('/'))
+    _time = map(int,_time_UTC.split(':'))
+    # zeroth-order estimation is to round to nearest UT
+    if float(_time[1])+float(_time[2])/60. > 30: up = True
+    else: up = False
+    _hour = _time[0]
+    if up: _hour+=1
+    if SA: _hour+=2
+    return (_date,_hour)
+    
