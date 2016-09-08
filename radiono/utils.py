@@ -167,6 +167,6 @@ def parseTransitBasic(trans_str,SA=True,SunCheck=False):
         p = ephemPAPER(trans_str)
         S = ephem.Sun()
         S.compute(p)
-        if S.alt >= 0.1: chk = True
+        if S.alt >= -0.1: chk = True
         else: chk = False
         return (_date,_hour,chk)
