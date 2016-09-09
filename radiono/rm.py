@@ -129,7 +129,7 @@ class IonoMap(object):
 
         return tec_hp, rms_hp, ion_height
 
-    def get_radec_RM(self, ras, decs):
+    def get_radec_RM(self, ras, decs, verbose=False):
 
         if not all((i<=2. * np.pi and i>=0.) for i in ras):
             raise ValueError('All RAs must be between 0 and 2*pi radians')
@@ -142,6 +142,7 @@ class IonoMap(object):
             time_str,_,_ = str(time).partition('T')
             RM_dir = self.make_rm_dir(time_str)
             year, month, day = map(int,time_str.split('-'))
+            if verbose: print(year,month,day)
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
 
             # predict the ionospheric RM for every hour within a day

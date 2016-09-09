@@ -9,7 +9,7 @@ std_hour | converts hour into consistent string representation
 write_RM | writes ionospheric RM to file(s)
 write_radec | writes RAs and DECs to file
 '''
-import ephem
+import ephem, numpy as np
 from astropy import constants as c, units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord
@@ -112,7 +112,7 @@ def ephemPAPER(date=None):
     optionally supply a date in string form 'YYYY/MM/DD'
     """
     site = ephem.Observer()
-    site.lat,site.lon,site.elevation = -30.721527777777776,21.428305555555557,1000.
+    site.lat,site.long,site.elevation = '-30.721527777777776','21.428305555555557',1000.
     if date is not None: site.date = date
     return site
 
@@ -129,18 +129,19 @@ def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=
     """
     #define where and when we are observing
     site = ephem.Observer()
-    site.lat,site.lon,site.elevation = lat,lon,elev
+    site.lat,site.long,site.elevation = str(lat),str(lon),elev
     site.date = date
 
     tp = ephem.FixedBody() # this is the point we are asking about
-    tp._ra = ra
-    tp._dec = dec
-    tp.compute(site)
+    tp._ra = np.radians(ra)
+    tp._dec = np.radians(dec)
+    tp._epoch = date
+    tp.compute()
     tp_transit = site.next_transit(tp)
 
     return str(tp_transit)
 
-def parseTransitBasic(trans_str,SA=True,SunCheck=False):
+def parseTransitBasic(trans_str,SunCheck=False):
     """
     This method can be used to find the location in the 
     radionopy output array for a transit of a given
@@ -157,16 +158,19 @@ def parseTransitBasic(trans_str,SA=True,SunCheck=False):
     _date = '-'.join(_date.split('/'))
     _time = map(int,_time_UTC.split(':'))
     # zeroth-order estimation is to round to nearest UT
-    if float(_time[1])+float(_time[2])/60. > 30: up = True
+    if float(_time[1]) > 30: up = True
     else: up = False
     _hour = _time[0]
     if up: _hour+=1
-    if SA: _hour+=2
     if not SunCheck: return (_date,_hour)
     else:
-        p = ephemPAPER(trans_str)
-        S = ephem.Sun()
-        S.compute(p)
-        if S.alt >= -0.1: chk = True
+        sun = ephem.Sun()
+        paper = ephemPAPER(date=trans_str)
+        sun._epoch = trans_str
+        sun.compute(paper)
+        if float(repr(sun.alt)) > 0.: chk = True
         else: chk = False
-        return (_date,_hour,chk)
+        return (_date,_hour,chk,float(repr(sun.alt)))
+        #DEBUG:
+        #return (_date,_hour,False)
+
