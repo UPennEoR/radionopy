@@ -9,7 +9,7 @@ std_hour | converts hour into consistent string representation
 write_RM | writes ionospheric RM to file(s)
 write_radec | writes RAs and DECs to file
 '''
-
+import ephem, numpy as np
 from astropy import constants as c, units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord
@@ -93,3 +93,84 @@ def write_radec(UT, radec_file, alt_src, az_src, date_str, location, height=1051
     with open(radec_file, 'w') as f:
         for r, d in zip(ra, dec):
             f.write('{ra} {dec}\n'.format(ra=r.value, dec=d.value))
+
+def eph2ionDate(date):
+    """
+    YYYY/MM/DD to YYYY-MM-DD
+    """
+    return '-'.join(date.split('/'))
+
+def ion2ephDate(date):
+    """
+    YYYY-MM-DD to YYYY/MM/DD
+    """
+    return '/'.join(date.split('-'))
+
+def ephemPAPER(date=None):
+    """
+    returns a ephem Observer object of the PAPER location
+    optionally supply a date in string form 'YYYY/MM/DD'
+    """
+    site = ephem.Observer()
+    site.lat,site.long,site.elevation = '-30.721527777777776','21.428305555555557',1000.
+    if date is not None: site.date = date
+    return site
+
+def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=1000.):
+    """
+    Construct observer object (default PAPER site) and ask when the
+    next transit of a given RA/Dec is.
+    
+    Paramters
+    ---------
+    date | str: in form YYYY/MM/DD
+    ra, dec, lat and lon | float: in degrees
+    elevation | float: meters
+    """
+    #define where and when we are observing
+    site = ephem.Observer()
+    site.lat,site.long,site.elevation = str(lat),str(lon),elev
+    site.date = date
+
+    tp = ephem.FixedBody() # this is the point we are asking about
+    tp._ra = np.radians(ra)
+    tp._dec = np.radians(dec)
+    tp._epoch = date
+    tp.compute()
+    tp_transit = site.next_transit(tp)
+
+    return str(tp_transit)
+
+def parseTransitBasic(trans_str,SunCheck=False):
+    """
+    This method can be used to find the location in the 
+    radionopy output array for a transit of a given
+    pointing.
+
+    Parameters
+    ----------
+    trans_str | str: output from nextTransit(...); string in form 'YYYY/MM/DD HH:MM:SS.ss'
+    SA | bool: South Africa Standard Time? UT+2 is returned.
+    SunCheck | bool: should we check if the Sun is up? If so, the returned tuple contains 'True'
+    """
+    
+    _date,_time_UTC = trans_str.split()
+    _date = '-'.join(_date.split('/'))
+    _time = map(int,_time_UTC.split(':'))
+    # zeroth-order estimation is to round to nearest UT
+    if float(_time[1]) > 30: up = True
+    else: up = False
+    _hour = _time[0]
+    if up: _hour+=1
+    if not SunCheck: return (_date,_hour)
+    else:
+        sun = ephem.Sun()
+        paper = ephemPAPER(date=trans_str)
+        sun._epoch = trans_str
+        sun.compute(paper)
+        if float(repr(sun.alt)) > 0.: chk = True
+        else: chk = False
+        return (_date,_hour,chk,float(repr(sun.alt)))
+        #DEBUG:
+        #return (_date,_hour,False)
+
