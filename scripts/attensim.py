@@ -6,12 +6,13 @@ from matplotlib import pyplot as plt
 args = sys.argv[1:]
 
 cols = ['b','g','r']
-freqs = np.linspace(100e6,200e6,num=203)
+nnn = 100
+freqs = np.linspace(50e6,250e6,num=nnn)
 
 num = 10
 
-stor = np.zeros((num,203,len(args)))
-rstor= np.zeros((203,len(args)))
+stor = np.zeros((num,nnn,len(args)))
+rstor= np.zeros((nnn,len(args)))
 
 for c,npz in enumerate(args):
     print npz
@@ -47,14 +48,16 @@ for c,npz in enumerate(args):
             geps,reps = gs/float(N*N),rs/float(N*N)
             stor[n,k,c] = geps
             rstor[k,c] = reps
+    """
     #np.savez(npz.split('.')[0]+'gauss_n%i.npz'%num,res=stor)
     np.savez(npz.split('.')[0]+'data_n%i.npz'%num,res=stor)
     M,S = np.mean(stor[:,:,c],axis=0),np.std(stor[:,:,c],axis=0)
     plt.errorbar(freqs/1e6,M,yerr=S,label=npz.split('_')[0]+' sim',fmt=cols[c]+'-',ecolor=cols[c])
-    plt.plot(freqs/1e6,rstor[:,c],cols[c]+'-',lw=2,alpha=0.7,label=npz.split('_')[0]+' data')
+    """
+    plt.semilogy(freqs/1e6,rstor[:,c],cols[c]+'-',lw=2,alpha=0.7,label=npz.split('_')[0]+' data')
 plt.ylabel('Attenuation Factor', size=13)
 plt.xlabel('Frequency [MHz]', size=13)
-plt.legend()
+plt.legend(loc='best')
 plt.show()
 
                 
