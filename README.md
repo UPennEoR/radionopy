@@ -16,8 +16,6 @@ on the user machine:
 
 Example Scripts:
 -------------
-* `ion_altaz.py` -- uses altitudes, azimuths to find RM
-* `ion_radec.py` -- uses right ascensions, declinations to find RM
 * `earthPlot.py` -- makes a map of the TEC and RM over a python Basemap
 
 Requirements:
