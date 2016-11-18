@@ -34,6 +34,7 @@ for c,npz in enumerate(sys.argv[1:]):
         llist[c].append(eps)
         glist[c].append(geps)
 
+print llist
 for n in range(3):
     plt.plot(freqs/1e6,llist[n],cols[n]+'-')
     plt.plot(freqs/1e6,glist[n],cols[n]+'--')
