@@ -151,7 +151,7 @@ def parseTransitBasic(trans_str,SunCheck=False):
     ----------
     trans_str | str: output from nextTransit(...); string in form 'YYYY/MM/DD HH:MM:SS.ss'
     SA | bool: South Africa Standard Time? UT+2 is returned.
-    SunCheck | bool: should we check if the Sun is up? If so, the returned tuple contains 'True'
+    SunCheck | bool: should we check if the Sun is up? If it is, the returned tuple contains 'True'
     """
     
     _date,_time_UTC = trans_str.split()
