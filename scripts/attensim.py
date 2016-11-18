@@ -6,22 +6,12 @@ from matplotlib import pyplot as plt
 args = sys.argv[1:]
 NNN = 1000
 cols = ['b','g','r']
-<<<<<<< HEAD
 freqs = np.linspace(40e6,500e6,num=NNN)
-=======
-nnn = 100
-freqs = np.linspace(50e6,250e6,num=nnn)
->>>>>>> 5fcc728f3f1254f492643db9d9efec6a558dd3eb
 
 num = 4
 
-<<<<<<< HEAD
 stor = np.zeros((num,NNN,len(args)))
 rstor= np.zeros((NNN,len(args)))
-=======
-stor = np.zeros((num,nnn,len(args)))
-rstor= np.zeros((nnn,len(args)))
->>>>>>> 5fcc728f3f1254f492643db9d9efec6a558dd3eb
 
 for c,npz in enumerate(args):
     print npz
@@ -58,11 +48,7 @@ for c,npz in enumerate(args):
             stor[n,k,c] = geps
             #if f>121e6 and f<131e6: epsarr.append(geps)
             rstor[k,c] = reps
-<<<<<<< HEAD
-    #print npz,np.mean(epsarr),np.std(epsarr)
-=======
     """
->>>>>>> 5fcc728f3f1254f492643db9d9efec6a558dd3eb
     #np.savez(npz.split('.')[0]+'gauss_n%i.npz'%num,res=stor)
     #np.savez(npz.split('.')[0]+'data_n%i.npz'%num,res=stor)
     M,S = np.mean(stor[:,:,c],axis=0),np.std(stor[:,:,c],axis=0)
