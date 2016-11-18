@@ -19,6 +19,10 @@ import healpy as hp
 from astropy.coordinates import Angle, Latitude, Longitude
 from astropy import constants as c
 import radiono as rad
+import tempfile
+
+from random import choice
+from string import ascii_lowercase
 
 earth_radius = c.R_earth.value #6371000.0 # in meters
 tesla_to_gauss = 1e4
@@ -42,8 +46,31 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     -------
     array: B field at each coordinate
     '''
-    input_file = os.path.join(rad.root_dir, mag_dir, 'input.txt')
-    output_file = os.path.join(rad.root_dir, mag_dir, 'output.txt')
+
+    script_dir = os.path.join(rad.root_dir, 'IGRF/geomag70_linux/')
+
+    def random_io_file(script_dir):
+        """
+        Create a file with a unique name for use by the IGRF script.
+        """
+
+        # generate a random string of lowercase letters a-z
+        io_name = ''.join(choice(ascii_lowercase) for i in range(10)) + '.txt'
+        io_file = os.path.join(script_dir,io_name)
+
+        # check to see if this file already exists, and generate names
+        # until a new name is found
+        while os.path.exists(io_file):
+            io_name = ''.join(choice(ascii_lowercase) for i in range(10)) + '.txt'
+            io_file = os.path.join(script_dir,io_name)
+
+        # create an empty file with the new name
+        open(io_file, 'w').close()
+
+        return io_file, io_name
+
+    input_file, input_name = random_io_file(script_dir)
+    output_file, output_name = random_io_file(script_dir)
 
     # Calculation of the total magnetic field along the line of sight at the IPP
     sky_rad = (earth_radius + ion_height) / 1000.0
@@ -62,10 +89,10 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
     script_dir = os.path.join(rad.root_dir, 'IGRF/geomag70_linux/')
     working_dir = os.getcwd()
     os.chdir(script_dir)
-    os.system('./geomag70 IGRF11.COF f input.txt output.txt '+'> /dev/null 2>&1')
+    os.system('./geomag70 IGRF11.COF f ' + input_name + ' ' + output_name + ' > /dev/null 2>&1')
     os.chdir(working_dir)
-    
-    #record B_parallel field in numpy array 
+
+    #record B_parallel field in numpy array
     B_para = []
     with open(output_file, 'r') as g:
         all_data = g.readlines()
@@ -81,6 +108,10 @@ def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_pun
                       x_field * np.sin(zen_punct[i]) * np.cos(az_punct[i])
 
             B_para.append(B_paras)
+
+    # clean-up the input and output files used by IGRF
+    os.remove(input_file)
+    os.remove(output_file)
 
     return np.array(B_para)
 
@@ -201,4 +232,3 @@ def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
                                       np.degrees(off_lat), np.degrees(off_lon))
 
     return coord_lat, coord_lon, az_punct, zen_punct
-
