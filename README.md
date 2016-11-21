@@ -5,8 +5,6 @@ the ionosphere for radio telescope measurements.
 This is an attempt to make [ionFR](http://sourceforge.net/projects/ionfr) considerably more powerful
 and flexible.
 
-The current usage is to edit the executable within rad.py with your latitude and longitude, and the date/time-string. This will generate a folder called "RM_files" with text files of RM healpix maps (hourly) and an npz file containing 24 hours of TEC, RM and RM-uncertainty data. IONEX files required for the date will be obtained automatically via the date/time-string.
-
 `python setup.py develop`
 
 This compiles the [geomagnetic field code](https://www.ngdc.noaa.gov/geomag/WMM/soft.shtml) (within the IGRF folder) 
@@ -16,7 +14,8 @@ on the user machine:
 
 Example Scripts:
 -------------
-* `earthPlot.py` -- makes a map of the TEC and RM over a python Basemap
+* `earthPlot.py` -- makes a map of the TEC and RM over a python Basemap.
+* `probe_parameter_space.py` -- creating and interacting with an IonoMap object containing months-worth of data.
 
 Requirements:
 -------------
