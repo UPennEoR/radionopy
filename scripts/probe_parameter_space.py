@@ -1,6 +1,7 @@
 import healpy as hp, numpy as np, matplotlib.pyplot as plt, sys, os, aipy, pickle
 from bm_prms import prms
 from radiono import rm
+from radiono import utilts as ut
 
 NSIDE=16
 
@@ -85,22 +86,39 @@ else: print 'Opening %s_to_%s.pkl'%(dates[0],dates[-1])
 
 pkl = open('%s_to_%s.pkl'%(dates[0],dates[-1]),'rb')
 data = pickle.load(pkl)
-means,vars = [],[]
+means,vars,absmeans,absvars = [],[],[],[]
 for k in data.keys():
     if k.startswith('20'):
         for i in range(24):
             map = data[k][i]#*data['bm']
-            means.append(np.nanmean(map))
+            #means.append(np.nanmean(map))
+            means.append(map[200,200])
             vars.append(np.nanvar(map))
-
+            absmeans.append(np.nanmean(np.abs(map)))
+            absvars.append(np.nanvar(np.abs(map)))
+#np.savez('mapdata.npz',means=means,absmeans=absmeans,vars=vars,absvars=absvars)
 plt.scatter(vars,means,c=(np.array(range(len(means)))%24)+0.1,alpha=0.7)
 plt.colorbar()
 plt.xlabel(r'$\sigma^2_{\rm RM(\Omega)}$',size=15)
-plt.ylabel(r'$\langle RM(\Omega)\rangle$',size=15)
+plt.ylabel(r'$RM(\hat{z})$',size=15)
 plt.show()
 
-"""
-counts,xbins,ybins=np.histogram2d(vars,means,bins=60);plt.contourf(counts.transpose(),extent=[xbins.min(),xbins.max(),ybins.min(),ybins.max()]);plt.colorbar();plt.show()
-"""
+
+vvv,mmm = [],[]
+for i in range(len(means)):
+    hr = (i%24)+2
+    if hr<=6 or hr>=18:
+        vvv.append(vars[i])
+        mmm.append(means[i])
+vvv=np.array(vvv)
+mmm=np.array(mmm)
+
+counts,xbins,ybins=np.histogram2d(np.sqrt(vvv),mmm,bins=20)
+plt.contourf(counts.transpose(),extent=[xbins.min(),xbins.max(),ybins.min(),ybins.max()])
+plt.colorbar()
+plt.xlabel(r'$\sigma_{\rm RM(\Omega)}$',size=15)
+plt.ylabel(r'$RM(\hat{z})$',size=15)
+plt.show()
+
 import IPython;IPython.embed()
 
