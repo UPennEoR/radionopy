@@ -9,7 +9,7 @@ std_hour | converts hour into consistent string representation
 write_RM | writes ionospheric RM to file(s)
 write_radec | writes RAs and DECs to file
 '''
-import ephem, numpy as np
+import ephem, numpy as np, healpy as hp
 from astropy import constants as c, units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord
@@ -171,3 +171,23 @@ def parseTransitBasic(trans_str,SunCheck=False):
         else: chk = False
         return (_date,_hour,chk,float(repr(sun.alt)))
 
+def IndexToDeclRa(index,nside,deg=False):
+    """
+    Convert a HEALPix pixel to RA,Dec coordinates
+    """
+    theta,phi=hp.pixelfunc.pix2ang(nside,index)
+    if deg: return -np.degrees(theta-np.pi/2.),np.degrees(np.pi*2.-phi)
+    else: return theta-np.pi/2., 2.*np.pi-phi
+
+def nsideToDeclRa(nside):
+    """
+    Return two arrays (RA, Dec) based on a HEALPix
+    grid of length 'nside'.
+    """
+    ipix = range(hp.nside2npix(nside))
+    ras,decs = [],[]
+    for p in ipix:
+        dec,ra = IndexToDeclRa(p,nside)
+        ras.append(ra)
+        decs.append(dec)
+    return np.array(ras),np.array(decs)

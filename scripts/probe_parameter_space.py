@@ -1,7 +1,7 @@
 import healpy as hp, numpy as np, matplotlib.pyplot as plt, sys, os, aipy, pickle
 from bm_prms import prms
 from radiono import rm
-from radiono import utilts as ut
+from radiono import utils as ut
 
 NSIDE=16
 
@@ -117,8 +117,8 @@ counts,xbins,ybins=np.histogram2d(np.sqrt(vvv),mmm,bins=20)
 plt.contourf(counts.transpose(),extent=[xbins.min(),xbins.max(),ybins.min(),ybins.max()])
 plt.colorbar()
 plt.xlabel(r'$\sigma_{\rm RM(\Omega)}$',size=15)
-plt.ylabel(r'$RM(\hat{z})$',size=15)
+plt.ylabel(r'${\rmRM(zenith)}$',size=15)
 plt.show()
 
-import IPython;IPython.embed()
+#import IPython;IPython.embed()
 

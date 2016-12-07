@@ -24,7 +24,6 @@ def DeclRaToIndex(decl,RA):
 
 
 IM = rm.IonoMap('30d43m17.5ss','21d25m41.9se',['%s-%s-%s'%(YYYY,MM,DD)])
-#is this silly?
 Plat=-30.-(43./60.)-(17.5/3600.)
 Plon=21.+(25./60.)+(41.9/3600.)
 
