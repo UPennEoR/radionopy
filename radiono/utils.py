@@ -179,7 +179,7 @@ def IndexToDeclRa(index,nside,deg=False):
     if deg: return -np.degrees(theta-np.pi/2.),np.degrees(np.pi*2.-phi)
     else: return theta-np.pi/2., 2.*np.pi-phi
 
-def nsideToDeclRa(nside):
+def nsideToRaDec(nside):
     """
     Return two arrays (RA, Dec) based on a HEALPix
     grid of length 'nside'.
