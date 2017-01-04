@@ -120,5 +120,5 @@ plt.xlabel(r'$\sigma_{\rm RM(\Omega)}$',size=15)
 plt.ylabel(r'${\rmRM(zenith)}$',size=15)
 plt.show()
 
-#import IPython;IPython.embed()
+import IPython;IPython.embed()
 

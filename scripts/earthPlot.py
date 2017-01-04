@@ -6,7 +6,7 @@ from mpl_toolkits.basemap import Basemap
 import sys,os
 
 NSIDE=16
-"""
+
 YYYY='2011'
 MM='04'
 DD='11'
@@ -14,7 +14,7 @@ DD='11'
 YYYY='2012'
 MM='02'
 DD='13'
-
+"""
 def IndexToDeclRa(index,deg=False):
     theta,phi=hp.pixelfunc.pix2ang(NSIDE,index)
     if deg: return -np.degrees(theta-np.pi/2.),np.degrees(np.pi*2.-phi)
@@ -51,11 +51,12 @@ for ut in range(24):
     #plt.show()
     plt.savefig('TEC_%s-%s-%s_UT%i.png'%(YYYY,MM,DD,ut))
     plt.close()
-    
-    hp.orthview(IM.RMs[0,ut,:],half_sky=True,rot=[0,90],flip='astro',max=5,min=-2,unit=r'${\rm rad\,m^{-2}}$',return_projected_map=True)
+     
+"""    hp.orthview(IM.RMs[0,ut,:],half_sky=True,rot=[0,90],flip='astro',max=5,min=-2,unit=r'${\rm rad\,m^{-2}}$',return_projected_map=True)
     #mo.drawcoastlines()
     #_rm = mo.imshow(rmUT,alpha=0.6,vmax=3,vmin=-3)
     plt.title('UT %i hr, %s-%s-%s'%(ut,YYYY,MM,DD))
     #mo.colorbar(location='bottom')
     plt.savefig('RM_%s-%s-%s_UT%i.png'%(YYYY,MM,DD,ut))
     plt.close()
+"""
