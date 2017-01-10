@@ -120,7 +120,8 @@ def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=
     """
     Construct observer object (default PAPER site) and ask when the
     next transit of a given RA/Dec is.
-    
+
+    Output time is Universal Time (UT).
     Paramters
     ---------
     date | str: in form YYYY/MM/DD
@@ -143,7 +144,7 @@ def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=
 
 def parseTransitBasic(trans_str,SunCheck=False):
     """
-    This method can be used to find the location in the 
+    This method can be used to find the location in the
     radionopy output array for a transit of a given
     pointing.
 
@@ -152,7 +153,7 @@ def parseTransitBasic(trans_str,SunCheck=False):
     trans_str | str: output from nextTransit(...); string in form 'YYYY/MM/DD HH:MM:SS.ss'
     SunCheck | bool: should we check if the Sun is up? If it is, the returned tuple contains 'True'
     """
-    
+
     _date,_time_UTC = trans_str.split()
     _date = '-'.join(_date.split('/'))
     _time = map(int,_time_UTC.split(':'))
