@@ -209,8 +209,10 @@ class IonoMap(object):
             array[float]: array of dec coordinates in radians
         '''
         hpxidx = np.arange(self.npix)
-        cza, ra = hp.pix2ang(self.nside, hpxidx)
+        cza, phi = hp.pix2ang(self.nside, hpxidx)
         dec = np.pi/2. - cza
+        phi_m = np.amax(phi) # because of discrete sampling this is  2*\pi - \eppsilon
+        ra = phi_m -phi
 
         return ra, dec
 
