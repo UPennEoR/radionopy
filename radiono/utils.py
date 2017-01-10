@@ -9,7 +9,7 @@ std_hour | converts hour into consistent string representation
 write_RM | writes ionospheric RM to file(s)
 write_radec | writes RAs and DECs to file
 '''
-import ephem, numpy as np
+import ephem, numpy as np, healpy as hp
 from astropy import constants as c, units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord
@@ -120,9 +120,7 @@ def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=
     """
     Construct observer object (default PAPER site) and ask when the
     next transit of a given RA/Dec is.
-
-    Output time is Universal Time (UT).
-
+    
     Paramters
     ---------
     date | str: in form YYYY/MM/DD
@@ -145,17 +143,16 @@ def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=
 
 def parseTransitBasic(trans_str,SunCheck=False):
     """
-    This method can be used to find the location in the
+    This method can be used to find the location in the 
     radionopy output array for a transit of a given
     pointing.
 
     Parameters
     ----------
     trans_str | str: output from nextTransit(...); string in form 'YYYY/MM/DD HH:MM:SS.ss'
-    SA | bool: South Africa Standard Time? UT+2 is returned.
-    SunCheck | bool: should we check if the Sun is up? If so, the returned tuple contains 'True'
+    SunCheck | bool: should we check if the Sun is up? If it is, the returned tuple contains 'True'
     """
-
+    
     _date,_time_UTC = trans_str.split()
     _date = '-'.join(_date.split('/'))
     _time = map(int,_time_UTC.split(':'))
@@ -173,5 +170,24 @@ def parseTransitBasic(trans_str,SunCheck=False):
         if float(repr(sun.alt)) > 0.: chk = True
         else: chk = False
         return (_date,_hour,chk,float(repr(sun.alt)))
-        #DEBUG:
-        #return (_date,_hour,False)
+
+def IndexToDeclRa(index,nside,deg=False):
+    """
+    Convert a HEALPix pixel to RA,Dec coordinates
+    """
+    theta,phi=hp.pixelfunc.pix2ang(nside,index)
+    if deg: return -np.degrees(theta-np.pi/2.),np.degrees(np.pi*2.-phi)
+    else: return theta-np.pi/2., 2.*np.pi-phi
+
+def nsideToRaDec(nside):
+    """
+    Return two arrays (RA, Dec) based on a HEALPix
+    grid of length 'nside'.
+    """
+    ipix = range(hp.nside2npix(nside))
+    ras,decs = [],[]
+    for p in ipix:
+        dec,ra = IndexToDeclRa(p,nside)
+        ras.append(ra)
+        decs.append(dec)
+    return np.array(ras),np.array(decs)

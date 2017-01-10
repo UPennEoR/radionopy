@@ -130,7 +130,9 @@ class IonoMap(object):
         return tec_hp, rms_hp, ion_height
 
     def get_radec_RM(self, ras, decs, verbose=False):
-
+        #TODO: allow ra,dec to be floats, rather than arrays of floats 
+        # (to maintain single-pointing functionality)
+        
         if not all((i<=2. * np.pi and i>=0.) for i in ras):
             raise ValueError('All RAs must be between 0 and 2*pi radians')
         if not all((i<=np.pi/2. and i>=-np.pi/2.) for i in decs):

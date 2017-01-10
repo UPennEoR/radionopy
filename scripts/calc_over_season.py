@@ -16,7 +16,6 @@ lat_str = '30d43m17.5ss'
 lon_str = '21d25m41.9se'
 
 IM = rm.IonoMap(lat_str,lon_str,dates)
-#ras = [np.radians(15.),np.radians(15.*4.),np.radians(15.*8.)] #1,4,8 hrs
 ras = [np.radians(15.*2.),np.radians(15.*4.),np.radians(15.*6.),np.radians(15.*8.)] #2,4,6,8 hrs
 dec = np.radians(-30.-(43./60.)-(17.5/3600.))
 #decs = [dec,dec,dec] #zenith
