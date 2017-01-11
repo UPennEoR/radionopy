@@ -14,7 +14,7 @@ import numpy as np
 from astropy.time import Time
 from astropy import units as u
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation, Angle, Latitude, Longitude
+from astropy.coordinates import SkyCoord, EarthLocation, Angle, Latitude, Longitude, AltAz, ICRS
 import radiono as rad
 from radiono import physics as phys, interp as itp, ionex_file as inx, utils
 
@@ -147,14 +147,22 @@ class IonoMap(object):
             if verbose: print(year,month,day)
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
 
+            alt_src_all = np.zeros([24,3072])
+            lsts = np.zeros(24)
+            
             # predict the ionospheric RM for every hour within a day
             for UT in self.UTs:
                 hour = utils.std_hour(UT)
                 c_icrs = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
                                         location=self.location, obstime=time + UT * u.hr, frame='icrs')
+                c_local = AltAz(az=0.*u.deg,alt=90.*u.deg,obstime=time + UT * u.hr,location=self.location)
+                c_local_Zeq = c_local.transform_to(ICRS)
+                lsts[UT] = c_local_Zeq.ra.degree
+                
                 c_altaz = c_icrs.transform_to('altaz')
                 alt_src = np.array(c_altaz.alt.degree)
                 az_src = np.array(c_altaz.az.degree)
+                alt_src_all[UT,:] = alt_src
                 zen_src = np.array(Angle(c_altaz.zen).degree) # AltAz.zen doesn't have method to return angle data
 
                 coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
@@ -189,9 +197,14 @@ class IonoMap(object):
             rm_s.append(RM_add)
             drm_s.append(dRM_add)
 
+        #print alt_src
+        #rm_s[:,:,np.where(alt_src < 0)[0]] = -999.
+            
         self.B_para = np.array(b_para_s)
         self.RMs = np.array(rm_s)
         self.dRMs = np.array(drm_s)
+        self.alt_src = alt_src_all
+        self.lst = lsts
 
     def make_radec_RM_maps(self):
         """
