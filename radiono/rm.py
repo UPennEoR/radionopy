@@ -155,16 +155,19 @@ class IonoMap(object):
                 hour = utils.std_hour(UT)
                 c_icrs = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
                                         location=self.location, obstime=time + UT * u.hr, frame='icrs')
+
+                # Added to calculate LST for the given time
                 c_local = AltAz(az=0.*u.deg,alt=90.*u.deg,obstime=time + UT * u.hr,location=self.location)
                 c_local_Zeq = c_local.transform_to(ICRS)
                 lsts[UT] = c_local_Zeq.ra.degree
-                
+
+                # Transform given RA/Dec into alt/az
                 c_altaz = c_icrs.transform_to('altaz')
                 alt_src = np.array(c_altaz.alt.degree)
                 az_src = np.array(c_altaz.az.degree)
                 alt_src_all[UT,:] = alt_src
                 zen_src = np.array(Angle(c_altaz.zen).degree) # AltAz.zen doesn't have method to return angle data
-
+                # Calculating the ion piercing point (IPP) depends on local coords (alt/az)
                 coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
                                                                      az_src, zen_src, ion_height)
                 #XXX B_para calculated per UT
