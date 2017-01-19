@@ -35,8 +35,8 @@ if not os.path.exists('lstbintest.npz'):
 
 print 'Opening lstbintest.npz'
 LSTbins = np.load('lstbintest.npz')['bins']
-"""
-print 'test'
+
+print 'Averaging everybody together on the sky'
 k=0
 stor = np.zeros((LSTbins.shape[0]*LSTbins.shape[1],LSTbins.shape[2],LSTbins.shape[2]))
 for i in range(LSTbins.shape[0]):
@@ -46,14 +46,14 @@ for i in range(LSTbins.shape[0]):
 
 plt.imshow(np.mean(stor,axis=0))
 plt.colorbar()
-plt.show()
+#plt.show()
+plt.close()
 
 plt.imshow(np.std(stor,axis=0))
 plt.colorbar()
-plt.show()
+#plt.show()
+plt.close()
 
-sys.exit()
-"""
 f,axarr=plt.subplots(4,4,sharex=True,sharey=True) #XXX neglects low-occupancy LST=16 of PSA32 season
 
 
@@ -99,7 +99,7 @@ plt.close()
 print 'Calculating zj-zi histogram'
 f,axarr = plt.subplots(4,4)
 bw = 0.01
-
+means,sigs = [],[]
 for i,ax in enumerate(axarr.ravel()):
     zen_vals = LSTbins[i,:,200,200]
     zen_vals = zen_vals[zen_vals!=0.]
@@ -113,6 +113,8 @@ for i,ax in enumerate(axarr.ravel()):
     
     (mu,sigma) = norm.fit(arr)
     print 'LST=%i, mu=%f, sigma=%f'%(i,mu,sigma)
+    means.append(mu)
+    sigs.append(sigma)
     n, bins, patches = ax.hist(arr, B, normed=1)
     y = mlab.normpdf(bins, mu, sigma)
     ax.plot(bins,y,'r--',lw=2)
@@ -120,9 +122,14 @@ for i,ax in enumerate(axarr.ravel()):
     #ax.hist(arr,B)
     ax.set_title('LST %i'%i)
     ax.set_xlim(-0.3,0.3)
-    #ax.set_ylim(0,500)
-#plt.show()
+    if i%4==0: ax.set_ylabel('Frequency [%]')
+    if abs(i-len(axarr.ravel())) <= 4: ax.set_xlabel(r'${\rm \Delta\phi_{\rm iono}}(\rm \Omega_{zen})  {\rm [rad m^{-2}]}$')
+    ax.set_ylim(0,16)
+plt.show()
 plt.close()
+
+print np.mean(means),np.mean(sigs)
+sys.exit()
 
 print 'Plotting time-series in days'
 
