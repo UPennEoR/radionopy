@@ -5,6 +5,8 @@ the ionosphere for radio telescope measurements.
 This is an attempt to make [ionFR](http://sourceforge.net/projects/ionfr) considerably more powerful
 and flexible.
 
+Installation:
+-------------
 `python setup.py develop`
 
 This compiles the [geomagnetic field code](https://www.ngdc.noaa.gov/geomag/WMM/soft.shtml) (within the IGRF folder) 
@@ -14,8 +16,8 @@ on the user machine:
 
 Example Scripts:
 -------------
-* `earthPlot.py` -- makes a map of the TEC and RM over a python Basemap.
-* `probe_parameter_space.py` -- creating and interacting with an IonoMap object containing months-worth of data.
+* `docs/radionopy_Tutorial.ipynb` -- tutorial in a Jupyter notebook.
+* `scripts/probe_parameter_space.py` -- creating and interacting with an IonoMap object containing months-worth of data.
 
 Requirements:
 -------------
