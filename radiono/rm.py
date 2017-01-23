@@ -132,6 +132,7 @@ class IonoMap(object):
     def get_radec_RM(self, ras, decs, verbose=False):
         #TODO: allow ra,dec to be floats, rather than arrays of floats 
         # (to maintain single-pointing functionality)
+        #XXX this should not really be referred to as "get". maybe "calc_..."?
         
         if not all((i<=2. * np.pi and i>=0.) for i in ras):
             raise ValueError('All RAs must be between 0 and 2*pi radians')
@@ -139,17 +140,28 @@ class IonoMap(object):
             raise ValueError('All Decs must be between -pi/2 and pi/2 radians')
 
         self.coordinates_flag = 'J2000_RaDec'
-
-        for time in self.times:
+        
+        #final storage arrays
+        b_para_s = []
+        rm_s = []
+        drm_s = []
+        lsts_s = []
+        
+        for time in self.times: #for every day
+            #parsing, creating directory structure
             time_str,_,_ = str(time).partition('T')
             RM_dir = self.make_rm_dir(time_str)
             year, month, day = map(int,time_str.split('-'))
             if verbose: print(year,month,day)
+            
+            #data aquisition
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
-
+           
+            #temp storage arrays
             alt_src_all = np.zeros([24,3072])
             lsts = np.zeros(24)
-            
+            RM_add = []
+            dRM_add = []            
             # predict the ionospheric RM for every hour within a day
             for UT in self.UTs:
                 hour = utils.std_hour(UT)
@@ -166,48 +178,33 @@ class IonoMap(object):
                 alt_src = np.array(c_altaz.alt.degree)
                 az_src = np.array(c_altaz.az.degree)
                 alt_src_all[UT,:] = alt_src
-                zen_src = np.array(Angle(c_altaz.zen).degree) # AltAz.zen doesn't have method to return angle data
-                # Calculating the ion piercing point (IPP) depends on local coords (alt/az)
-                coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
-                                                                     az_src, zen_src, ion_height)
+                
+                # AltAz.zen doesn't have method to return angle data
+                zen_src = np.array(Angle(c_altaz.zen).degree)
+                
+                # Calculating the ion piercing point (IPP) depends on alt/az coords
+                coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str, az_src, zen_src, ion_height)
+                
                 #XXX B_para calculated per UT
-                B_para = phys.B_IGRF(year, month, day,
-                                     coord_lat, coord_lon,
-                                     ion_height, az_punct, zen_punct)
-
-                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[UT], rms_hp[UT],
-                                                          coord_lat, coord_lon,
-                                                          zen_punct)
-
-                new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
-                utils.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True)
-
-        b_para_s = []
-        rm_s = []
-        drm_s = []
-        for time in self.times:
-            time_str,_,_ = str(time).partition('T')
-            RM_add = []
-            dRM_add = []
-            RM_dir = os.path.join(self.rm_dir, '{date}'.format(date=time_str))
-
-            for UT in self.UTs:
-                data_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=utils.std_hour(UT)))
-                _, _, B_para, RM_ut, dRM_ut = np.loadtxt(data_file, unpack=True)
+                #these are the data we care about
+                B_para = phys.B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
+                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[UT], rms_hp[UT], coord_lat, coord_lon, zen_punct)
+                IRM = 2.6e-17 * B_para * TEC_path
+                rms_IRM = 2.6e-17 * B_para * RMS_TEC_path
+                
+                #TODO: replace append commands with numpy array indicies               
                 b_para_s.append(B_para)
-                RM_add.append(RM_ut)
-                dRM_add.append(dRM_ut)
+                RM_add.append(IRM)
+                dRM_add.append(rms_IRM)
+            lsts_s.append(lsts)    
             rm_s.append(RM_add)
             drm_s.append(dRM_add)
-
-        #print alt_src
-        #rm_s[:,:,np.where(alt_src < 0)[0]] = -999.
             
         self.B_para = np.array(b_para_s)
         self.RMs = np.array(rm_s)
         self.dRMs = np.array(drm_s)
         self.alt_src = alt_src_all
-        self.lst = lsts
+        self.lst = np.array(lsts_s)
 
     def make_radec_RM_maps(self):
         """
