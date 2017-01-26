@@ -59,9 +59,11 @@ class TestIonoMap(unittest.TestCase):
         assert(self.lofar_map.RMs.shape == (1,24,1)) #npix = 1
         assert(self.lofar_map.dRMs.shape == (1,24,1))
         #Plot the comparison plot for Sotomayor Beltran et al. 2013 Fig.4b
-        plt.errorbar(range(24), self.lofar_map.RMs[0,:], yerr=self.lofar_map.dRMs[0,:], fmt='ro', ecolor='r')
+        plt.errorbar(range(24), np.abs(self.lofar_map.RMs[0,:,0]), yerr=self.lofar_map.dRMs[0,:,0], fmt='ro', ecolor='r')
+        plt.xlim(0,23)
+        plt.ylim(0,2.5)
         plt.xlabel(r'UT Time [Hours]')
-        plt.ylabel(r'$\phi_{\rm ion}$ [rad m$^{-2}$]')
+        plt.ylabel(r'$|\phi_{\rm ion}|$ [rad m$^{-2}$]')
         plt.savefig('testFig_compare_SB_Fig4b.png')
         plt.suptitle(r'%s'%('/'.join(map(str,[test_day,test_month,test_yr]))))
         plt.close()

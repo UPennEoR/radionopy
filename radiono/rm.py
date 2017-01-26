@@ -146,6 +146,7 @@ class IonoMap(object):
         rm_s = []
         drm_s = []
         lsts_s = []
+        alt_src_s = []
         
         for time in self.times: #for every day
             #parsing, creating directory structure
@@ -196,6 +197,8 @@ class IonoMap(object):
                 b_para_s.append(B_para)
                 RM_add.append(IRM)
                 dRM_add.append(rms_IRM)
+            
+            alt_src_s.append(alt_src_all)
             lsts_s.append(lsts)    
             rm_s.append(RM_add)
             drm_s.append(dRM_add)
@@ -203,7 +206,7 @@ class IonoMap(object):
         self.B_para = np.array(b_para_s)
         self.RMs = np.array(rm_s)
         self.dRMs = np.array(drm_s)
-        self.alt_src = alt_src_all
+        self.alt_src = np.array(alt_src_s)
         self.lst = np.array(lsts_s)
 
     def make_radec_RM_maps(self):
