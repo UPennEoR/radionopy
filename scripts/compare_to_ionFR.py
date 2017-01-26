@@ -26,7 +26,7 @@ RA_d *= 15.
 Dec_d = 58.+(48./60.)+(42.4/3600.)
 
 IM = rm.IonoMap(lat,lng,['%s-%s-%s'%(year,month,day)])
-IM.get_radec_RM([np.radians(RA_d)],[np.radians(Dec_d)])
+IM.calc_radec_rm([np.radians(RA_d)],[np.radians(Dec_d)])
 
 plt.errorbar(ut,RM,yerr=dRM,fmt='ro',label=r'${\tt ionFR}$')
 plt.errorbar(range(24),IM.RMs[0,:],yerr=IM.dRMs[0,:],fmt='bo',label=r'${\tt radionopy}$')

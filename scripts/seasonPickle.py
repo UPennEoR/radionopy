@@ -9,20 +9,22 @@ from radiono import utils as ut
 lat, lon = '30d43m17.5ss', '21d25m41.9se'
 IM = rm.IonoMap(lat,lon,dates)
 ras,decs = ut.nsideToRaDec(16)
+
 print 'Calculating...'
-IM.get_radec_RM(ras,decs)
+IM.calc_radec_RM(ras,decs)
+
 print 'Saving to dict structure'
 datadict = {}
 datadict['lat'] = lat
 datadict['lon'] = lon 
+datadict['lsts'] = IM.lst
 
 for dayindex,day in enumerate(dates):
-    print day
     datadict[day] = {}
-    datadict[day]['lsts'] = IM.lst
     for ut in range(24): datadict[day][ut] = IM.RMs[dayindex,ut,:] 
 outname = 'radec_maps_%s_to_%s.pkl'%(dates[0],dates[-1])
 
+#pickle it up
 output = open(outname,'wb')
 pickle.dump(datadict,output)
 output.close()

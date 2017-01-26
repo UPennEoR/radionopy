@@ -24,7 +24,7 @@ decs = [dec,dec,dec,dec]
 #if not os.path.exists('./1h4h8h.npz'):
 if not os.path.exists('./2h4h6h8h.npz'):
     print 'getting RMs'
-    IM.get_radec_RM(ras,decs,verbose=True)
+    IM.calc_radec_rm(ras,decs,verbose=True)
     np.savez('./2h4h6h8h.npz',RM=IM.RMs,dRM=IM.dRMs,dates=dates)
 else:
     d = np.load('./2h4h6h8h.npz')

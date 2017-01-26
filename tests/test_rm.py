@@ -55,7 +55,7 @@ class TestIonoMap(unittest.TestCase):
 
     def test_radec_single(self):
         self.lofar_map = rm.IonoMap(lofarLocStrings[0],lofarLocStrings[1], [testTime], height=0)
-        self.lofar_map.get_radec_RM([testRA],[testDec])
+        self.lofar_map.calc_radec_rm([testRA],[testDec])
         assert(self.lofar_map.RMs.shape == (1,24,1)) #npix = 1
         assert(self.lofar_map.dRMs.shape == (1,24,1))
         #Plot the comparison plot for Sotomayor Beltran et al. 2013 Fig.4b
@@ -69,7 +69,7 @@ class TestIonoMap(unittest.TestCase):
         plt.close()
 
     def test_radec_multip(self):
-        self.rm_map.get_radec_RM(testRAs,testDecs)
+        self.rm_map.calc_radec_rm(testRAs,testDecs)
         assert(self.rm_map.RMs.shape == (1,24,npix))
         assert(self.rm_map.dRMs.shape == (1,24,npix))
         hp.orthview(self.rm_map.RMs[0,0,:])

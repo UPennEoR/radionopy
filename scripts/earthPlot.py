@@ -35,7 +35,7 @@ for p in ipix:
     decs.append(dec)
 
 tec,rmstec,ionh = IM.ionex_data(YYYY,MM,DD)
-IM.get_radec_RM(ras,decs)
+IM.calc_radec_rm(ras,decs)
 
 mc = Basemap(projection='cyl', resolution='c')
 mo = Basemap(projection='ortho',lon_0=Plon,lat_0=Plat,resolution='c')

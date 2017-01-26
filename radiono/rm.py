@@ -129,7 +129,7 @@ class IonoMap(object):
 
         return tec_hp, rms_hp, ion_height
 
-    def get_radec_RM(self, ras, decs, verbose=False):
+    def calc_radec_rm(self, ras, decs, verbose=False):
         #TODO: allow ra,dec to be floats, rather than arrays of floats 
         # (to maintain single-pointing functionality)
         #XXX this should not really be referred to as "get". maybe "calc_..."?
@@ -214,7 +214,7 @@ class IonoMap(object):
         Generates the full maps in ra/dec coordinates.
         """
         ra, dec = self._radec_arr()
-        self.get_radec_RM(ra, dec)
+        self.calc_radec_RM(ra, dec)
 
     def _radec_arr(self):
         '''
