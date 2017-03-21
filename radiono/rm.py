@@ -132,8 +132,7 @@ class IonoMap(object):
     def calc_radec_rm(self, ras, decs, verbose=False):
         #TODO: allow ra,dec to be floats, rather than arrays of floats 
         # (to maintain single-pointing functionality)
-        #XXX this should not really be referred to as "get". maybe "calc_..."?
-        
+         
         if not all((i<=2. * np.pi and i>=0.) for i in ras):
             raise ValueError('All RAs must be between 0 and 2*pi radians')
         if not all((i<=np.pi/2. and i>=-np.pi/2.) for i in decs):
@@ -164,7 +163,7 @@ class IonoMap(object):
             RM_add = []
             dRM_add = []            
             # predict the ionospheric RM for every hour within a day
-            for UT in self.UTs:
+            for ui,UT in enumerate(self.UTs):
                 hour = utils.std_hour(UT)
                 c_icrs = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
                                         location=self.location, obstime=time + UT * u.hr, frame='icrs')
@@ -172,13 +171,13 @@ class IonoMap(object):
                 # Added to calculate LST for the given time
                 c_local = AltAz(az=0.*u.deg,alt=90.*u.deg,obstime=time + UT * u.hr,location=self.location)
                 c_local_Zeq = c_local.transform_to(ICRS)
-                lsts[UT] = c_local_Zeq.ra.degree
+                lsts[ui] = c_local_Zeq.ra.degree
 
                 # Transform given RA/Dec into alt/az
                 c_altaz = c_icrs.transform_to('altaz')
                 alt_src = np.array(c_altaz.alt.degree)
                 az_src = np.array(c_altaz.az.degree)
-                alt_src_all[UT,:] = alt_src
+                alt_src_all[ui,:] = alt_src
                 
                 # AltAz.zen doesn't have method to return angle data
                 zen_src = np.array(Angle(c_altaz.zen).degree)
@@ -189,7 +188,7 @@ class IonoMap(object):
                 #XXX B_para calculated per UT
                 #these are the data we care about
                 B_para = phys.B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
-                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[UT], rms_hp[UT], coord_lat, coord_lon, zen_punct)
+                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[ui], rms_hp[ui], coord_lat, coord_lon, zen_punct)
                 IRM = 2.6e-17 * B_para * TEC_path
                 rms_IRM = 2.6e-17 * B_para * RMS_TEC_path
                 
@@ -287,12 +286,12 @@ class IonoMap(object):
 
             RMs = []
             dRMs = []
-            for UT in self.UTs:
+            for ui,UT in enumerate(self.UTs):
                 hour = utils.std_hour(UT)
                 radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
                 utils.write_radec(UT, radec_file, alt_src, az_src, date_str, self.location)
-
-                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[UT], rms_hp[UT],
+                #UTs are integer distances apart. Would an enumeration be better?
+                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[ui], rms_hp[ui],
                                                           coord_lat, coord_lon,
                                                           zen_punct)
 
