@@ -72,7 +72,7 @@ class TestIonoMap(unittest.TestCase):
         self.rm_map.calc_radec_rm(testRAs,testDecs)
         assert(self.rm_map.RMs.shape == (1,24,npix))
         assert(self.rm_map.dRMs.shape == (1,24,npix))
-        hp.orthview(self.rm_map.RMs[0,0,:])
+        hp.mollview(self.rm_map.RMs[0,0,:])
         plt.close()
 
     def tearDown(self):
