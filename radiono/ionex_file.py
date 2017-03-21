@@ -134,7 +134,7 @@ def parse_IONEX_file(IONEX_file):
             add = False
             rms_add = True
         elif file_data.split()[-2:] == ['IN', 'FILE']:
-            number_of_maps = float(file_data.split()[0])
+            number_of_maps = int(float(file_data.split()[0]))
 
         if file_data.split()[0] == 'END' and file_data.split()[2] == 'HEADER':
             add = True
@@ -192,8 +192,8 @@ def get_IONEX_data(filename, verbose=False):
     start_lon, end_lon, step_lon = parse_IONEX_file(filename)
 
     # Variables that indicate the number of points in Lat. and Lon.
-    points_lat = ((end_lat - start_lat) / step_lat) + 1
-    points_lon = ((end_lon - start_lon) / step_lon) + 1
+    points_lat = int( ((end_lat - start_lat) / step_lat) + 1 )
+    points_lon = int( ((end_lon - start_lon) / step_lon) + 1 )
     if verbose:
         print(start_lat, end_lat, step_lat)
         print(start_lon, end_lon, step_lon)
