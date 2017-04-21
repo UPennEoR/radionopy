@@ -22,7 +22,7 @@ install:
     # create environment and install dependencies
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy astropy nose pip
     - source activate test-environment
-    - pip install healpy coveralls
+    - pip install ephem healpy coveralls
 
     # develop setup allows us to compile the C code
     - python setup.py develop
