@@ -1,4 +1,6 @@
 # radionopy
+[![Build Status](https://travis-ci.org/SaulAryehKohn/radionopy.svg?branch=master)](https://travis-ci.org/SaulAryehKohn/radionopy)
+
 Python tools for calculating ionospheric rotation measure behavior for the effects of
 the ionosphere for radio telescope measurements.
 

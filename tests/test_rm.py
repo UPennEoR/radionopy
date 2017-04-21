@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 radiono.tests.test_rm
 
@@ -9,6 +10,8 @@ from __future__ import print_function
 import unittest, os, shutil, random
 from radiono import rm
 from radiono import utils as ut
+import matplotlib
+matplotlib.use('Agg')
 import healpy as hp, numpy as np, matplotlib.pyplot as plt
 
 paperLocStrings = ('30d43m17.5ss','21d25m41.9se')
