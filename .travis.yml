@@ -1,13 +1,35 @@
 language: python
-cache: pip
 python:
     - "2.7"
 install:
-    - pip install numpy astropy healpy ephem matplotlib
+    - sudo apt-get update
+    # We do this conditionally because it saves us some downloading if the
+    # version is the same.
+    - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+        wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+      else
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      fi
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda update -q conda
+    # Useful for debugging any issues with conda
+    - conda info -a
+
+    # create environment and install dependencies
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy astropy nose pip
+    - source activate test-environment
+    - pip install ephem healpy coveralls
+
+    # develop setup allows us to compile the C code
     - python setup.py develop
+
 before_script:
     - "export DISPLAY=:99.0"
     - "sh -e /etc/init.d/xvfb start"
     - sleep 3
-script:
-    tests/test_rm.py
+script: nosetests tests/test_rm.py --with-coverage --cover-package=radiono
+after_success:
+    - coveralls
