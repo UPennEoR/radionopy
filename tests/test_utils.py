@@ -10,11 +10,11 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(hr1,'01') #should be "01"
         hr10 = ut.std_hour(10,verbose=True)
     def test_eph2ionDate(self):
-        ionDate = ut.eph2ionDate(testDatedash)
+        ionDate = ut.eph2ionDate(testDateslash)
         self.assertEqual(ionDate,testDatedash)
     def test_ion2ephDate(self):
-        ephDate = ut.ion2ephDate(testDateslash)
-        self.assertEqual(ephDate,testDatedash)
+        ephDate = ut.ion2ephDate(testDatedash)
+        self.assertEqual(ephDate,testDateslash)
     def test_ephemPAPER(self):
         site = ut.ephemPAPER(date=testDateslash)
         self.assertEqual(site.elevation,1000.0)
@@ -24,4 +24,7 @@ class TestUtils(unittest.TestCase):
     def test_nextTransit(self):
         pass
     def test_parseTransitBasic(self):
-        pass 
+        pass
+
+if __name__ == '__main__':
+    unittest.main() 
