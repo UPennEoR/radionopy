@@ -6,4 +6,5 @@ RM_files/*
 TEC/*
 RM_files
 TEC
+.coverage*
 radionopy.egg-info/*

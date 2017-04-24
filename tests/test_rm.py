@@ -24,7 +24,7 @@ test_yr,test_month,test_day = map(int,testTime.split('-'))
 #Cas A
 testRA = np.radians((23.+(23./60.)+(27.9/3600.))*15.)
 testDec= np.radians(58.+(48./60.)+(42.4/3600.))
-
+fitsTestFile = 'test.fits'
 testRAs,testDecs = ut.nsideToRaDec(16)
 npix = hp.nside2npix(16)
 
@@ -70,7 +70,7 @@ class TestIonoMap(unittest.TestCase):
         plt.savefig('testFig_compare_SB_Fig4b.png')
         plt.suptitle(r'%s'%('/'.join(map(str,[test_day,test_month,test_yr]))))
         plt.close()
-
+ 
     def test_radec_multip(self):
         self.rm_map.calc_radec_rm(testRAs,testDecs)
         assert(self.rm_map.RMs.shape == (1,24,npix))
@@ -78,9 +78,27 @@ class TestIonoMap(unittest.TestCase):
         hp.mollview(self.rm_map.RMs[0,0,:])
         plt.close()
 
+    def test_radec_arr(self):
+        ras,decs = self.rm_map._radec_arr()
+        self.assertEqual(ras.shape[0], 3072)
+        self.assertEqual(decs.shape[0], 3072)
+    
+    def test_make_radec_RM_maps(self):
+        self.rm_map.make_radec_RM_maps()
+        assert(self.rm_map.RMs.shape == (1,24,npix))
+        assert(self.rm_map.dRMs.shape == (1,24,npix))
+
+    def test_HERA_RM(self):
+        HERA_IM = rm.HERA_RM([testTime])
+        self.assertEqual(HERA_IM.height,1073)
+        self.assertEqual(HERA_IM.lat.value,-30.721527777777776)
+        self.assertEqual(HERA_IM.lon.value,21.428305555555557)
+        self.assertEqual(HERA_IM.times.value[0],testTime+'T00:00:00.000')
+
     def tearDown(self):
         if os.path.exists(testRmDir): shutil.rmtree(testRmDir)
         if os.path.exists(testIonexDir): shutil.rmtree(testIonexDir)
+        if os.path.exists(fitsTestFile): shutil.rm(fitsTestFile)
         return None
 
 
