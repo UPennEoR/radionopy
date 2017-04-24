@@ -213,7 +213,7 @@ class IonoMap(object):
         Generates the full maps in ra/dec coordinates.
         """
         ra, dec = self._radec_arr()
-        self.calc_radec_RM(ra, dec)
+        self.calc_radec_rm(ra, dec)
 
     def _radec_arr(self):
         '''
