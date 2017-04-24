@@ -30,7 +30,6 @@ before_script:
     - "export DISPLAY=:99.0"
     - "sh -e /etc/init.d/xvfb start"
     - sleep 3
-script: nosetests tests/test_rm.py
-#--with-coverage --cover-package=radionopy
-#after_success:
-#    - coveralls
+script: nosetests tests/test_rm.py --with-coverage --cover-package=radiono
+after_success:
+    - coveralls
