@@ -130,38 +130,38 @@ class IonoMap(object):
         return tec_hp, rms_hp, ion_height
 
     def calc_radec_rm(self, ras, decs, verbose=False):
-        #TODO: allow ra,dec to be floats, rather than arrays of floats 
+        #TODO: allow ra,dec to be floats, rather than arrays of floats
         # (to maintain single-pointing functionality)
-         
+
         if not all((i<=2. * np.pi and i>=0.) for i in ras):
             raise ValueError('All RAs must be between 0 and 2*pi radians')
         if not all((i<=np.pi/2. and i>=-np.pi/2.) for i in decs):
             raise ValueError('All Decs must be between -pi/2 and pi/2 radians')
 
         self.coordinates_flag = 'J2000_RaDec'
-        
+
         #final storage arrays
         b_para_s = []
         rm_s = []
         drm_s = []
         lsts_s = []
         alt_src_s = []
-        
+
         for time in self.times: #for every day
             #parsing, creating directory structure
             time_str,_,_ = str(time).partition('T')
             RM_dir = self.make_rm_dir(time_str)
             year, month, day = map(int,time_str.split('-'))
             if verbose: print(year,month,day)
-            
+
             #data aquisition
             tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
-           
+
             #temp storage arrays
             alt_src_all = np.zeros([24,3072])
             lsts = np.zeros(24)
             RM_add = []
-            dRM_add = []            
+            dRM_add = []
             # predict the ionospheric RM for every hour within a day
             for ui,UT in enumerate(self.UTs):
                 hour = utils.std_hour(UT)
@@ -178,30 +178,30 @@ class IonoMap(object):
                 alt_src = np.array(c_altaz.alt.degree)
                 az_src = np.array(c_altaz.az.degree)
                 alt_src_all[ui,:] = alt_src
-                
+
                 # AltAz.zen doesn't have method to return angle data
                 zen_src = np.array(Angle(c_altaz.zen).degree)
-                
+
                 # Calculating the ion piercing point (IPP) depends on alt/az coords
                 coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str, az_src, zen_src, ion_height)
-                
+
                 #XXX B_para calculated per UT
                 #these are the data we care about
                 B_para = phys.B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
                 TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[ui], rms_hp[ui], coord_lat, coord_lon, zen_punct)
                 IRM = 2.6e-17 * B_para * TEC_path
                 rms_IRM = 2.6e-17 * B_para * RMS_TEC_path
-                
-                #TODO: replace append commands with numpy array indicies               
+
+                #TODO: replace append commands with numpy array indicies
                 b_para_s.append(B_para)
                 RM_add.append(IRM)
                 dRM_add.append(rms_IRM)
-            
+
             alt_src_s.append(alt_src_all)
-            lsts_s.append(lsts)    
+            lsts_s.append(lsts)
             rm_s.append(RM_add)
             drm_s.append(dRM_add)
-            
+
         self.B_para = np.array(b_para_s)
         self.RMs = np.array(rm_s)
         self.dRMs = np.array(drm_s)
@@ -288,17 +288,15 @@ class IonoMap(object):
             dRMs = []
             for ui,UT in enumerate(self.UTs):
                 hour = utils.std_hour(UT)
-                radec_file = os.path.join(RM_dir, 'radec{hour}.txt'.format(hour=hour))
-                utils.write_radec(UT, radec_file, alt_src, az_src, date_str, self.location)
+
                 #UTs are integer distances apart. Would an enumeration be better?
                 TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[ui], rms_hp[ui],
                                                           coord_lat, coord_lon,
                                                           zen_punct)
 
-                new_file = os.path.join(RM_dir, 'IonRM{hour}.txt'.format(hour=hour))
-                utils.write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path)
+                RM_ut = 2.6e-17 * B_para * TEC_path
+                dRM_ut = 2.6e-17 * B_para * RMS_TEC_path
 
-                _, _, _, RM_ut, dRM_ut = np.loadtxt(new_file, unpack=True)
                 RMs.append(RM_ut)
                 dRMs.append(dRM_ut)
 
