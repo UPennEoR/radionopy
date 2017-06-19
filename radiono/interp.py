@@ -16,6 +16,7 @@ import numpy as np
 import healpy as hp
 import radiono as rad
 import utils
+from bisect import bisect_right
 
 TECU = 1e16
 TEC2m2 = 0.1 * TECU
@@ -39,18 +40,18 @@ def interp_hp_time(map_i, map_j, t_i, t_j, t):
     # Need to check that
     if not (t_i <= t <= t_j):
         raise ValueError('Time %f cannot be interpolated between %f and %f'%(t,t_i,t_j))
-     
+
     w_i = float(t_j - t) / (t_j - t_i)
     w_j = float(t - t_i) / (t_j - t_i)
     dt_i_deg = -np.abs((t - t_i) * 360. / 24.)
     dt_j_deg = np.abs((t - t_j) * 360. / 24.)
-    
+
     interp_map = w_i * rotate_healpix_map(map_i, [dt_i_deg, 0]) +\
                  w_j * rotate_healpix_map(map_j, [dt_j_deg, 0])
-    
+
     return interp_map
 
-def ionex2healpix(maps, lat, lon, verbose=False):
+def ionex2healpix(maps, UTs, lat, lon, verbose=False):
     '''
     convert square map into healpix map
     interpolate healpix map in time
@@ -58,6 +59,7 @@ def ionex2healpix(maps, lat, lon, verbose=False):
     Parameters
     ----------
     maps | array: square TEC maps
+    UTs | list of decmial hours at which to compute TEC maps
     lat | array[float]: array of latitudes
     lon | array[float]: array of longitudes
     verbose | Optional[bool]: whether to print values or not
@@ -71,23 +73,27 @@ def ionex2healpix(maps, lat, lon, verbose=False):
     lat_rad = np.outer(np.radians(90. - lat), np.ones(nlon))
     lon_rad = np.outer(np.ones(nlat), np.radians(lon % 360))
 
-    map_len = (len(maps) - 1) * 2
-    hp_maps = []
-    even_maps = [healpixellize(sq_map, lat_rad, lon_rad, verbose=verbose)\
+    node_hours = range(0,26,2)
+    node_intervals = list(zip(node_hours[:-1], node_hours[1:]))
+
+    node_maps = [healpixellize(sq_map, lat_rad, lon_rad, verbose=verbose)\
                  for sq_map in maps]
 
-    for i, even_map in enumerate(even_maps[:-1]):
-        hp_maps.append(even_map)
-        if i < len(even_maps[:-1]):
-            start_time = i
-            end_time = (i + 2) % map_len
-            mid_time = (end_time + start_time) / 2
+    hp_maps = []
+    for UT in UTs:
+        i = bisect_right(node_hours, UT) - 1
+        if (i in range(len(node_intervals))) is False:
+            raise ValueError
 
-            odd_map = interp_hp_time(even_maps[i], even_maps[i + 1],
-                                     start_time, end_time, mid_time)
-            hp_maps.append(odd_map)
+        interval = node_intervals[i]
+
+        s,f = interval
+
+        map_UT = interp_hp_time(node_maps[i], node_maps[i+1], s, f, UT)
+        hp_maps.append(map_UT)
 
     return np.array(hp_maps)
+
 
 def get_los_tec(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     '''
@@ -116,7 +122,7 @@ def get_los_tec(tec_hp, rms_hp, coord_lat, coord_lon, zen_punct):
     RMS_TEC_path = np.array(VRMS_TEC) * TEC2m2 / np.cos(zen_punct) # from vertical RMS_TEC to line of sight RMS_TEC
 
     return TEC_path, RMS_TEC_path
-    
+
 def healpixellize(f_in, theta_in, phi_in, nside=16, verbose=False):
     '''
     A dumb method for converting data f sampled at points theta and phi
@@ -200,4 +206,3 @@ def rotate_healpix_map(map_in, rot):
     rot_map = map_in[ipix_rot]
 
     return rot_map
-

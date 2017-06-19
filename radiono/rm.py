@@ -17,6 +17,7 @@ from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, Angle, Latitude, Longitude, AltAz, ICRS
 import radiono as rad
 from radiono import physics as phys, interp as itp, ionex_file as inx, utils
+from itertools import groupby
 
 class IonoMap(object):
     '''
@@ -31,7 +32,7 @@ class IonoMap(object):
     to_map | writes data to map
     to_alm | writes data to alm
     '''
-    def __init__(self, lat_str, lon_str, date_strs, height=0, ionex_dir=rad.ionex_dir, rm_dir=rad.rm_dir):
+    def __init__(self, lat_str, lon_str, date_times, height=0, ionex_dir=rad.ionex_dir, rm_dir=rad.rm_dir):
         '''
         initalizes RM object
 
@@ -39,18 +40,18 @@ class IonoMap(object):
         ----------
         lat_str | str: latitude that the observation was taken at
         lon_str | str: longitude that the observation was taken at
-        date_strs | list[str]: list of dates for observation in form "YYYY-MM-DD"
+        date_times | list[str]: list of dates and times for observation in form "YYYY-MM-DDTHH:MM:SS". The time is a sexagesimal number.
         height | Optional[float]: height observation taken at in meters
         nside | Optional[int]: resolution of rm map --defaults to 16
         ionex_dir | Optional[str]: directory in which ionex files are / will be located
         rm_dir | Optional[str]: directory in which RM data files are / will be located
         '''
-        if not isinstance(date_strs,(list,tuple)):
-            raise TypeError('date_strs must be a list')
+        # if not isinstance(date_strs,(list,tuple)):
+        #     raise TypeError('date_strs must be a list')
 
         self.lat_str = lat_str
         self.lon_str = lon_str
-        self.times = Time(date_strs, format='isot')
+        self.date_times = date_times
         self.height = height
         self.ionex_dir = ionex_dir
         self.rm_dir = rm_dir
@@ -58,9 +59,26 @@ class IonoMap(object):
         self.B_para = None
         self.RMs = None
         self.dRMs = None
-        self.UTs = np.linspace(0, 23, num=24)
         self.coordinates_flag = None
 
+        # The input list of dates and times need not be sorted in order. So we
+        # will sort them for internal use and return a dictionary of RM maps
+        # that are keyed on the input list of input dates.
+
+        # There may be an arbitrary number of days, each with an arbitrary set
+        # of times on that day. For each day, all of the maps for the times on
+        # that day will be computed from the same IONEX file, and we only want
+        # to process each file once. Thus we must group the input dates by day,
+        # and process all of the times in each group together.
+
+        unique_days = [item.split(' ')[0] for item in self.date_times]
+        self.unique_days = sorted(list(set(unique_days)))
+
+        test_function = lambda x: x.split(' ')[0]
+
+        self.day_groups = {} # a dictionary of lists of decimal times, keyed by each unique day string in self.date_times
+        for key, group in groupby(sorted(self.date_times), test_function):
+            self.day_groups[key] = list(group)
 
     @property
     def lat(self):
@@ -124,10 +142,12 @@ class IonoMap(object):
 
         tec_a, rms_a, ion_height = all_info[7:]
 
-        tec_hp = itp.ionex2healpix(tec_a, TEC['lat'], TEC['lon'], **kwargs)
-        rms_hp = itp.ionex2healpix(rms_a, TEC['lat'], TEC['lon'], **kwargs)
+        # tec_hp = itp.ionex2healpix(tec_a, UT, TEC['lat'], TEC['lon'], **kwargs)
+        # rms_hp = itp.ionex2healpix(rms_a, UT, TEC['lat'], TEC['lon'], **kwargs)
+        #
+        # return tec_hp, rms_hp, ion_height
 
-        return tec_hp, rms_hp, ion_height
+        return tec_a, rms_a, ion_height, TEC
 
     def calc_radec_rm(self, ras, decs, verbose=False):
         #TODO: allow ra,dec to be floats, rather than arrays of floats
@@ -247,8 +267,8 @@ class IonoMap(object):
         ipix = np.arange(self.npix)
         theta, phi = hp.pix2ang(self.nside, ipix)
 
-        alt_src = 90. - np.degrees(np.array(theta))
-        az_src = np.degrees(np.array(phi))
+        alt_src = np.amax(theta) - theta
+        az_src = phi
 
         return alt_src, az_src
 
@@ -263,18 +283,40 @@ class IonoMap(object):
             array[float]: RM data
             array[float]: RM error data
         '''
-        rm_s = []
-        drm_s = []
-        b_para_s = []
+        # rm_s = []
+        # drm_s = []
+        # b_para_s = []
+
+        self.RMs = {}
+        self.dRMs = {}
+        self.B_paras = {}
 
         alt_src, az_src = self._hp_arr()
-        zen_src = 90. - alt_src
+        zen_src , _ = hp.pix2ang(self.nside, np.arange(self.npix))
 
-        for date in self.times:
-            date_str,_,_ = str(date).partition('T')
-            RM_dir = self.make_rm_dir(date_str)
-            year, month, day = map(int,date_str.split('-'))
-            tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
+        az_src = np.degrees(az_src)
+        zen_src = np.degrees(zen_src)
+
+        for uday in self.day_groups:
+
+            group = self.day_groups[uday]
+            time_strs = [item.split(' ')[1] for item in group]
+
+            UTs_dec = []
+            for time_str in time_strs:
+                Hr, Min, Sec = [float(x) for x in time_str.split(':')]
+                dec_hour = Hr + Min / 60. + Sec / 3600. # stoopid babylonians
+                UTs_dec.append(dec_hour)
+
+            year, month, day = [int(x) for x in uday.split('-')]
+
+            # tec_hp, rms_hp, ion_height = self.ionex_data(UT_hour, year, month, day)
+
+            tec_a, rms_a, ion_height, TEC = self.ionex_data(year, month, day)
+
+            tec_hp = itp.ionex2healpix(tec_a, UTs_dec, TEC['lat'], TEC['lon'])
+            rms_hp = itp.ionex2healpix(rms_a, UTs_dec, TEC['lat'], TEC['lon'])
+
 
             coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
                                                                  az_src, zen_src,
@@ -286,10 +328,8 @@ class IonoMap(object):
 
             RMs = []
             dRMs = []
-            for ui,UT in enumerate(self.UTs):
-                hour = utils.std_hour(UT)
+            for ui,UT in enumerate(UTs_dec):
 
-                #UTs are integer distances apart. Would an enumeration be better?
                 TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[ui], rms_hp[ui],
                                                           coord_lat, coord_lon,
                                                           zen_punct)
@@ -300,19 +340,15 @@ class IonoMap(object):
                 RMs.append(RM_ut)
                 dRMs.append(dRM_ut)
 
-            rm_s.append(RMs)
-            drm_s.append(dRMs)
-            b_para_s.append(B_para)
+            self.RMs.update({key:RMs[ti] for ti, key in enumerate(group)})
+            self.dRMs.update({key:dRMs[ti] for ti, key in enumerate(group)})
+            self.B_paras[uday] = B_para
 
-        self.RMs = np.array(rm_s)
-        self.dRMs = np.array(drm_s)
-        self.B_paras = np.array(b_para_s)
-
-def HERA_RM(date_strs):
+def HERA_RM(date_times):
     """
     For our convenience: built-in generator for the PAPER/HERA site in the Karoo RQZ, South Africa
     """
     lat_str = '30d43m17.5ss'
     lon_str = '21d25m41.9se'
     height = 1073 # XXX
-    return IonoMap(lat_str=lat_str, lon_str=lon_str, date_strs=date_strs, height=height)
+    return IonoMap(lat_str=lat_str, lon_str=lon_str, date_times=date_times, height=height)

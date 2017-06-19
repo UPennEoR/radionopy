@@ -122,8 +122,8 @@ def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     Parameters
     ----------
     lat_obs | object: latitude
-    az_src | array: array of azimuths
-    zen_src | array: array of zeniths
+    az_src | array: array of azimuths in radians
+    zen_src | array: array of zeniths in radians
     ion_height | float: ionosphere height
 
     Returns
@@ -208,8 +208,8 @@ def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
     ----------
     lat_str | str: latitude
     lon_str | str: longitude
-    az_src | array: array of azimuths
-    zen_src | array: array of zeniths
+    az_src | array: array of azimuths in degrees
+    zen_src | array: array of zeniths in degrees
     ion_height | float: ionosphere height
 
     Returns
