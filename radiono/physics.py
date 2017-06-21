@@ -27,6 +27,9 @@ from string import ascii_lowercase
 earth_radius = c.R_earth.value #6371000.0 # in meters
 tesla_to_gauss = 1e4
 
+def RotationMeasure(TEC_integral, B_para):
+    return 2.6e-17 * B_para * TEC_integral
+
 def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct, mag_dir='IGRF/geomag70_linux', mag_file='IGRF11.COF'):
     '''
     calculates the B field for a particular date at particular coordinates
@@ -122,8 +125,8 @@ def punct_ion_offset(lat_obs, az_src, zen_src, ion_height):
     Parameters
     ----------
     lat_obs | object: latitude
-    az_src | array: array of azimuths
-    zen_src | array: array of zeniths
+    az_src | array: array of azimuths in radians
+    zen_src | array: array of zeniths in radians
     ion_height | float: ionosphere height
 
     Returns
@@ -208,8 +211,8 @@ def ipp(lat_str, lon_str, az_src, zen_src, ion_height):
     ----------
     lat_str | str: latitude
     lon_str | str: longitude
-    az_src | array: array of azimuths
-    zen_src | array: array of zeniths
+    az_src | array: array of azimuths in degrees
+    zen_src | array: array of zeniths in degrees
     ion_height | float: ionosphere height
 
     Returns
