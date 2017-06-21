@@ -175,6 +175,8 @@ class IonoMap(object):
         self.B_paras = {}
         self.RMs = {}
         self.dRMs = {}
+        self.TEC = {}
+        self.dTEC = {}
         self.lsts_s = {}
         alt_src_s = {}
 
@@ -245,6 +247,8 @@ class IonoMap(object):
             self.RMs.update({key:RMs[ti] for ti, key in enumerate(group)})
             self.dRMs.update({key:dRMs[ti] for ti, key in enumerate(group)})
             self.B_paras[uday] = B_para
+            self.TEC.update({key:tec_hp[ti] for ti,key in enumerate(group)})
+            self.dTEC.update({key:rms_hp[ti] for ti,key in enumerate(group)})
 
     def calc_ionRIME_rm(self, verbose=False):
 
@@ -263,6 +267,8 @@ class IonoMap(object):
         self.RMs = {}
         self.dRMs = {}
         self.B_paras = {}
+        self.TEC = {}
+        self.dTEC = {}
 
         for uday in self.day_groups:
 
@@ -281,6 +287,8 @@ class IonoMap(object):
 
             tec_hp = itp.ionex2healpix(tec_a, UTs_dec, TEC['lat'], TEC['lon'])
             rms_hp = itp.ionex2healpix(rms_a, UTs_dec, TEC['lat'], TEC['lon'])
+
+
 
 
             coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
@@ -309,6 +317,8 @@ class IonoMap(object):
             self.RMs.update({key:RMs[ti] for ti, key in enumerate(group)})
             self.dRMs.update({key:dRMs[ti] for ti, key in enumerate(group)})
             self.B_paras[uday] = B_para
+            self.TEC.update({key:tec_hp[ti] for ti,key in enumerate(group)})
+            self.dTEC.update({key:rms_hp[ti] for ti,key in enumerate(group)})
 
 
     def make_radec_RM_maps(self):
@@ -372,6 +382,8 @@ class IonoMap(object):
         self.RMs = {}
         self.dRMs = {}
         self.B_paras = {}
+        self.TEC = {}
+        self.dTEC = {}
 
         alt_src, az_src = self._hp_arr()
         zen_src , _ = hp.pix2ang(self.nside, np.arange(self.npix))
@@ -424,6 +436,8 @@ class IonoMap(object):
             self.RMs.update({key:RMs[ti] for ti, key in enumerate(group)})
             self.dRMs.update({key:dRMs[ti] for ti, key in enumerate(group)})
             self.B_paras[uday] = B_para
+            self.TEC.update({key:tec_hp[ti] for ti,key in enumerate(group)})
+            self.dTEC.update({key:rms_hp[ti] for ti,key in enumerate(group)})
 
 def HERA_RM(times):
     """
