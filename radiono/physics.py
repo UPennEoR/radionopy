@@ -27,6 +27,9 @@ from string import ascii_lowercase
 earth_radius = c.R_earth.value #6371000.0 # in meters
 tesla_to_gauss = 1e4
 
+def RotationMeasure(TEC_integral, B_para):
+    return 2.6e-17 * B_para * TEC_integral
+
 def B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct, mag_dir='IGRF/geomag70_linux', mag_file='IGRF11.COF'):
     '''
     calculates the B field for a particular date at particular coordinates

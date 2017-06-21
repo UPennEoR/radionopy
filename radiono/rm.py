@@ -32,7 +32,7 @@ class IonoMap(object):
     to_map | writes data to map
     to_alm | writes data to alm
     '''
-    def __init__(self, lat_str, lon_str, date_times, height=0, ionex_dir=rad.ionex_dir, rm_dir=rad.rm_dir):
+    def __init__(self, lat_str, lon_str, times, height=0, ionex_dir=rad.ionex_dir, rm_dir=rad.rm_dir):
         '''
         initalizes RM object
 
@@ -40,7 +40,7 @@ class IonoMap(object):
         ----------
         lat_str | str: latitude that the observation was taken at
         lon_str | str: longitude that the observation was taken at
-        date_times | list[str]: list of dates and times for observation in form "YYYY-MM-DDTHH:MM:SS". The time is a sexagesimal number.
+        times | list[str]: list of dates and times for observation in form "YYYY-MM-DDTHH:MM:SS". The time is a sexagesimal number.
         height | Optional[float]: height observation taken at in meters
         nside | Optional[int]: resolution of rm map --defaults to 16
         ionex_dir | Optional[str]: directory in which ionex files are / will be located
@@ -51,7 +51,7 @@ class IonoMap(object):
 
         self.lat_str = lat_str
         self.lon_str = lon_str
-        self.date_times = date_times
+        self.times = times
         self.height = height
         self.ionex_dir = ionex_dir
         self.rm_dir = rm_dir
@@ -71,13 +71,18 @@ class IonoMap(object):
         # to process each file once. Thus we must group the input dates by day,
         # and process all of the times in each group together.
 
-        unique_days = [item.split(' ')[0] for item in self.date_times]
+        unique_days = [item.split(' ')[0] for item in self.times]
         self.unique_days = sorted(list(set(unique_days)))
 
-        test_function = lambda x: x.split(' ')[0]
+        # a dictionary of lists of decimal times, keyed by each unique day
+        # string in self.times
+        self.day_groups = {}
 
-        self.day_groups = {} # a dictionary of lists of decimal times, keyed by each unique day string in self.date_times
-        for key, group in groupby(sorted(self.date_times), test_function):
+        # note that the times strings are ISO formatted so sorting
+        # lexiographically, which is what sorted() does, sorts them into
+        # chronological order.
+        test_function = lambda x: x.split(' ')[0]
+        for key, group in groupby(sorted(self.times), test_function):
             self.day_groups[key] = list(group)
 
     @property
@@ -161,43 +166,63 @@ class IonoMap(object):
         self.coordinates_flag = 'J2000_RaDec'
 
         #final storage arrays
-        b_para_s = []
-        rm_s = []
-        drm_s = []
-        lsts_s = []
-        alt_src_s = []
+        # b_para_s = []
+        # rm_s = []
+        # drm_s = []
+        # lsts_s = []
+        # alt_src_s = []
 
-        for time in self.times: #for every day
-            #parsing, creating directory structure
-            time_str,_,_ = str(time).partition('T')
-            RM_dir = self.make_rm_dir(time_str)
-            year, month, day = map(int,time_str.split('-'))
-            if verbose: print(year,month,day)
+        self.B_paras = {}
+        self.RMs = {}
+        self.dRMs = {}
+        self.lsts_s = {}
+        alt_src_s = {}
+
+        for uday in self.day_groups:
+            group = self.day_groups[uday]
+            time_strs = [item.split(' ')[1] for item in group]
+
+            UTs_dec = []
+            for time_str in time_strs:
+                Hr, Min, Sec = [float(x) for x in time_str.split(':')]
+                dec_hour = Hr + Min / 60. + Sec / 3600.
+                UTs_dec.append(dec_hour)
+
+            year, month, day = [int(x) for x in uday.split('-')]
 
             #data aquisition
-            tec_hp, rms_hp, ion_height = self.ionex_data(year, month, day)
+            tec_a, rms_a, ion_height, TEC = self.ionex_data(year, month, day)
+
+            tec_hp = itp.ionex2healpix(tec_a, UTs_dec, TEC['lat'], TEC['lon'])
+            rms_hp = itp.ionex2healpix(rms_a, UTs_dec, TEC['lat'], TEC['lon'])
 
             #temp storage arrays
-            alt_src_all = np.zeros([24,3072])
-            lsts = np.zeros(24)
-            RM_add = []
-            dRM_add = []
+            # alt_src_all = np.zeros([24,3072])
+            lsts = []
+            # RM_add = []
+            # dRM_add = []
+
+            RMs = []
+            dRMs = []
+
+
             # predict the ionospheric RM for every hour within a day
-            for ui,UT in enumerate(self.UTs):
-                hour = utils.std_hour(UT)
+            for ui,UT in enumerate(UTs_dec):
+                time = Time(uday + ' ' +  time_strs[ui], format='iso', scale='utc') # XXX is this string reconstructed properly? not tested
                 c_icrs = SkyCoord(ra=ras * u.radian, dec=decs * u.radian,
-                                        location=self.location, obstime=time + UT * u.hr, frame='icrs')
+                                        location=self.location,
+                                        obstime=time,
+                                        frame='icrs')
 
                 # Added to calculate LST for the given time
-                c_local = AltAz(az=0.*u.deg,alt=90.*u.deg,obstime=time + UT * u.hr,location=self.location)
+                c_local = AltAz(az=0.*u.deg,alt=90.*u.deg,obstime=time,location=self.location)
                 c_local_Zeq = c_local.transform_to(ICRS)
-                lsts[ui] = c_local_Zeq.ra.degree
+                lsts.append(c_local_Zeq.ra.degree)
 
                 # Transform given RA/Dec into alt/az
                 c_altaz = c_icrs.transform_to('altaz')
                 alt_src = np.array(c_altaz.alt.degree)
                 az_src = np.array(c_altaz.az.degree)
-                alt_src_all[ui,:] = alt_src
 
                 # AltAz.zen doesn't have method to return angle data
                 zen_src = np.array(Angle(c_altaz.zen).degree)
@@ -209,24 +234,82 @@ class IonoMap(object):
                 #these are the data we care about
                 B_para = phys.B_IGRF(year, month, day, coord_lat, coord_lon, ion_height, az_punct, zen_punct)
                 TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[ui], rms_hp[ui], coord_lat, coord_lon, zen_punct)
-                IRM = 2.6e-17 * B_para * TEC_path
-                rms_IRM = 2.6e-17 * B_para * RMS_TEC_path
+                RMs_ut = phys.RotationMeasure(TEC_path, B_para)
+                dRMs_ut = phys.RotationMeasure(RMS_TEC_path, B_para)
 
                 #TODO: replace append commands with numpy array indicies
-                b_para_s.append(B_para)
-                RM_add.append(IRM)
-                dRM_add.append(rms_IRM)
+                RMs.append(RMs_ut)
+                dRMs.append(dRMs_ut)
 
-            alt_src_s.append(alt_src_all)
-            lsts_s.append(lsts)
-            rm_s.append(RM_add)
-            drm_s.append(dRM_add)
 
-        self.B_para = np.array(b_para_s)
-        self.RMs = np.array(rm_s)
-        self.dRMs = np.array(drm_s)
-        self.alt_src = np.array(alt_src_s)
-        self.lst = np.array(lsts_s)
+            self.RMs.update({key:RMs[ti] for ti, key in enumerate(group)})
+            self.dRMs.update({key:dRMs[ti] for ti, key in enumerate(group)})
+            self.B_paras[uday] = B_para
+
+    def calc_ionRIME_rm(self, verbose=False):
+
+        hpxidx = np.arange(self.npix)
+        theta, phi = hp.pix2ang(self.nside, hpxidx)
+        R = hp.rotator.Rotator(rot=[0,-120.712])
+
+        zen, az = R(theta, phi)
+
+        # az = -az
+        az[az < 0] += 2. * np.pi
+
+        zen_src = np.degrees(zen)
+        az_src = np.degrees(az)
+
+        self.RMs = {}
+        self.dRMs = {}
+        self.B_paras = {}
+
+        for uday in self.day_groups:
+
+            group = self.day_groups[uday]
+            time_strs = [item.split(' ')[1] for item in group]
+
+            UTs_dec = []
+            for time_str in time_strs:
+                Hr, Min, Sec = [float(x) for x in time_str.split(':')]
+                dec_hour = Hr + Min / 60. + Sec / 3600.
+                UTs_dec.append(dec_hour)
+
+            year, month, day = [int(x) for x in uday.split('-')]
+
+            tec_a, rms_a, ion_height, TEC = self.ionex_data(year, month, day)
+
+            tec_hp = itp.ionex2healpix(tec_a, UTs_dec, TEC['lat'], TEC['lon'])
+            rms_hp = itp.ionex2healpix(rms_a, UTs_dec, TEC['lat'], TEC['lon'])
+
+
+            coord_lat, coord_lon, az_punct, zen_punct = phys.ipp(self.lat_str, self.lon_str,
+                                                                 az_src, zen_src,
+                                                                 ion_height)
+            #XXX B_para calculated per DAY
+            B_para = phys.B_IGRF(year, month, day,
+                                 coord_lat, coord_lon,
+                                 ion_height, az_punct, zen_punct)
+
+            RMs = []
+            dRMs = []
+
+            for ui,UT in enumerate(UTs_dec):
+
+                TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[ui], rms_hp[ui],
+                                                          coord_lat, coord_lon,
+                                                          zen_punct)
+
+                RM_ut = phys.RotationMeasure(TEC_path, B_para)
+                dRM_ut = phys.RotationMeasure(RMS_TEC_path, B_para)
+
+                RMs.append(RM_ut)
+                dRMs.append(dRM_ut)
+
+            self.RMs.update({key:RMs[ti] for ti, key in enumerate(group)})
+            self.dRMs.update({key:dRMs[ti] for ti, key in enumerate(group)})
+            self.B_paras[uday] = B_para
+
 
     def make_radec_RM_maps(self):
         """
@@ -252,7 +335,6 @@ class IonoMap(object):
         ra = phi_m -phi
 
         return ra, dec
-
 
     def _hp_arr(self):
         '''
@@ -305,12 +387,10 @@ class IonoMap(object):
             UTs_dec = []
             for time_str in time_strs:
                 Hr, Min, Sec = [float(x) for x in time_str.split(':')]
-                dec_hour = Hr + Min / 60. + Sec / 3600. # stoopid babylonians
+                dec_hour = Hr + Min / 60. + Sec / 3600.
                 UTs_dec.append(dec_hour)
 
             year, month, day = [int(x) for x in uday.split('-')]
-
-            # tec_hp, rms_hp, ion_height = self.ionex_data(UT_hour, year, month, day)
 
             tec_a, rms_a, ion_height, TEC = self.ionex_data(year, month, day)
 
@@ -328,14 +408,15 @@ class IonoMap(object):
 
             RMs = []
             dRMs = []
+
             for ui,UT in enumerate(UTs_dec):
 
                 TEC_path, RMS_TEC_path = itp.get_los_tec(tec_hp[ui], rms_hp[ui],
                                                           coord_lat, coord_lon,
                                                           zen_punct)
 
-                RM_ut = 2.6e-17 * B_para * TEC_path
-                dRM_ut = 2.6e-17 * B_para * RMS_TEC_path
+                RM_ut = phys.RotationMeasure(TEC_path, B_para)
+                dRM_ut = phys.RotationMeasure(RMS_TEC_path, B_para)
 
                 RMs.append(RM_ut)
                 dRMs.append(dRM_ut)
@@ -344,11 +425,11 @@ class IonoMap(object):
             self.dRMs.update({key:dRMs[ti] for ti, key in enumerate(group)})
             self.B_paras[uday] = B_para
 
-def HERA_RM(date_times):
+def HERA_RM(times):
     """
     For our convenience: built-in generator for the PAPER/HERA site in the Karoo RQZ, South Africa
     """
-    lat_str = '30d43m17.5ss'
-    lon_str = '21d25m41.9se'
+    lat_str = '30d43m17.5ss' # -30.7215 degrees
+    lon_str = '21d25m41.9se' # 21.4283 degrees
     height = 1073 # XXX
-    return IonoMap(lat_str=lat_str, lon_str=lon_str, date_times=date_times, height=height)
+    return IonoMap(lat_str=lat_str, lon_str=lon_str, times=times, height=height)
