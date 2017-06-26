@@ -30,3 +30,8 @@ Requirements:
 * [healpy](http://healpy.readthedocs.org/)
 * [pyEphem](https://pypi.python.org/pypi/ephem/)
 * optional: [Basemap](http://matplotlib.org/basemap/users/index.html)
+
+
+Improvements:
+------------
+Currently, this only calculates the ionospheric contribution to rotation measure, but not the diffractive effects.  
