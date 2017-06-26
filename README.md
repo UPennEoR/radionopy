@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/UPennEoR/radionopy/badge.svg?branch=master)](https://coveralls.io/github/UPennEoR/radionopy?branch=master)
 
 Python tools for calculating ionospheric rotation measure behavior for the effects of
-the ionosphere for radio telescope measurements.
+the ionosphere for radio telescope measurements!
 
 This is an attempt to make [ionFR](http://sourceforge.net/projects/ionfr) considerably more powerful
 and flexible.
