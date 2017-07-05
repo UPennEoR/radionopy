@@ -27,7 +27,7 @@ Requirements:
 * [Python](http://www.python.org/) (tested on python 2.7)
 * [Numpy](http://scipy.org/)
 * [Astropy](http://www.astropy.org/)
-* [healpy](http://healpy.readthedocs.org/)
+* [healpy](http://healpy.readthedocs.org/) >= 1.9
 * [pyEphem](https://pypi.python.org/pypi/ephem/)
 * optional: [Basemap](http://matplotlib.org/basemap/users/index.html)
 
