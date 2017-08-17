@@ -16,14 +16,9 @@ This compiles the [geomagnetic field code](https://www.ngdc.noaa.gov/geomag/WMM/
 on the user machine:
 `gcc geomag70.c -o geomag70 -lm`
 
-
-Example Scripts:
--------------
-* `docs/radionopy_Tutorial.ipynb` -- tutorial in a Jupyter notebook.
-* `scripts/probe_parameter_space.py` -- creating and interacting with an IonoMap object containing months-worth of data.
-
 Requirements:
 -------------
+* [gcc](https://gcc.gnu.org/)
 * [Python](http://www.python.org/) (tested on python 2.7)
 * [Numpy](http://scipy.org/)
 * [Astropy](http://www.astropy.org/)
@@ -31,6 +26,12 @@ Requirements:
 * [pyEphem](https://pypi.python.org/pypi/ephem/)
 * optional: [Basemap](http://matplotlib.org/basemap/users/index.html)
 * testing: [nosetools](http://nose.readthedocs.io/en/latest/testing_tools.html)
+
+Example Scripts:
+-------------
+* `docs/radionopy_Tutorial.ipynb` -- tutorial in a Jupyter notebook.
+* `scripts/probe_parameter_space.py` -- creating and interacting with an IonoMap object containing months-worth of data.
+
 
 Known Issues and Planned Improvements:
 ------------
