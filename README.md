@@ -30,8 +30,17 @@ Requirements:
 * [healpy](http://healpy.readthedocs.org/) >= 1.9
 * [pyEphem](https://pypi.python.org/pypi/ephem/)
 * optional: [Basemap](http://matplotlib.org/basemap/users/index.html)
+* testing: [nosetools](http://nose.readthedocs.io/en/latest/testing_tools.html)
 
-
-Improvements:
+Known Issues and Planned Improvements:
 ------------
-Currently, this only calculates the ionospheric contribution to rotation measure, but not the diffractive effects.  
+* Currently, this only calculates the ionospheric contribution to rotation measure, but not the diffractive effects.
+* Using `python setup.py install` compiles the underlying C code incorrectly; workaround is using `python setup.py develop`.
+* Documentation needs improvement and/or automization
+
+Contributing
+------------
+Contributions to this package to introduce new functionality or address any of the
+issues in the [issue log](https://github.com/UPennEoR/radionopy/issues) are welcome.
+Please submit improvements as pull requests after verifying that
+the existing tests pass. Please ensure any new code is [well covered](https://coveralls.io/github/UPennEoR/radionopy?branch=master) by unit tests.
