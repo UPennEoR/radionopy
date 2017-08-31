@@ -178,10 +178,8 @@ class IonoMap(object):
             tec_a, rms_a, ion_height, TEC = self.ionex_data(year, month, day)
             tec_hp = itp.ionex2healpix(tec_a, UTs_dec, TEC['lat'], TEC['lon'])
             rms_hp = itp.ionex2healpix(rms_a, UTs_dec, TEC['lat'], TEC['lon'])
-            RMs = []
-            dRMs = []
-
-
+            lsts,RMs,dRMs = [],[],[]
+            
             # predict the ionospheric RM for every hour within a day
             for ui,UT in enumerate(UTs_dec):
                 time = Time(uday + ' ' +  time_strs[ui], format='iso', scale='utc') # XXX is this string reconstructed properly? not tested
@@ -191,7 +189,8 @@ class IonoMap(object):
                                         frame='icrs')
 
                 # Added to calculate LST for the given time
-                c_local = AltAz(az=0.*u.deg,alt=90.*u.deg,obstime=time,location=self.location)
+                c_local = AltAz(az=0.*u.deg, alt=90.*u.deg, obstime=time, 
+                                location=self.location)
                 c_local_Zeq = c_local.transform_to(ICRS)
                 lsts.append(c_local_Zeq.ra.degree)
 
