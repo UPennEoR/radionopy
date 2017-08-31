@@ -8,9 +8,9 @@ authors = 'James Aguirre, Immanuel Washington, Saul Kohn, Zachary Martinot'
 setup_args = {
     'name': 'radionopy',
     'author': authors,
-    'description': 'package for ionosphere RM',
-    'url': 'https://github.com/jaguirre/radionopy.git',
-    'license': 'GPL',
+    'description': 'Python tools for calculating ionosphere behavior for the effects of the ionosphere for radio telescope measurements.',
+    'url': 'https://github.com/UPennEoR/radionopy.git',
+    'license': 'MIT',
     'package_dir' : {'radionopy': ''},
     'packages' : find_packages(),
     'version': __version__,
@@ -36,9 +36,5 @@ if __name__ == '__main__':
     script_option = '-o'
     script_fix = '-lm'
     subprocess.call([script_program, script_data, script_option, script_name, script_fix])
-
     open(igrf_dir + '/input.txt', 'a').close()
     open(igrf_dir + '/output.txt', 'a').close()
-
-    # os.system('touch ' + igrf_dir + '/input.txt')
-    # os.system('touch ' + igrf_dir + '/output.txt')
