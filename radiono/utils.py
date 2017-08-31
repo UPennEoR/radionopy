@@ -33,7 +33,6 @@ def std_hour(UT, verbose=False):
         hour = '0{hour}'.format(hour=int(UT))
     else:
         hour = '{hour}'.format(hour=int(UT))
-
     return hour
 
 def write_RM(hour, new_file, B_para, TEC_path, RMS_TEC_path, write_to_file=True):
@@ -132,14 +131,12 @@ def nextTransit(date,ra,dec,lat=-30.721527777777776,lon=21.428305555555557,elev=
     site = ephem.Observer()
     site.lat,site.long,site.elevation = str(lat),str(lon),elev
     site.date = date
-
     tp = ephem.FixedBody() # this is the point we are asking about
     tp._ra = np.radians(ra)
     tp._dec = np.radians(dec)
     tp._epoch = date
     tp.compute()
     tp_transit = site.next_transit(tp)
-
     return str(tp_transit)
 
 def parseTransitBasic(trans_str,SunCheck=False):
@@ -153,7 +150,6 @@ def parseTransitBasic(trans_str,SunCheck=False):
     trans_str | str: output from nextTransit(...); string in form 'YYYY/MM/DD HH:MM:SS.ss'
     SunCheck | bool: should we check if the Sun is up? If it is, the returned tuple contains 'True'
     """
-
     _date,_time_UTC = trans_str.split()
     _date = '-'.join(_date.split('/'))
     _time = map(int,_time_UTC.split(':'))
