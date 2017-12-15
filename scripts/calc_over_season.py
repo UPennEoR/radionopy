@@ -18,7 +18,6 @@ lon_str = '21d25m41.9se'
 IM = rm.IonoMap(lat_str,lon_str,dates)
 ras = [np.radians(15.*2.),np.radians(15.*4.),np.radians(15.*6.),np.radians(15.*8.)] #2,4,6,8 hrs
 dec = np.radians(-30.-(43./60.)-(17.5/3600.))
-#decs = [dec,dec,dec] #zenith
 decs = [dec,dec,dec,dec]
 
 #if not os.path.exists('./1h4h8h.npz'):
@@ -69,8 +68,6 @@ f,axarr = plt.subplots(3,1,sharex=True)
 labels = [r'LST=4h',r'LST=6h',r'LST=8h']
 for N in range(3):
     dhist = dvec[:,N+1,0][~np.isnan(dvec[:,N+1,0])]
-    #DEBUG:
-    #dhist = np.abs(dhist)
     bw=0.07 #bin width in rad/m^2
     axarr[N].hist(dhist,bins=np.arange(min(dhist),max(dhist)+bw,bw))
     axarr[N].set_ylim(0,20)
@@ -83,5 +80,3 @@ axarr[1].set_ylabel(r'Occupancy',size=15)
 plt.setp([a.get_xticklabels() for a in [axarr[0],axarr[1]]],visible=False)
 plt.show()
 plt.close()
-
-#import IPython;IPython.embed()
