@@ -72,9 +72,9 @@ def ftp_IONEX_file(year, month, day, IONEX_file, ionex_dir=rad.ionex_dir):
     str: name of IONEX file pulled from ftp server
 
     '''
-    server = 'ftp.unibe.ch'
+    server = 'ftp.aiub.unibe.ch'
     year = str(year)
-    ftp_dir = os.path.join('aiub/CODE/', year)
+    ftp_dir = os.path.join('CODE/', year)
     IONEX_file_Z = ''.join((os.path.basename(IONEX_file), '.Z'))
 
     if not os.path.exists(ionex_dir):
@@ -88,7 +88,8 @@ def ftp_IONEX_file(year, month, day, IONEX_file, ionex_dir=rad.ionex_dir):
     try:
         ftp = ftplib.FTP(server, 'anonymous', 'jaguirre@sas.upenn.edu')
         ftp.cwd(ftp_dir)
-        ftp.retrbinary(' '.join(('RETR', IONEX_file_Z)), open(IONEX_file_X, 'wb').write)
+        ftp_cmd=' '.join(('RETR', IONEX_file_Z))
+        ftp.retrbinary(ftp_cmd, open(IONEX_file_X, 'wb').write)
         ftp.quit()
     except:
         print('No file exists?')
