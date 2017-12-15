@@ -14,7 +14,7 @@ day='11'
 
 ionexfile = 'CODG1010.11I'
 
-time = year+'-'+month+'-'+day+'T00:00:00'
+time = year+'-'+month+'-'+day+' 00:00:00'
 
 ionFRMcommand = 'ionFRM.py '+RA+Dec+' '+lat+' '+lng+' '+time+' '+'IONEX/Data/'+ionexfile
 ionfrfile = '2011-04-1123h23m27.9s+58d48m42.4sIonRM.txt'
